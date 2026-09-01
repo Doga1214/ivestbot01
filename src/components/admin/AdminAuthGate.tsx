@@ -17,6 +17,8 @@ import {
   VisibilityOffIcon
 } from '../common/Icons';
 
+import { adminService } from '../../services/adminService';
+
 interface AdminAuthGateProps {
   onSuccess: () => void;
 }
@@ -27,21 +29,23 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ onSuccess }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    setTimeout(() => {
-      const validKeys = ['admin123', 'admin', 'ivestbot2026', 'masterkey'];
-      if (validKeys.includes(passkey.trim())) {
-        localStorage.setItem('ivestbot_admin_session', 'true');
+    try {
+      const ok = await adminService.adminLogin(passkey);
+      if (ok) {
         onSuccess();
       } else {
-        setError('Invalid Admin Security Passkey. Default key is: admin123');
+        setError('Invalid Admin Security Passkey.');
       }
+    } catch {
+      setError('Authentication failed. Please try again.');
+    } finally {
       setLoading(false);
-    }, 400);
+    }
   };
 
   return (

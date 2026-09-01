@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { supabase } from '../services/supabaseClient';
 import { authService } from '../services/authService';
 import type { UserProfile } from '../services/authService';
 import { walletService } from '../services/walletService';
@@ -124,11 +125,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     const syncUserData = async () => {
       try {
-        // Sync downline & network users list from database
         await authService.syncAllUsersFromSupabase();
 
         if (user?.id) {
-          // Sync wallet & transactions for active user
           await walletService.syncWalletFromSupabase(user.id);
           await walletService.syncTransactionsFromSupabase(user.id);
           setWallet(walletService.getWallet());
@@ -143,9 +142,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Initial sync
     syncUserData();
 
-    // Fast 2-second polling interval for instant wallet & downline updates
-    const interval = setInterval(syncUserData, 2000);
-    return () => clearInterval(interval);
+    // User-scoped Supabase Realtime Channel
+    let userChannel: any = null;
+    if (user?.id) {
+      userChannel = supabase
+        .channel(`user_realtime_channel_${user.id}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'wallets', filter: `user_id=eq.${user.id}` }, () => {
+          walletService.syncWalletFromSupabase(user.id).then(w => { if (w) setWallet(w); });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits', filter: `user_id=eq.${user.id}` }, () => {
+          walletService.syncTransactionsFromSupabase(user.id).then(txs => { setTransactions(txs); });
+          walletService.syncWalletFromSupabase(user.id).then(w => { if (w) setWallet(w); });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals', filter: `user_id=eq.${user.id}` }, () => {
+          walletService.syncTransactionsFromSupabase(user.id).then(txs => { setTransactions(txs); });
+          walletService.syncWalletFromSupabase(user.id).then(w => { if (w) setWallet(w); });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'wallet_transactions', filter: `user_id=eq.${user.id}` }, () => {
+          walletService.syncTransactionsFromSupabase(user.id).then(txs => { setTransactions(txs); });
+        })
+        .subscribe();
+    }
+
+    // Polling resilience fallback (every 3s)
+    const interval = setInterval(syncUserData, 3000);
+
+    return () => {
+      if (userChannel) supabase.removeChannel(userChannel);
+      clearInterval(interval);
+    };
   }, [user?.id]);
 
   // Referral URL check (?ref=XXXX)

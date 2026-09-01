@@ -1,5 +1,6 @@
+import { supabase } from './supabaseClient';
 import { authService, type UserProfile } from './authService';
-import { walletService, type WalletState, type WalletTransaction, type WalletStatus, type WalletRestrictions, type KycSubmission } from './walletService';
+import { walletService, type WalletState, type WalletTransaction, type WalletStatus, type WalletRestrictions, type KycSubmission, type TransactionType, type TransactionStatus } from './walletService';
 import { reservationService } from './reservationService';
 import { referralService, type ReferralSummary } from './referralService';
 
@@ -53,58 +54,100 @@ export const adminService = {
    * Check if current session is authenticated as Admin
    */
   isAdminAuthenticated(): boolean {
-    return localStorage.getItem(ADMIN_SESSION_KEY) === 'true';
+    return sessionStorage.getItem(ADMIN_SESSION_KEY) === 'true' || localStorage.getItem(ADMIN_SESSION_KEY) === 'true';
   },
 
   /**
-   * Authenticate admin via credentials or master passkey
+   * Authenticate admin securely via PostgreSQL RPC
    */
-  adminLogin(passwordOrPin: string): boolean {
-    const validKeys = ['admin123', 'admin', 'ivestbot2026', 'masterkey'];
-    if (validKeys.includes(passwordOrPin.trim())) {
-      localStorage.setItem(ADMIN_SESSION_KEY, 'true');
-      return true;
+  async adminLogin(passwordOrPin: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.rpc('verify_admin_access', {
+        p_passkey: passwordOrPin.trim()
+      });
+
+      if (!error && data?.authenticated) {
+        sessionStorage.setItem(ADMIN_SESSION_KEY, 'true');
+        localStorage.setItem(ADMIN_SESSION_KEY, 'true');
+        return true;
+      }
+    } catch {
+      // fallback check
     }
     return false;
   },
 
   adminLogout(): void {
+    sessionStorage.removeItem(ADMIN_SESSION_KEY);
     localStorage.removeItem(ADMIN_SESSION_KEY);
   },
 
   /**
-   * Fetch all users with their combined wallet and pending queue metrics
+   * Fetch all users with their combined wallet and pending queue metrics directly from Supabase
    */
-  getAdminUsersList(): AdminUserListItem[] {
-    const users = authService.getAllUsers();
-    const allTransactions = walletService.getTransactions();
+  async getAdminUsersList(): Promise<AdminUserListItem[]> {
+    try {
+      const { data: profiles, error: pErr } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+      const { data: wallets, error: wErr } = await supabase.from('wallets').select('*');
+      const { data: deposits, error: dErr } = await supabase.from('deposits').select('*').eq('status', 'PENDING');
+      const { data: txs, error: tErr } = await supabase.from('wallet_transactions').select('id, user_id');
 
+      if (profiles && !pErr) {
+        const walletMap = new Map((wallets || []).map(w => [w.user_id, w]));
+        const depList = deposits || [];
+        const txList = txs || [];
+
+        return profiles.map(p => {
+          const w = walletMap.get(p.id);
+          const userDeps = depList.filter(d => d.user_id === p.id);
+          const depSum = userDeps.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+          const userTxCount = txList.filter(t => t.user_id === p.id).length;
+
+          const walletState: WalletState = {
+            totalBalance: parseFloat(w?.total_balance) || 0,
+            availableBalance: parseFloat(w?.available_balance) || 0,
+            pendingBalance: parseFloat(w?.pending_balance) || 0,
+            currency: w?.currency || 'USDT',
+            status: 'ACTIVE',
+            restrictions: { canDeposit: true, canWithdraw: true, canReserve: true, canTrade: true },
+            updatedAt: w?.updated_at
+          };
+
+          const userProfile: UserProfile = {
+            id: p.id,
+            name: p.name || 'User',
+            username: p.username || 'user',
+            email: p.email || '',
+            referralCode: p.referral_code || 'IVEST100',
+            referredBy: p.referred_by_code || undefined,
+            level: p.level || 1,
+            status: p.status || 'ACTIVE',
+            kycStatus: p.kyc_status || 'NOT_SUBMITTED',
+            createdAt: p.created_at || new Date().toISOString()
+          };
+
+          return {
+            profile: userProfile,
+            wallet: walletState,
+            pendingDepositsCount: userDeps.length,
+            pendingDepositsSum: Number(depSum.toFixed(4)),
+            totalTransactionsCount: userTxCount
+          };
+        });
+      }
+    } catch {
+      // fallback
+    }
+
+    const users = authService.getAllUsers();
     return users.map(user => {
       const wallet = walletService.getWalletForUser(user.id);
-      const userTx = allTransactions.filter(
-        tx => tx.userId === user.id ||
-              (tx.userName && user.username && tx.userName.toLowerCase() === user.username.toLowerCase()) ||
-              (tx.userEmail && user.email && tx.userEmail.toLowerCase() === user.email.toLowerCase())
-      );
-      const pendingDeposits = userTx.filter(tx => tx.type === 'DEPOSIT' && tx.status === 'PENDING');
-      const pendingSum = pendingDeposits.reduce((acc, curr) => acc + curr.amount, 0);
-
-      // Auto-transition to ACTIVE if user has deposited funds or approved deposit
-      const hasApprovedDeposit = userTx.some(tx => tx.type === 'DEPOSIT' && (tx.status === 'APPROVED' || tx.status === 'COMPLETED'));
-      const isFunded = wallet.availableBalance > 0 || wallet.totalBalance > 0 || hasApprovedDeposit;
-      const effectiveStatus = (isFunded || user.status === 'ACTIVE') ? 'ACTIVE' : (user.status || 'INACTIVE');
-
-      const updatedProfile: UserProfile = {
-        ...user,
-        status: effectiveStatus as any
-      };
-
       return {
-        profile: updatedProfile,
+        profile: user,
         wallet,
-        pendingDepositsCount: pendingDeposits.length,
-        pendingDepositsSum: Number(pendingSum.toFixed(4)),
-        totalTransactionsCount: userTx.length
+        pendingDepositsCount: 0,
+        pendingDepositsSum: 0,
+        totalTransactionsCount: 0
       };
     });
   },
@@ -112,47 +155,100 @@ export const adminService = {
   /**
    * 360° Comprehensive User Intelligence Breakdown
    */
-  getUserDetailed360(userId: string): UserDetailed360 | null {
-    const users = authService.getAllUsers();
-    const user = users.find(u => u.id === userId);
-    if (!user) return null;
+  async getUserDetailed360(userId: string): Promise<UserDetailed360 | null> {
+    try {
+      const { data: user } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+      if (!user) return null;
 
-    const wallet = walletService.getWalletForUser(userId);
-    const allTransactions = walletService.getTransactions();
-    const userTx = allTransactions.filter(tx => tx.userId === userId);
+      const { data: walletData } = await supabase.from('wallets').select('*').eq('user_id', userId).maybeSingle();
+      const { data: userTxs } = await supabase.from('wallet_transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false });
 
-    const lifetimeDeposits = userTx
-      .filter(tx => tx.type === 'DEPOSIT' && (tx.status === 'COMPLETED' || tx.status === 'APPROVED'))
-      .reduce((sum, tx) => sum + tx.amount, 0);
+      const txList: WalletTransaction[] = (userTxs || []).map(d => ({
+        id: d.id,
+        userId: d.user_id,
+        type: d.type as TransactionType,
+        amount: parseFloat(d.amount) || 0,
+        currency: d.currency || 'USDT',
+        status: (d.status?.toUpperCase() || 'PENDING') as TransactionStatus,
+        description: d.description || '',
+        referenceId: d.reference_id || d.id,
+        createdAt: d.created_at || new Date().toISOString(),
+        address: d.metadata?.address,
+        txHash: d.metadata?.txHash,
+        adminRemarks: d.metadata?.adminRemarks
+      }));
 
-    const lifetimeWithdrawals = userTx
-      .filter(tx => tx.type === 'WITHDRAWAL' && (tx.status === 'COMPLETED' || tx.status === 'APPROVED'))
-      .reduce((sum, tx) => sum + tx.amount, 0);
+      const lifetimeDeposits = txList
+        .filter(tx => tx.type === 'DEPOSIT' && (tx.status === 'COMPLETED' || tx.status === 'APPROVED'))
+        .reduce((sum, tx) => sum + tx.amount, 0);
 
-    const lifetimeProfits = userTx
-      .filter(tx => tx.type === 'DAILY_PROFIT' || tx.type === 'WELCOME_BONUS' || tx.type === 'REFERRAL_BONUS')
-      .reduce((sum, tx) => sum + tx.amount, 0);
+      const lifetimeWithdrawals = txList
+        .filter(tx => tx.type === 'WITHDRAWAL' && (tx.status === 'COMPLETED' || tx.status === 'APPROVED'))
+        .reduce((sum, tx) => sum + tx.amount, 0);
 
-    const referralSummary = referralService.getReferralSummary(user.referralCode);
-    const lock = reservationService.getCycleLockStatus();
+      const lifetimeProfits = txList
+        .filter(tx => tx.type === 'DAILY_PROFIT' || tx.type === 'WELCOME_BONUS' || tx.type === 'REFERRAL_BONUS')
+        .reduce((sum, tx) => sum + tx.amount, 0);
 
-    return {
-      profile: user,
-      wallet,
-      referralSummary,
-      lifetimeDeposits: Number(lifetimeDeposits.toFixed(2)),
-      lifetimeWithdrawals: Number(lifetimeWithdrawals.toFixed(2)),
-      lifetimeProfits: Number(lifetimeProfits.toFixed(2)),
-      transactions: userTx,
-      cycleLock: lock
-    };
+      const referralSummary = referralService.getReferralSummary(user.referral_code);
+      const lock = reservationService.getCycleLockStatus();
+
+      const userProfile: UserProfile = {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        referralCode: user.referral_code,
+        referredBy: user.referred_by_code || undefined,
+        level: user.level || 1,
+        status: user.status || 'ACTIVE',
+        kycStatus: user.kyc_status || 'NOT_SUBMITTED',
+        createdAt: user.created_at
+      };
+
+      const walletState: WalletState = {
+        totalBalance: parseFloat(walletData?.total_balance) || 0,
+        availableBalance: parseFloat(walletData?.available_balance) || 0,
+        pendingBalance: parseFloat(walletData?.pending_balance) || 0,
+        currency: walletData?.currency || 'USDT',
+        status: 'ACTIVE',
+        restrictions: { canDeposit: true, canWithdraw: true, canReserve: true, canTrade: true },
+        updatedAt: walletData?.updated_at
+      };
+
+      return {
+        profile: userProfile,
+        wallet: walletState,
+        referralSummary,
+        lifetimeDeposits: Number(lifetimeDeposits.toFixed(2)),
+        lifetimeWithdrawals: Number(lifetimeWithdrawals.toFixed(2)),
+        lifetimeProfits: Number(lifetimeProfits.toFixed(2)),
+        transactions: txList,
+        cycleLock: lock
+      };
+    } catch {
+      return null;
+    }
   },
 
   /**
    * Update full user profile details (Name, Email, Level, Status, Sponsor)
    */
-  updateUserProfile(userId: string, updates: Partial<UserProfile>): UserProfile | null {
-    return authService.adminUpdateUser(userId, updates);
+  async updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<UserProfile | null> {
+    const res = authService.adminUpdateUser(userId, updates);
+    try {
+      await supabase.from('profiles').update({
+        name: updates.name,
+        username: updates.username,
+        email: updates.email,
+        level: updates.level,
+        status: updates.status,
+        updated_at: new Date().toISOString()
+      }).eq('id', userId);
+    } catch {
+      // ignore
+    }
+    return res;
   },
 
   /**
@@ -177,36 +273,96 @@ export const adminService = {
   },
 
   /**
-   * Calculate overall platform statistics
+   * Calculate overall platform statistics straight from Supabase PostgreSQL
    */
-  getPlatformStats(): PlatformStats {
-    const users = this.getAdminUsersList();
-    const transactions = walletService.getTransactions();
-
-    const pendingDeposits = transactions.filter(t => t.type === 'DEPOSIT' && t.status === 'PENDING');
-    const pendingWithdrawals = transactions.filter(t => t.type === 'WITHDRAWAL' && t.status === 'PENDING');
-
-    const totalCirculation = users.reduce((acc, u) => acc + (u.wallet.totalBalance || 0), 0);
-    const restrictedCount = users.filter(u => u.wallet.status !== 'ACTIVE' || (u.wallet.restrictions && (!u.wallet.restrictions.canDeposit || !u.wallet.restrictions.canWithdraw))).length;
+  async getPlatformStats(): Promise<PlatformStats> {
+    try {
+      const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
+      if (!error && data) {
+        return {
+          totalUsers: data.totalUsers || 0,
+          activeUsers: data.activeUsers || 0,
+          totalPendingDepositsCount: data.totalPendingDepositsCount || 0,
+          totalPendingDepositsSum: parseFloat(data.totalPendingDepositsSum) || 0,
+          totalPendingWithdrawalsCount: data.totalPendingWithdrawalsCount || 0,
+          totalPendingWithdrawalsSum: parseFloat(data.totalPendingWithdrawalsSum) || 0,
+          totalPlatformCirculation: parseFloat(data.totalPlatformCirculation) || 0,
+          restrictedWalletsCount: 0
+        };
+      }
+    } catch {
+      // fallback
+    }
 
     return {
-      totalUsers: users.length,
-      activeUsers: users.filter(u => u.profile.status === 'ACTIVE').length,
-      totalPendingDepositsCount: pendingDeposits.length,
-      totalPendingDepositsSum: Number(pendingDeposits.reduce((sum, t) => sum + t.amount, 0).toFixed(2)),
-      totalPendingWithdrawalsCount: pendingWithdrawals.length,
-      totalPendingWithdrawalsSum: Number(pendingWithdrawals.reduce((sum, t) => sum + t.amount, 0).toFixed(2)),
-      totalPlatformCirculation: Number(totalCirculation.toFixed(2)),
-      restrictedWalletsCount: restrictedCount
+      totalUsers: 0,
+      activeUsers: 0,
+      totalPendingDepositsCount: 0,
+      totalPendingDepositsSum: 0,
+      totalPendingWithdrawalsCount: 0,
+      totalPendingWithdrawalsSum: 0,
+      totalPlatformCirculation: 0,
+      restrictedWalletsCount: 0
     };
   },
 
-  getPendingDeposits(): WalletTransaction[] {
-    return walletService.getTransactions().filter(t => t.type === 'DEPOSIT' && t.status === 'PENDING');
+  /**
+   * Query pending deposits directly from Supabase (Single Source of Truth)
+   */
+  async getPendingDeposits(): Promise<WalletTransaction[]> {
+    try {
+      const { data, error } = await supabase.rpc('get_admin_pending_deposits');
+      if (!error && data) {
+        return data.map((d: any) => ({
+          id: d.id,
+          userId: d.user_id,
+          userName: d.user_name || d.username || 'User',
+          userEmail: d.email,
+          type: 'DEPOSIT' as TransactionType,
+          amount: parseFloat(d.amount) || 0,
+          currency: d.currency || 'USDT',
+          status: 'PENDING' as TransactionStatus,
+          description: `USDT Deposit Submitted (${(d.deposit_address || '').slice(0, 8)}...) - Pending Admin Verification`,
+          referenceId: `DEP-${d.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+          createdAt: d.created_at,
+          address: d.deposit_address,
+          txHash: d.tx_hash,
+          adminRemarks: d.admin_note
+        }));
+      }
+    } catch {
+      // ignore
+    }
+    return [];
   },
 
-  getPendingWithdrawals(): WalletTransaction[] {
-    return walletService.getTransactions().filter(t => t.type === 'WITHDRAWAL' && t.status === 'PENDING');
+  /**
+   * Query pending withdrawals directly from Supabase (Single Source of Truth)
+   */
+  async getPendingWithdrawals(): Promise<WalletTransaction[]> {
+    try {
+      const { data, error } = await supabase.rpc('get_admin_pending_withdrawals');
+      if (!error && data) {
+        return data.map((w: any) => ({
+          id: w.id,
+          userId: w.user_id,
+          userName: w.user_name || w.username || 'User',
+          userEmail: w.email,
+          type: 'WITHDRAWAL' as TransactionType,
+          amount: parseFloat(w.amount) || 0,
+          currency: w.currency || 'USDT',
+          status: 'PENDING' as TransactionStatus,
+          description: `Withdrawal Request to ${(w.recipient_address || '').slice(0, 8)}... - Pending Admin Review`,
+          referenceId: `WTH-${w.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+          createdAt: w.created_at,
+          address: w.recipient_address,
+          adminRemarks: w.admin_note
+        }));
+      }
+    } catch {
+      // ignore
+    }
+    return [];
   },
 
   async approveDeposit(txId: string, remarks?: string): Promise<{ approvedTx: WalletTransaction; updatedWallet: WalletState }> {

@@ -436,56 +436,9 @@ export const walletService = {
     });
 
     if (rpcErr || !rpcRes?.success) {
-      // Fallback: direct atomic DB insert if RPC is unreachable
-      const { data: depData, error: depErr } = await supabase
-        .from('deposits')
-        .insert({
-          user_id: userMeta.id,
-          amount,
-          currency: 'USDT',
-          network: 'TRC20',
-          deposit_address: address,
-          tx_hash: txHash.trim(),
-          status: 'PENDING'
-        })
-        .select()
-        .single();
-
-      if (depErr || !depData) {
-        throw new Error(depErr?.message || 'Failed to record deposit in database. Please try again.');
-      }
-
-      const updatedWallet: WalletState = {
-        ...wallet,
-        pendingBalance: Number((wallet.pendingBalance + amount).toFixed(4)),
-        totalBalance: Number((wallet.totalBalance + amount).toFixed(4))
-      };
-      this.saveWalletForUser(userMeta.id, updatedWallet);
-
-      const depositTx: WalletTransaction = {
-        id: depData.id,
-        userId: userMeta.id,
-        userName: userMeta.name,
-        userEmail: userMeta.email,
-        type: 'DEPOSIT',
-        amount,
-        currency: 'USDT',
-        status: 'PENDING',
-        description: `USDT Deposit Submitted (${address.slice(0, 8)}...) - Pending Admin Verification`,
-        referenceId: `DEP-${depData.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
-        createdAt: depData.created_at,
-        address,
-        txHash
-      };
-
-      const currTxs = this.getTransactions();
-      this.saveTransactions([depositTx, ...currTxs.filter(t => t.id !== depositTx.id)]);
-
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('ivestbot_deposit_submitted'));
-      }
-
-      return { depositTx, newWallet: updatedWallet };
+      const errMsg = rpcErr?.message || 'Deposit submission failed on server. Please try again.';
+      console.error('[Deposit Error]', rpcErr || rpcRes);
+      throw new Error(errMsg);
     }
 
     // Success via RPC

@@ -42,6 +42,9 @@ export const Admin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<number>(0);
   const [isBroadcastOpen, setIsBroadcastOpen] = useState<boolean>(false);
   const [users, setUsers] = useState<AdminUserListItem[]>([]);
+  const [pendingDeposits, setPendingDeposits] = useState<WalletTransaction[]>([]);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState<WalletTransaction[]>([]);
+  const [globalLedger, setGlobalLedger] = useState<WalletTransaction[]>([]);
   const [stats, setStats] = useState<PlatformStats>({
     totalUsers: 0,
     activeUsers: 0,
@@ -55,15 +58,21 @@ export const Admin: React.FC = () => {
 
   const loadAdminData = useCallback(async () => {
     try {
-      await authService.syncAllUsersFromSupabase();
-      await walletService.syncTransactionsFromSupabase();
-    } catch {
-      // ignore
+      const [depList, wthList, userList, platformStats, allTxs] = await Promise.all([
+        adminService.getPendingDeposits(),
+        adminService.getPendingWithdrawals(),
+        adminService.getAdminUsersList(),
+        adminService.getPlatformStats(),
+        walletService.syncTransactionsFromSupabase()
+      ]);
+      setPendingDeposits(depList);
+      setPendingWithdrawals(wthList);
+      setUsers(userList);
+      setStats(platformStats);
+      setGlobalLedger(allTxs);
+    } catch (err) {
+      console.error('Error loading admin data from database:', err);
     }
-    const userList = adminService.getAdminUsersList();
-    const platformStats = adminService.getPlatformStats();
-    setUsers(userList);
-    setStats(platformStats);
   }, []);
 
   useEffect(() => {
@@ -184,9 +193,6 @@ export const Admin: React.FC = () => {
     return <AdminAuthGate onSuccess={() => setIsAdminAuth(true)} />;
   }
 
-  const pendingDeposits = adminService.getPendingDeposits();
-  const pendingWithdrawals = adminService.getPendingWithdrawals();
-
   return (
     <Box sx={{ pb: 6 }}>
       {/* Admin Top Bar */}
@@ -306,7 +312,7 @@ export const Admin: React.FC = () => {
 
       {activeTab === 4 && (
         <AdminGlobalLedger
-          transactions={walletService.getTransactions()}
+          transactions={globalLedger}
         />
       )}
 
