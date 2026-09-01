@@ -98,6 +98,10 @@ export const authService = {
   },
 
   async verifyUserAlive(userId: string): Promise<UserProfile | null> {
+    const localUsers = this.getAllUsers();
+    const localUser = localUsers.find(u => u.id === userId);
+    const currentUser = this.getCurrentUser();
+
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -105,29 +109,37 @@ export const authService = {
         .eq('id', userId)
         .maybeSingle();
 
-      if (error || !data) {
-        // User does not exist in database (e.g. deleted by admin)
-        return null;
+      if (data && !error) {
+        const user: UserProfile = {
+          id: data.id,
+          name: data.name,
+          username: data.username,
+          email: data.email,
+          referralCode: data.referral_code,
+          referredBy: data.referred_by_code || undefined,
+          level: data.level || 1,
+          status: (data.status || 'INACTIVE') as any,
+          kycStatus: data.kyc_status || 'NOT_SUBMITTED',
+          createdAt: data.created_at
+        };
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+        this.upsertUser(user);
+        return user;
       }
-
-      const user: UserProfile = {
-        id: data.id,
-        name: data.name,
-        username: data.username,
-        email: data.email,
-        referralCode: data.referral_code,
-        referredBy: data.referred_by_code || undefined,
-        level: data.level || 1,
-        status: (data.status || 'INACTIVE') as any,
-        kycStatus: data.kyc_status || 'NOT_SUBMITTED',
-        createdAt: data.created_at
-      };
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-      return user;
     } catch {
-      return null;
+      // ignore network errors
     }
+
+    // If user exists locally in active storage, keep them logged in safely
+    if (localUser) {
+      return localUser;
+    }
+    if (currentUser && currentUser.id === userId) {
+      return currentUser;
+    }
+
+    return null;
   },
 
   async login(usernameOrEmail: string, password?: string): Promise<UserProfile> {

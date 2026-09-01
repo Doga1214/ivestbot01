@@ -176,6 +176,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const login = async (usernameOrEmail: string, password?: string) => {
     const loggedInUser = await authService.login(usernameOrEmail, password);
     setUser(loggedInUser);
+    const userWallet = walletService.getWalletForUser(loggedInUser.id);
+    walletService.saveWallet(userWallet);
+    setWallet(userWallet);
     setIsLoginModalOpen(false);
     refreshWallet();
     showSnackbar(`Welcome back, ${loggedInUser.name}!`, 'success');
@@ -197,9 +200,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         canTrade: true
       }
     };
+    walletService.saveWalletForUser(registeredUser.id, zeroWallet);
     walletService.saveWallet(zeroWallet);
     setWallet(zeroWallet);
     setIsRegisterModalOpen(false);
+    refreshWallet();
     showSnackbar('Account created successfully! Wallet initialized with 0.00 USDT.', 'success');
   };
 
