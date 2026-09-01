@@ -128,17 +128,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         await authService.syncAllUsersFromSupabase();
 
         if (user?.id) {
-          // 1. Verify if user is still active in database
-          const validUser = await authService.verifyUserAlive(user.id);
-          if (!validUser) {
-            // Account was deleted by Admin! Immediate termination on user device
-            authService.logout();
-            setUser(null);
-            showSnackbar('Your account has been deleted by Administrator.', 'error');
-            return;
-          }
-
-          // 2. Sync wallet & transactions
+          // Sync wallet & transactions for active user
           await walletService.syncWalletFromSupabase(user.id);
           await walletService.syncTransactionsFromSupabase(user.id);
           setWallet(walletService.getWallet());
@@ -153,10 +143,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Initial sync
     syncUserData();
 
-    // Fast 2-second polling interval for instant admin deletion & approval sync
+    // Fast 2-second polling interval for instant wallet & downline updates
     const interval = setInterval(syncUserData, 2000);
     return () => clearInterval(interval);
-  }, [user?.id, showSnackbar]);
+  }, [user?.id]);
 
   // Referral URL check (?ref=XXXX)
   useEffect(() => {
