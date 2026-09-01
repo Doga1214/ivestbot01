@@ -448,9 +448,9 @@ export const walletService = {
     const canonicalUserId = await this.resolveCanonicalUserId(userMeta);
     const wallet = this.getWalletForUser(canonicalUserId);
 
-    // Restrictions check
-    if (wallet.status === 'INACTIVE' || wallet.status === 'FROZEN') {
-      throw new Error(`Wallet is ${wallet.status}. Deposits are currently disabled on your account.`);
+    // Restrictions check: Allow INACTIVE accounts to deposit to activate their account
+    if (wallet.status === 'FROZEN') {
+      throw new Error('Wallet is FROZEN. Deposit operations are currently locked on your account.');
     }
     if (wallet.restrictions && !wallet.restrictions.canDeposit) {
       throw new Error(wallet.restrictionReason || 'Deposit feature is restricted on your wallet by Admin.');

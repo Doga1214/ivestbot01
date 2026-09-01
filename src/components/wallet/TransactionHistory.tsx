@@ -24,9 +24,14 @@ export const TransactionHistory: React.FC = () => {
   const { user, transactions, cancelWithdrawal } = useApp();
   const [filterType, setFilterType] = useState<string>('ALL');
 
-  const userTransactions = transactions.filter(
-    (tx) => !tx.userId || (user && tx.userId === user.id) || (user && tx.userEmail === user.email)
-  );
+  const userTransactions = transactions.filter((tx) => {
+    if (!user) return true;
+    if (tx.userId && user.id && tx.userId.toLowerCase() === user.id.toLowerCase()) return true;
+    if (tx.userEmail && user.email && tx.userEmail.toLowerCase() === user.email.toLowerCase()) return true;
+    if (tx.userName && user.username && tx.userName.toLowerCase() === user.username.toLowerCase()) return true;
+    if (tx.description && user.username && tx.description.toLowerCase().includes(user.username.toLowerCase())) return true;
+    return !tx.userId; // include unassigned transactions
+  });
 
   const filteredTransactions = userTransactions.filter((tx) => {
     if (filterType === 'ALL') return true;

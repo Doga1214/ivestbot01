@@ -391,13 +391,20 @@ export const authService = {
     }
 
     try {
-      await supabase.from('deposits').delete().eq('user_id', userId);
-      await supabase.from('withdrawals').delete().eq('user_id', userId);
-      await supabase.from('wallet_transactions').delete().eq('user_id', userId);
-      await supabase.from('wallets').delete().eq('user_id', userId);
-      await supabase.from('kyc_records').delete().eq('user_id', userId);
-      await supabase.from('reservations').delete().eq('user_id', userId);
-      await supabase.from('profiles').delete().eq('id', userId);
+      const { data, error } = await supabase.rpc('admin_delete_user', {
+        p_user_id: userId
+      });
+
+      if (error || !data?.success) {
+        // Fallback direct delete
+        await supabase.from('deposits').delete().eq('user_id', userId);
+        await supabase.from('withdrawals').delete().eq('user_id', userId);
+        await supabase.from('wallet_transactions').delete().eq('user_id', userId);
+        await supabase.from('wallets').delete().eq('user_id', userId);
+        await supabase.from('kyc_records').delete().eq('user_id', userId);
+        await supabase.from('reservations').delete().eq('user_id', userId);
+        await supabase.from('profiles').delete().eq('id', userId);
+      }
     } catch {
       // ignore
     }

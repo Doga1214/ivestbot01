@@ -33,15 +33,12 @@ export const DepositPanel: React.FC = () => {
   const [submittedMessage, setSubmittedMessage] = useState<string | null>(null);
 
   const isRestricted =
-    wallet.status === 'INACTIVE' ||
     wallet.status === 'FROZEN' ||
     (wallet.restrictions && !wallet.restrictions.canDeposit);
 
   const restrictionMessage =
     wallet.restrictionReason ||
-    (wallet.status === 'INACTIVE'
-      ? 'Your wallet is inactive. Deposit operations are temporarily disabled.'
-      : wallet.status === 'FROZEN'
+    (wallet.status === 'FROZEN'
       ? 'Your wallet is frozen. Deposit operations are currently locked.'
       : 'Deposits have been restricted on your wallet by the administrator.');
 
