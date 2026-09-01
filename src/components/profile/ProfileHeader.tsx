@@ -7,9 +7,12 @@ import {
 import { useApp } from '../../context/AppContext';
 
 export const ProfileHeader: React.FC = () => {
-  const { user, showSnackbar } = useApp();
+  const { user, wallet, showSnackbar } = useApp();
 
   if (!user) return null;
+
+  const isFundedActive = user.status === 'ACTIVE' || (wallet && (wallet.availableBalance > 0 || wallet.totalBalance > 0));
+  const activeStatus = isFundedActive ? 'ACTIVE' : (user.status || 'INACTIVE');
 
   return (
     <Card
@@ -52,9 +55,9 @@ export const ProfileHeader: React.FC = () => {
                 </Typography>
                 <VerifiedIcon sx={{ color: '#8b5cf6', fontSize: 20 }} />
                 <Chip
-                  label={user.status}
-                  color={user.status === 'ACTIVE' ? 'success' : user.status === 'INACTIVE' ? 'warning' : 'error'}
-                  variant={user.status === 'ACTIVE' ? 'filled' : 'outlined'}
+                  label={activeStatus}
+                  color={activeStatus === 'ACTIVE' ? 'success' : activeStatus === 'INACTIVE' ? 'warning' : 'error'}
+                  variant={activeStatus === 'ACTIVE' ? 'filled' : 'outlined'}
                   size="small"
                   sx={{ fontWeight: 700, fontSize: '0.68rem', height: 22 }}
                 />

@@ -155,9 +155,18 @@ export const AdminUserList: React.FC<AdminUserListProps> = ({
                     sx={{ cursor: 'pointer' }}
                     onClick={() => setSelectedDetailUserId(item.profile.id)}
                   >
-                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#fff', '&:hover': { color: '#a78bfa' } }}>
-                      {item.profile.name}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#fff', '&:hover': { color: '#a78bfa' } }}>
+                        {item.profile.name}
+                      </Typography>
+                      <Chip
+                        label={item.profile.status || 'INACTIVE'}
+                        size="small"
+                        color={item.profile.status === 'ACTIVE' ? 'success' : 'warning'}
+                        variant={item.profile.status === 'ACTIVE' ? 'filled' : 'outlined'}
+                        sx={{ fontSize: '0.62rem', height: 18, fontWeight: 800 }}
+                      />
+                    </Box>
                     <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
                       @{item.profile.username} • {item.profile.email}
                     </Typography>

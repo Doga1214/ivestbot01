@@ -81,12 +81,26 @@ export const adminService = {
 
     return users.map(user => {
       const wallet = walletService.getWalletForUser(user.id);
-      const userTx = allTransactions.filter(tx => tx.userId === user.id);
+      const userTx = allTransactions.filter(
+        tx => tx.userId === user.id ||
+              (tx.userName && user.username && tx.userName.toLowerCase() === user.username.toLowerCase()) ||
+              (tx.userEmail && user.email && tx.userEmail.toLowerCase() === user.email.toLowerCase())
+      );
       const pendingDeposits = userTx.filter(tx => tx.type === 'DEPOSIT' && tx.status === 'PENDING');
       const pendingSum = pendingDeposits.reduce((acc, curr) => acc + curr.amount, 0);
 
+      // Auto-transition to ACTIVE if user has deposited funds or approved deposit
+      const hasApprovedDeposit = userTx.some(tx => tx.type === 'DEPOSIT' && (tx.status === 'APPROVED' || tx.status === 'COMPLETED'));
+      const isFunded = wallet.availableBalance > 0 || wallet.totalBalance > 0 || hasApprovedDeposit;
+      const effectiveStatus = (isFunded || user.status === 'ACTIVE') ? 'ACTIVE' : (user.status || 'INACTIVE');
+
+      const updatedProfile: UserProfile = {
+        ...user,
+        status: effectiveStatus as any
+      };
+
       return {
-        profile: user,
+        profile: updatedProfile,
         wallet,
         pendingDepositsCount: pendingDeposits.length,
         pendingDepositsSum: Number(pendingSum.toFixed(4)),

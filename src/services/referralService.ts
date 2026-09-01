@@ -50,28 +50,41 @@ export const referralService = {
     const allUsers = authService.getAllUsers();
     const allTransactions = walletService.getTransactions();
     
-    // Find target user who owns this referral code
-    const currentUser = allUsers.find(u => u.referralCode === referralCode) || allUsers[0];
-    const userRefCode = currentUser ? currentUser.referralCode : referralCode;
-    const userUsername = currentUser ? currentUser.username.toLowerCase() : '';
+    const cleanRef = (referralCode || '').trim().toLowerCase();
+    const currentSessionUser = authService.getCurrentUser();
 
-    const checkMemberStatus = (u: any, balance: number): 'ACTIVE' | 'INACTIVE' => {
-      // An account is active if it was approved/activated (status ACTIVE) or has deposited funds
+    // Find target user who owns this referral code
+    const currentUser = allUsers.find(
+      u => (u.referralCode && u.referralCode.trim().toLowerCase() === cleanRef) ||
+           (u.id && u.id.trim().toLowerCase() === cleanRef) ||
+           (u.username && u.username.trim().toLowerCase() === cleanRef)
+    ) || (currentSessionUser && (currentSessionUser.referralCode?.toLowerCase() === cleanRef || currentSessionUser.id === referralCode) ? currentSessionUser : allUsers[0]);
+
+    const userRefCode = currentUser ? currentUser.referralCode : referralCode;
+
+    const checkMemberStatus = (u: any, wallet: any): 'ACTIVE' | 'INACTIVE' => {
+      // An account is active if it has available/total balance > 0, status ACTIVE, or an approved deposit
       const hasApprovedDeposit = allTransactions.some(
         t => (t.userId === u.id || (t.userName && t.userName.toLowerCase() === u.username.toLowerCase())) &&
-             t.type === 'DEPOSIT' && t.status === 'APPROVED'
+             t.type === 'DEPOSIT' && (t.status === 'APPROVED' || t.status === 'COMPLETED')
       );
-      if (u.status === 'ACTIVE' || balance > 0 || hasApprovedDeposit) {
+      if (u.status === 'ACTIVE' || wallet.availableBalance > 0 || wallet.totalBalance > 0 || hasApprovedDeposit) {
         return 'ACTIVE';
       }
       return 'INACTIVE';
     };
 
-    // Level A (Direct): Anyone whose referredBy === userRefCode or referredBy === userUsername
+    // User identifier keys for Tier A matching
+    const currentUserKeys = new Set<string>();
+    if (currentUser?.referralCode) currentUserKeys.add(currentUser.referralCode.trim().toLowerCase());
+    if (currentUser?.username) currentUserKeys.add(currentUser.username.trim().toLowerCase());
+    if (currentUser?.id) currentUserKeys.add(currentUser.id.trim().toLowerCase());
+
+    // Level A (Direct Referrals of currentUser): Anyone whose referredBy matches currentUser
     const tierAUsers = allUsers.filter(u => {
-      if (u.id === currentUser?.id) return false;
-      const ref = (u.referredBy || '').toLowerCase();
-      return ref === userRefCode.toLowerCase() || (userUsername && ref === userUsername);
+      if (!u || u.id === currentUser?.id) return false;
+      const ref = (u.referredBy || '').trim().toLowerCase();
+      return ref !== '' && currentUserKeys.has(ref);
     });
 
     const tierAMembers: ReferralMember[] = tierAUsers.map(u => {
@@ -81,21 +94,27 @@ export const referralService = {
         name: u.name,
         username: u.username,
         level: u.level || 1,
-        status: checkMemberStatus(u, w.totalBalance),
+        status: checkMemberStatus(u, w),
         walletBalance: w.totalBalance,
         joinedAt: u.createdAt,
         referredBy: u.referredBy
       };
     });
 
-    // Level B (Indirect 2nd Tier): Referred by Tier A members
-    const tierACodes = new Set(tierAUsers.map(u => (u.referralCode || '').toLowerCase()));
-    const tierAUsernames = new Set(tierAUsers.map(u => (u.username || '').toLowerCase()));
+    // Level B (Indirect 2nd Tier): Anyone whose referredBy matches any Tier A member
+    const tierAKeys = new Set<string>();
+    const tierAIds = new Set<string>();
+    tierAUsers.forEach(u => {
+      if (u.id) tierAIds.add(u.id.toLowerCase());
+      if (u.referralCode) tierAKeys.add(u.referralCode.trim().toLowerCase());
+      if (u.username) tierAKeys.add(u.username.trim().toLowerCase());
+      if (u.id) tierAKeys.add(u.id.trim().toLowerCase());
+    });
 
     const tierBUsers = allUsers.filter(u => {
-      if (u.id === currentUser?.id || tierACodes.has((u.referralCode || '').toLowerCase())) return false;
-      const ref = (u.referredBy || '').toLowerCase();
-      return tierACodes.has(ref) || tierAUsernames.has(ref);
+      if (!u || u.id === currentUser?.id || tierAIds.has(u.id.toLowerCase())) return false;
+      const ref = (u.referredBy || '').trim().toLowerCase();
+      return ref !== '' && tierAKeys.has(ref);
     });
 
     const tierBMembers: ReferralMember[] = tierBUsers.map(u => {
@@ -105,25 +124,27 @@ export const referralService = {
         name: u.name,
         username: u.username,
         level: u.level || 1,
-        status: checkMemberStatus(u, w.totalBalance),
+        status: checkMemberStatus(u, w),
         walletBalance: w.totalBalance,
         joinedAt: u.createdAt,
         referredBy: u.referredBy
       };
     });
 
-    // Level C (Indirect 3rd Tier): Referred by Tier B members
-    const tierBCodes = new Set(tierBUsers.map(u => (u.referralCode || '').toLowerCase()));
-    const tierBUsernames = new Set(tierBUsers.map(u => (u.username || '').toLowerCase()));
+    // Level C (Indirect 3rd Tier): Anyone whose referredBy matches any Tier B member
+    const tierBKeys = new Set<string>();
+    const tierBIds = new Set<string>();
+    tierBUsers.forEach(u => {
+      if (u.id) tierBIds.add(u.id.toLowerCase());
+      if (u.referralCode) tierBKeys.add(u.referralCode.trim().toLowerCase());
+      if (u.username) tierBKeys.add(u.username.trim().toLowerCase());
+      if (u.id) tierBKeys.add(u.id.trim().toLowerCase());
+    });
 
     const tierCUsers = allUsers.filter(u => {
-      if (
-        u.id === currentUser?.id ||
-        tierACodes.has((u.referralCode || '').toLowerCase()) ||
-        tierBCodes.has((u.referralCode || '').toLowerCase())
-      ) return false;
-      const ref = (u.referredBy || '').toLowerCase();
-      return tierBCodes.has(ref) || tierBUsernames.has(ref);
+      if (!u || u.id === currentUser?.id || tierAIds.has(u.id.toLowerCase()) || tierBIds.has(u.id.toLowerCase())) return false;
+      const ref = (u.referredBy || '').trim().toLowerCase();
+      return ref !== '' && tierBKeys.has(ref);
     });
 
     const tierCMembers: ReferralMember[] = tierCUsers.map(u => {
@@ -133,7 +154,7 @@ export const referralService = {
         name: u.name,
         username: u.username,
         level: u.level || 1,
-        status: checkMemberStatus(u, w.totalBalance),
+        status: checkMemberStatus(u, w),
         walletBalance: w.totalBalance,
         joinedAt: u.createdAt,
         referredBy: u.referredBy

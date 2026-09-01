@@ -228,7 +228,7 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
                 />
                 <Chip
                   label={data.profile.status}
-                  color={data.profile.status === 'ACTIVE' ? 'success' : 'error'}
+                  color={data.profile.status === 'ACTIVE' ? 'success' : data.profile.status === 'INACTIVE' ? 'warning' : 'error'}
                   size="small"
                   sx={{ fontWeight: 800, fontSize: '0.7rem' }}
                 />
@@ -348,6 +348,7 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
                     onChange={(e) => setAccountStatus(e.target.value as any)}
                   >
                     <MenuItem value="ACTIVE">ACTIVE</MenuItem>
+                    <MenuItem value="INACTIVE">INACTIVE</MenuItem>
                     <MenuItem value="SUSPENDED">SUSPENDED</MenuItem>
                     <MenuItem value="BLOCKED">BLOCKED / BANNED</MenuItem>
                   </Select>
