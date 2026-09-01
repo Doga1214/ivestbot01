@@ -245,3 +245,7 @@ export const TuneIcon: React.FC<SvgIconProps> = (props) => (
   <SvgIcon {...props}><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></SvgIcon>
 );
 
+export const DeleteOutlineIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props}><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM8 9h8v10H8V9zm7.5-5l-1-1h-5l-1 1H5v2h14V4z"/></SvgIcon>
+);
+

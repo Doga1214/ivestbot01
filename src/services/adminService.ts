@@ -273,5 +273,12 @@ export const adminService = {
     const updated = [newAnn, ...list];
     localStorage.setItem(ANNOUNCEMENTS_KEY, JSON.stringify(updated));
     return newAnn;
+  },
+
+  /**
+   * Permanently delete user and their associated data
+   */
+  async deleteUser(userId: string): Promise<boolean> {
+    return authService.deleteUser(userId);
   }
 };

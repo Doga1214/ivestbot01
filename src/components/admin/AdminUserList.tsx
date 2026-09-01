@@ -14,13 +14,20 @@ import {
   Chip,
   TextField,
   InputAdornment,
-  Tooltip
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  CircularProgress
 } from '@mui/material';
 import {
   SearchIcon,
   AddCircleOutlineIcon,
   TuneIcon,
-  VisibilityIcon
+  VisibilityIcon,
+  DeleteOutlineIcon
 } from '../common/Icons';
 import type { AdminUserListItem } from '../../services/adminService';
 import { formatUSDT, formatDateTime } from '../../utils/formatters';
@@ -33,6 +40,7 @@ interface AdminUserListProps {
   users: AdminUserListItem[];
   onAdjustBalance: (userId: string, type: 'CREDIT' | 'DEBIT', amount: number, reason: string) => void;
   onUpdateRestrictions: (userId: string, status: WalletStatus, restrictions: WalletRestrictions, reason?: string) => void;
+  onDeleteUser: (userId: string, userName: string) => Promise<void>;
   onRefresh: () => void;
   showSnackbar: (message: string, severity?: 'success' | 'info' | 'warning' | 'error') => void;
 }
@@ -41,6 +49,7 @@ export const AdminUserList: React.FC<AdminUserListProps> = ({
   users,
   onAdjustBalance,
   onUpdateRestrictions,
+  onDeleteUser,
   onRefresh,
   showSnackbar
 }) => {
@@ -48,6 +57,8 @@ export const AdminUserList: React.FC<AdminUserListProps> = ({
   const [selectedAdjustUser, setSelectedAdjustUser] = useState<AdminUserListItem | null>(null);
   const [selectedRestrictionsUser, setSelectedRestrictionsUser] = useState<AdminUserListItem | null>(null);
   const [selectedDetailUserId, setSelectedDetailUserId] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<AdminUserListItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   const filteredUsers = users.filter((u) => {
     const term = searchTerm.toLowerCase();
@@ -97,7 +108,7 @@ export const AdminUserList: React.FC<AdminUserListProps> = ({
               User Intelligence & Account Controls
             </Typography>
             <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-              Full 360° user overview, WP Swings controls, credit/debit, and instant login simulation.
+              Full 360° user overview, WP Swings controls, credit/debit, restrictions, and permanent account deletion.
             </Typography>
           </Box>
 
@@ -205,7 +216,7 @@ export const AdminUserList: React.FC<AdminUserListProps> = ({
                   </TableCell>
 
                   <TableCell align="center">
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
                       <Tooltip title="View 360° User Intelligence & Controls">
                         <Button
                           variant="contained"
@@ -242,6 +253,29 @@ export const AdminUserList: React.FC<AdminUserListProps> = ({
                           sx={{ fontWeight: 700, textTransform: 'none', px: 1.2 }}
                         >
                           Rules
+                        </Button>
+                      </Tooltip>
+
+                      <Tooltip title="Permanently Delete User Account">
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          startIcon={<DeleteOutlineIcon />}
+                          onClick={() => setUserToDelete(item)}
+                          sx={{
+                            fontWeight: 700,
+                            textTransform: 'none',
+                            px: 1.2,
+                            borderColor: 'rgba(239, 68, 68, 0.4)',
+                            color: '#f87171',
+                            '&:hover': {
+                              borderColor: '#ef4444',
+                              backgroundColor: 'rgba(239, 68, 68, 0.1)'
+                            }
+                          }}
+                        >
+                          Delete
                         </Button>
                       </Tooltip>
                     </Box>
@@ -281,6 +315,64 @@ export const AdminUserList: React.FC<AdminUserListProps> = ({
           onUpdateRestrictions(userId, status, restrictions, reason);
         }}
       />
+
+      {/* Delete User Confirmation Dialog */}
+      <Dialog
+        open={Boolean(userToDelete)}
+        onClose={() => !isDeleting && setUserToDelete(null)}
+        slotProps={{
+          paper: {
+            sx: {
+              backgroundColor: '#111528',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              borderRadius: 3,
+              p: 1
+            }
+          }
+        }}
+      >
+        <DialogTitle sx={{ color: '#ef4444', fontWeight: 800 }}>
+          Permanently Delete User Account?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: '#9CA3AF' }}>
+            Are you sure you want to permanently delete user{' '}
+            <strong style={{ color: '#fff' }}>{userToDelete?.profile.name}</strong> (@{userToDelete?.profile.username})?
+            <br /><br />
+            This will permanently remove their wallet balance (<strong>{userToDelete?.wallet.availableBalance.toFixed(2)} USDT</strong>), transaction history, deposits, withdrawals, KYC records, and database profile.
+            <br /><br />
+            <span style={{ color: '#f87171', fontWeight: 700 }}>⚠️ This action cannot be undone.</span>
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setUserToDelete(null)}
+            disabled={isDeleting}
+            sx={{ color: '#9CA3AF', fontWeight: 700 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={isDeleting}
+            onClick={async () => {
+              if (!userToDelete) return;
+              setIsDeleting(true);
+              try {
+                await onDeleteUser(userToDelete.profile.id, userToDelete.profile.name);
+                setUserToDelete(null);
+                onRefresh();
+              } finally {
+                setIsDeleting(false);
+              }
+            }}
+            sx={{ fontWeight: 800 }}
+          >
+            {isDeleting ? <CircularProgress size={20} color="inherit" /> : 'Yes, Delete Account'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Card>
   );
 };

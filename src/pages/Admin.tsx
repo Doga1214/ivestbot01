@@ -32,6 +32,7 @@ export const Admin: React.FC = () => {
     adminDebitUser,
     adminUpdateWalletRestrictions,
     adminVerifyKyc,
+    adminDeleteUser,
     kyc,
     showSnackbar
   } = useApp();
@@ -123,6 +124,11 @@ export const Admin: React.FC = () => {
 
   const handleVerifyKyc = (userId: string, status: 'VERIFIED' | 'REJECTED', notes?: string) => {
     adminVerifyKyc(userId, status, notes);
+    loadAdminData();
+  };
+
+  const handleDeleteUser = async (userId: string, _userName: string) => {
+    await adminDeleteUser(userId);
     loadAdminData();
   };
 
@@ -227,6 +233,7 @@ export const Admin: React.FC = () => {
           users={users}
           onAdjustBalance={handleAdjustBalance}
           onUpdateRestrictions={handleUpdateRestrictions}
+          onDeleteUser={handleDeleteUser}
           onRefresh={loadAdminData}
           showSnackbar={showSnackbar}
         />

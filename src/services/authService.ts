@@ -283,5 +283,32 @@ export const authService = {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(all[index]));
     }
     return all[index];
+  },
+
+  async deleteUser(userId: string): Promise<boolean> {
+    try {
+      await supabase.from('deposits').delete().eq('user_id', userId);
+      await supabase.from('withdrawals').delete().eq('user_id', userId);
+      await supabase.from('wallet_transactions').delete().eq('user_id', userId);
+      await supabase.from('wallets').delete().eq('user_id', userId);
+      await supabase.from('kyc_records').delete().eq('user_id', userId);
+      await supabase.from('reservations').delete().eq('user_id', userId);
+      await supabase.from('profiles').delete().eq('id', userId);
+    } catch {
+      // ignore
+    }
+
+    const all = this.getAllUsers();
+    const filtered = all.filter(u => u.id !== userId);
+    this.saveAllUsers(filtered);
+
+    localStorage.removeItem(`ivestbot_wallet_${userId}`);
+
+    const current = this.getCurrentUser();
+    if (current && current.id === userId) {
+      this.logout();
+    }
+
+    return true;
   }
 };

@@ -51,6 +51,7 @@ interface AppContextType {
   adminDebitUser: (userId: string, amount: number, reason: string) => void;
   adminUpdateWalletRestrictions: (userId: string, status: WalletStatus, restrictions: WalletRestrictions, reason?: string) => void;
   adminVerifyKyc: (userId: string, status: 'VERIFIED' | 'REJECTED', notes?: string) => void;
+  adminDeleteUser: (userId: string) => Promise<void>;
 
   // Reservation & Mining
   reservationState: ReservationState;
@@ -279,6 +280,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showSnackbar(`KYC status set to ${status}!`, 'success');
   };
 
+  const adminDeleteUser = async (userId: string) => {
+    await adminService.deleteUser(userId);
+    refreshWallet();
+    showSnackbar('User account and all associated records permanently deleted.', 'info');
+  };
+
   const submitKyc = async (data: { fullName: string; documentType: string; documentNumber: string; documentFileName?: string }) => {
     const newKyc = await walletService.submitKyc(data, user ? { id: user.id } : undefined);
     setKyc(newKyc);
@@ -428,6 +435,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         adminDebitUser,
         adminUpdateWalletRestrictions,
         adminVerifyKyc,
+        adminDeleteUser,
         reservationState,
         reservationHistory,
         startMining,
