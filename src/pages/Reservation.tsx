@@ -2,12 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
   Button,
-  Grid,
   Chip,
-  Paper,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -26,16 +22,12 @@ import {
   EmojiEventsIcon,
   AccessTimeIcon,
   HistoryIcon,
-  CheckCircleIcon,
-  AccountBalanceWalletIcon,
-  RocketLaunchIcon,
   HexagonIcon
 } from '../components/common/Icons';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { reservationService } from '../services/reservationService';
-import { referralService } from '../services/referralService';
-import { formatUSDT, formatDateTime } from '../utils/formatters';
+import { formatDateTime } from '../utils/formatters';
 
 export const Reservation: React.FC = () => {
   const navigate = useNavigate();
@@ -44,7 +36,6 @@ export const Reservation: React.FC = () => {
     wallet,
     transactions,
     reservationState,
-    reservationHistory,
     executeReservation,
     isProcessing,
     processingSecondsLeft,
@@ -142,11 +133,13 @@ export const Reservation: React.FC = () => {
       const calculatedProfit = Number((reservableBalance * (rateRange.min + (rateRange.max - rateRange.min) * Math.random()) / 100).toFixed(4));
       setLastProfitAmount(calculatedProfit);
       await executeReservation({
-        capitalReserved: reservableBalance,
-        activeDurationSeconds: 86400,
+        amount: reservableBalance,
+        dailyRate: rateRange.min,
         effectiveRate: Number(((calculatedProfit / (reservableBalance || 1)) * 100).toFixed(2)),
+        activeDurationSeconds: 86400,
         profit: calculatedProfit,
-        settlementTimestamp: new Date().toISOString()
+        isFullCycle: true,
+        preparedAt: new Date().toISOString()
       });
       setSuccessDialogOpen(true);
     } catch {
@@ -245,236 +238,231 @@ export const Reservation: React.FC = () => {
         </Box>
       </Box>
 
-      {/* 2. Top 6 Metric Cards (2 Columns x 3 Rows) */}
-      <Grid container spacing={1.5} sx={{ mb: 3 }}>
+      {/* 2. Top 6 Metric Cards (2 Columns x 3 Rows via Grid) */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 1.5,
+          mb: 3
+        }}
+      >
         {/* Card 1: Today's Earnings */}
-        <Grid item xs={6}>
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 3.5,
+            background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.07)',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+          }}
+        >
           <Box
             sx={{
-              p: 2,
-              borderRadius: 3.5,
-              background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
-              border: '1px solid rgba(255, 255, 255, 0.07)',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+              position: 'absolute',
+              top: -15,
+              right: -15,
+              width: 70,
+              height: 70,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.22) 0%, transparent 70%)',
+              pointerEvents: 'none'
             }}
-          >
-            <Box
-              sx={{
-                position: 'absolute',
-                top: -15,
-                right: -15,
-                width: 70,
-                height: 70,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(6, 182, 212, 0.22) 0%, transparent 70%)',
-                pointerEvents: 'none'
-              }}
-            />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
-              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#06b6d4' }} />
-              <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
-                Today's Earnings
-              </Typography>
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
-              <span style={{ color: '#06b6d4', marginRight: 4, fontWeight: 700 }}>₮</span>
-              {todayEarnings.toFixed(2)}
+          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#06b6d4' }} />
+            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
+              Today's Earnings
             </Typography>
           </Box>
-        </Grid>
+          <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
+            <span style={{ color: '#06b6d4', marginRight: 4, fontWeight: 700 }}>₮</span>
+            {todayEarnings.toFixed(2)}
+          </Typography>
+        </Box>
 
         {/* Card 2: Cumulative Income */}
-        <Grid item xs={6}>
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 3.5,
+            background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.07)',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+          }}
+        >
           <Box
             sx={{
-              p: 2,
-              borderRadius: 3.5,
-              background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
-              border: '1px solid rgba(255, 255, 255, 0.07)',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+              position: 'absolute',
+              top: -15,
+              right: -15,
+              width: 70,
+              height: 70,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, transparent 70%)',
+              pointerEvents: 'none'
             }}
-          >
-            <Box
-              sx={{
-                position: 'absolute',
-                top: -15,
-                right: -15,
-                width: 70,
-                height: 70,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, transparent 70%)',
-                pointerEvents: 'none'
-              }}
-            />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
-              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#10b981' }} />
-              <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
-                Cumulative Income
-              </Typography>
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
-              <span style={{ color: '#10b981', marginRight: 4, fontWeight: 700 }}>₮</span>
-              {cumulativeIncome.toFixed(2)}
+          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#10b981' }} />
+            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
+              Cumulative Income
             </Typography>
           </Box>
-        </Grid>
+          <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
+            <span style={{ color: '#10b981', marginRight: 4, fontWeight: 700 }}>₮</span>
+            {cumulativeIncome.toFixed(2)}
+          </Typography>
+        </Box>
 
         {/* Card 3: Team Benefits */}
-        <Grid item xs={6}>
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 3.5,
+            background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.07)',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+          }}
+        >
           <Box
             sx={{
-              p: 2,
-              borderRadius: 3.5,
-              background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
-              border: '1px solid rgba(255, 255, 255, 0.07)',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+              position: 'absolute',
+              top: -15,
+              right: -15,
+              width: 70,
+              height: 70,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(139, 92, 246, 0.22) 0%, transparent 70%)',
+              pointerEvents: 'none'
             }}
-          >
-            <Box
-              sx={{
-                position: 'absolute',
-                top: -15,
-                right: -15,
-                width: 70,
-                height: 70,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(139, 92, 246, 0.22) 0%, transparent 70%)',
-                pointerEvents: 'none'
-              }}
-            />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
-              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#8b5cf6' }} />
-              <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
-                Team Benefits
-              </Typography>
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
-              <span style={{ color: '#8b5cf6', marginRight: 4, fontWeight: 700 }}>₮</span>
-              {teamBenefits.toFixed(2)}
+          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#8b5cf6' }} />
+            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
+              Team Benefits
             </Typography>
           </Box>
-        </Grid>
+          <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
+            <span style={{ color: '#8b5cf6', marginRight: 4, fontWeight: 700 }}>₮</span>
+            {teamBenefits.toFixed(2)}
+          </Typography>
+        </Box>
 
         {/* Card 4: Wallet Balance */}
-        <Grid item xs={6}>
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 3.5,
+            background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.07)',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+          }}
+        >
           <Box
             sx={{
-              p: 2,
-              borderRadius: 3.5,
-              background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
-              border: '1px solid rgba(255, 255, 255, 0.07)',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+              position: 'absolute',
+              top: -15,
+              right: -15,
+              width: 70,
+              height: 70,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(59, 130, 246, 0.22) 0%, transparent 70%)',
+              pointerEvents: 'none'
             }}
-          >
-            <Box
-              sx={{
-                position: 'absolute',
-                top: -15,
-                right: -15,
-                width: 70,
-                height: 70,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(59, 130, 246, 0.22) 0%, transparent 70%)',
-                pointerEvents: 'none'
-              }}
-            />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
-              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3b82f6' }} />
-              <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
-                Wallet Balance
-              </Typography>
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
-              <span style={{ color: '#3b82f6', marginRight: 4, fontWeight: 700 }}>₮</span>
-              {wallet.availableBalance.toFixed(2)}
+          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3b82f6' }} />
+            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
+              Wallet Balance
             </Typography>
           </Box>
-        </Grid>
+          <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
+            <span style={{ color: '#3b82f6', marginRight: 4, fontWeight: 700 }}>₮</span>
+            {wallet.availableBalance.toFixed(2)}
+          </Typography>
+        </Box>
 
         {/* Card 5: Reservable Balance */}
-        <Grid item xs={6}>
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 3.5,
+            background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.07)',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+          }}
+        >
           <Box
             sx={{
-              p: 2,
-              borderRadius: 3.5,
-              background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
-              border: '1px solid rgba(255, 255, 255, 0.07)',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+              position: 'absolute',
+              top: -15,
+              right: -15,
+              width: 70,
+              height: 70,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(245, 158, 11, 0.22) 0%, transparent 70%)',
+              pointerEvents: 'none'
             }}
-          >
-            <Box
-              sx={{
-                position: 'absolute',
-                top: -15,
-                right: -15,
-                width: 70,
-                height: 70,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(245, 158, 11, 0.22) 0%, transparent 70%)',
-                pointerEvents: 'none'
-              }}
-            />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
-              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#f59e0b' }} />
-              <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
-                Reservable Balance
-              </Typography>
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
-              <span style={{ color: '#f59e0b', marginRight: 4, fontWeight: 700 }}>₮</span>
-              {reservableBalance.toFixed(2)}
+          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#f59e0b' }} />
+            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
+              Reservable Balance
             </Typography>
           </Box>
-        </Grid>
+          <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
+            <span style={{ color: '#f59e0b', marginRight: 4, fontWeight: 700 }}>₮</span>
+            {reservableBalance.toFixed(2)}
+          </Typography>
+        </Box>
 
         {/* Card 6: Reservation Range */}
-        <Grid item xs={6}>
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 3.5,
+            background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.07)',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+          }}
+        >
           <Box
             sx={{
-              p: 2,
-              borderRadius: 3.5,
-              background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
-              border: '1px solid rgba(255, 255, 255, 0.07)',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+              position: 'absolute',
+              top: -15,
+              right: -15,
+              width: 70,
+              height: 70,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(236, 72, 153, 0.22) 0%, transparent 70%)',
+              pointerEvents: 'none'
             }}
-          >
-            <Box
-              sx={{
-                position: 'absolute',
-                top: -15,
-                right: -15,
-                width: 70,
-                height: 70,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(236, 72, 153, 0.22) 0%, transparent 70%)',
-                pointerEvents: 'none'
-              }}
-            />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
-              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#ec4899' }} />
-              <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
-                Reservation Range
-              </Typography>
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
-              <span style={{ color: '#ec4899', marginRight: 4, fontWeight: 700 }}>₮</span>
-              {rangeLimits.label}
+          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#ec4899' }} />
+            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
+              Reservation Range
             </Typography>
           </Box>
-        </Grid>
-      </Grid>
+          <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
+            <span style={{ color: '#ec4899', marginRight: 4, fontWeight: 700 }}>₮</span>
+            {rangeLimits.label}
+          </Typography>
+        </Box>
+      </Box>
 
       {/* 3. Segmented 3-Tab Switcher */}
       <Box
@@ -579,9 +567,16 @@ export const Reservation: React.FC = () => {
             boxShadow: '0 16px 36px rgba(0, 0, 0, 0.6)'
           }}
         >
-          {/* 2x2 Parameter Matrix */}
-          <Grid container spacing={2.5} sx={{ mb: 3.5 }}>
-            <Grid item xs={6}>
+          {/* 2x2 Parameter Matrix via Grid */}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: 2.5,
+              mb: 3.5
+            }}
+          >
+            <Box>
               <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 800, letterSpacing: '0.04em', display: 'block', mb: 0.5 }}>
                 RESERVATION RANGE
               </Typography>
@@ -589,9 +584,9 @@ export const Reservation: React.FC = () => {
                 <span style={{ color: '#06b6d4', marginRight: 3 }}>₮</span>
                 {rangeLimits.label}
               </Typography>
-            </Grid>
+            </Box>
 
-            <Grid item xs={6}>
+            <Box>
               <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 800, letterSpacing: '0.04em', display: 'block', mb: 0.5 }}>
                 RESERVABLE BALANCE
               </Typography>
@@ -599,9 +594,9 @@ export const Reservation: React.FC = () => {
                 <span style={{ color: '#06b6d4', marginRight: 3 }}>₮</span>
                 {reservableBalance.toFixed(2)}
               </Typography>
-            </Grid>
+            </Box>
 
-            <Grid item xs={6}>
+            <Box>
               <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 800, letterSpacing: '0.04em', display: 'block', mb: 0.5 }}>
                 EXPECTED INCOME
               </Typography>
@@ -609,17 +604,17 @@ export const Reservation: React.FC = () => {
                 <span style={{ color: '#06b6d4', marginRight: 3 }}>₮</span>
                 {expectedMinIncome.toFixed(2)} ~ {expectedMaxIncome.toFixed(2)}
               </Typography>
-            </Grid>
+            </Box>
 
-            <Grid item xs={6}>
+            <Box>
               <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 800, letterSpacing: '0.04em', display: 'block', mb: 0.5 }}>
                 DAILY RATE
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 900, color: '#10b981', letterSpacing: '-0.01em' }}>
                 {rateRange.label}
               </Typography>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
 
           {/* Processing Status Bar */}
           {isProcessing && (
@@ -835,7 +830,7 @@ export const Reservation: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ color: '#94A3B8', mb: 2 }}>
-            You need available USDT in your wallet balance to participate in daily NFT reservations.
+            You need available USDT in your wallet balance to participate in daily AutoBot reservations.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
