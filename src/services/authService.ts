@@ -1,7 +1,7 @@
 import { supabase } from './supabaseClient';
 
 export interface UserProfile {
-  id: string; // Must always be a canonical UUID
+  id: string; // Canonical PostgreSQL UUID
   name: string;
   username: string;
   email: string;
@@ -54,11 +54,55 @@ export const authService = {
     localStorage.setItem(ALL_USERS_KEY, JSON.stringify(users));
   },
 
+  /**
+   * Synchronizes all user profiles directly from Supabase (Single Source of Truth).
+   * Also safely migrates any legacy local browser accounts into Supabase profiles automatically.
+   */
   async syncAllUsersFromSupabase(): Promise<UserProfile[]> {
     try {
-      const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-      if (data && !error && data.length > 0) {
-        const remoteUsers: UserProfile[] = data.map(d => ({
+      // 1. Fetch remote users from Supabase
+      const { data: initialRemote, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      const localUsers = this.getAllUsers();
+
+      // 2. Safe Auto-Recovery Migration:
+      // If local storage in the active browser has legacy accounts not yet stored in Supabase,
+      // upload them safely to Supabase public.profiles and create their wallets.
+      if (localUsers.length > 0 && initialRemote) {
+        const remoteUsernames = new Set(initialRemote.map(d => (d.username || '').toLowerCase()));
+        const remoteEmails = new Set(initialRemote.map(d => (d.email || '').toLowerCase()));
+
+        for (const u of localUsers) {
+          const uName = (u.username || '').toLowerCase().trim();
+          const uEmail = (u.email || '').toLowerCase().trim();
+          if (uName && !remoteUsernames.has(uName) && (!uEmail || !remoteEmails.has(uEmail))) {
+            try {
+              await supabase.rpc('resolve_or_create_profile', {
+                p_name: u.name || uName,
+                p_username: uName,
+                p_email: uEmail || `${uName}@ivestbot.io`,
+                p_password: null,
+                p_referral_code: u.referralCode || undefined,
+                p_referred_by: u.referredBy || undefined
+              });
+            } catch {
+              // ignore
+            }
+          }
+        }
+      }
+
+      // 3. Re-fetch all profiles from Supabase as authoritative source of truth
+      const { data: finalRemote } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (finalRemote && finalRemote.length > 0) {
+        const remoteUsers: UserProfile[] = finalRemote.map(d => ({
           id: d.id,
           name: d.name || 'User',
           username: d.username || 'user',
@@ -184,11 +228,14 @@ export const authService = {
 
     try {
       const isEmail = cleanQuery.includes('@');
-      const query = isEmail
-        ? supabase.from('profiles').select('*').eq('email', cleanQuery).maybeSingle()
-        : supabase.from('profiles').select('*').eq('username', cleanQuery).maybeSingle();
+      let query = supabase.from('profiles').select('*');
+      if (isEmail) {
+        query = query.eq('email', cleanQuery);
+      } else {
+        query = query.or(`username.eq.${cleanQuery},name.ilike.${cleanQuery}`);
+      }
 
-      const { data, error } = await query;
+      const { data, error } = await query.maybeSingle();
       if (data && !error && isValidUuid(data.id)) {
         // If password_hash is recorded and user entered a password, check
         if (data.password_hash && password && data.password_hash !== password) {
@@ -210,6 +257,42 @@ export const authService = {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
         this.upsertUser(user);
         return user;
+      }
+
+      // Safe recovery for existing local users
+      const localUsers = this.getAllUsers();
+      const existingLocal = localUsers.find(
+        u => u.username.toLowerCase() === cleanQuery || u.email.toLowerCase() === cleanQuery || (u.name && u.name.toLowerCase() === cleanQuery)
+      );
+
+      if (existingLocal) {
+        const { data: rpcRes } = await supabase.rpc('resolve_or_create_profile', {
+          p_name: existingLocal.name || cleanQuery,
+          p_username: existingLocal.username || cleanQuery,
+          p_email: existingLocal.email || (isEmail ? cleanQuery : `${cleanQuery}@ivestbot.io`),
+          p_password: password || null,
+          p_referral_code: existingLocal.referralCode || undefined,
+          p_referred_by: existingLocal.referredBy || undefined
+        });
+
+        if (rpcRes?.profile?.id && isValidUuid(rpcRes.profile.id)) {
+          const profile = rpcRes.profile;
+          const recoveredUser: UserProfile = {
+            id: profile.id,
+            name: profile.name,
+            username: profile.username,
+            email: profile.email,
+            referralCode: profile.referral_code,
+            referredBy: profile.referred_by_code || undefined,
+            level: profile.level || 1,
+            status: profile.status || 'ACTIVE',
+            kycStatus: profile.kyc_status || 'NOT_SUBMITTED',
+            createdAt: profile.created_at
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(recoveredUser));
+          this.upsertUser(recoveredUser);
+          return recoveredUser;
+        }
       }
     } catch (err: any) {
       if (err?.message?.includes('password')) {
