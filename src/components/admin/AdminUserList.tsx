@@ -54,6 +54,7 @@ export const AdminUserList: React.FC<AdminUserListProps> = ({
   showSnackbar
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
   const [selectedAdjustUser, setSelectedAdjustUser] = useState<AdminUserListItem | null>(null);
   const [selectedRestrictionsUser, setSelectedRestrictionsUser] = useState<AdminUserListItem | null>(null);
   const [selectedDetailUserId, setSelectedDetailUserId] = useState<string | null>(null);
@@ -62,13 +63,22 @@ export const AdminUserList: React.FC<AdminUserListProps> = ({
 
   const filteredUsers = users.filter((u) => {
     const term = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = (
       u.profile.name.toLowerCase().includes(term) ||
       u.profile.username.toLowerCase().includes(term) ||
       u.profile.email.toLowerCase().includes(term) ||
-      u.profile.referralCode.toLowerCase().includes(term)
+      u.profile.referralCode.toLowerCase().includes(term) ||
+      (u.profile.referredBy && u.profile.referredBy.toLowerCase().includes(term))
     );
+
+    if (!matchesSearch) return false;
+    if (statusFilter === 'ACTIVE') return u.profile.status === 'ACTIVE';
+    if (statusFilter === 'INACTIVE') return u.profile.status !== 'ACTIVE';
+    return true;
   });
+
+  const activeCount = users.filter(u => u.profile.status === 'ACTIVE').length;
+  const inactiveCount = users.filter(u => u.profile.status !== 'ACTIVE').length;
 
   const getWalletStatusChip = (status: WalletStatus, restrictions?: WalletRestrictions) => {
     if (status === 'INACTIVE') {
@@ -96,9 +106,9 @@ export const AdminUserList: React.FC<AdminUserListProps> = ({
         <Box
           sx={{
             display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
+            flexDirection: { xs: 'column', md: 'row' },
             justifyContent: 'space-between',
-            alignItems: { xs: 'flex-start', sm: 'center' },
+            alignItems: { xs: 'flex-start', md: 'center' },
             gap: 2,
             mb: 3
           }}
@@ -108,26 +118,55 @@ export const AdminUserList: React.FC<AdminUserListProps> = ({
               User Intelligence & Account Controls
             </Typography>
             <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-              Full 360° user overview, WP Swings controls, credit/debit, restrictions, and permanent account deletion.
+              Full 360° user overview, status tracking, credit/debit adjustments, restrictions, and downline verification.
             </Typography>
           </Box>
 
-          <TextField
-            size="small"
-            placeholder="Search by name, email, or referral..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{ width: { xs: '100%', sm: 300 } }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" sx={{ color: '#9CA3AF' }} />
-                  </InputAdornment>
-                )
-              }
-            }}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
+            <Box sx={{ display: 'flex', gap: 0.8 }}>
+              <Chip
+                label={`All (${users.length})`}
+                clickable
+                color={statusFilter === 'ALL' ? 'primary' : 'default'}
+                variant={statusFilter === 'ALL' ? 'filled' : 'outlined'}
+                onClick={() => setStatusFilter('ALL')}
+                sx={{ fontWeight: 800, fontSize: '0.75rem' }}
+              />
+              <Chip
+                label={`Active (${activeCount})`}
+                clickable
+                color={statusFilter === 'ACTIVE' ? 'success' : 'default'}
+                variant={statusFilter === 'ACTIVE' ? 'filled' : 'outlined'}
+                onClick={() => setStatusFilter('ACTIVE')}
+                sx={{ fontWeight: 800, fontSize: '0.75rem' }}
+              />
+              <Chip
+                label={`Inactive (${inactiveCount})`}
+                clickable
+                color={statusFilter === 'INACTIVE' ? 'warning' : 'default'}
+                variant={statusFilter === 'INACTIVE' ? 'filled' : 'outlined'}
+                onClick={() => setStatusFilter('INACTIVE')}
+                sx={{ fontWeight: 800, fontSize: '0.75rem' }}
+              />
+            </Box>
+
+            <TextField
+              size="small"
+              placeholder="Search user, email, referral..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              sx={{ width: { xs: '100%', sm: 260 } }}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" sx={{ color: '#9CA3AF' }} />
+                    </InputAdornment>
+                  )
+                }
+              }}
+            />
+          </Box>
         </Box>
 
         <TableContainer>
