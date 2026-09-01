@@ -157,7 +157,7 @@ export const walletService = {
       updatedAt: new Date().toISOString()
     };
     localStorage.setItem(`ivestbot_wallet_${userId}`, JSON.stringify(data));
-    
+
     // Also update active session wallet if it's the current user
     const currentStored = localStorage.getItem('ivestbot_auth_user');
     if (currentStored) {
@@ -247,7 +247,74 @@ export const walletService = {
       const allUsers = authService.getAllUsers();
       const txMap = new Map<string, WalletTransaction>();
 
-      // 1. Fetch from wallet_transactions table
+      // 1. Fetch from deposits table (authoritative table for deposits)
+      let depQuery = supabase.from('deposits').select('*').order('created_at', { ascending: false });
+      if (userId) {
+        depQuery = depQuery.eq('user_id', userId);
+      }
+      const { data: depData } = await depQuery;
+
+      if (depData && depData.length > 0) {
+        depData.forEach(d => {
+          const user = allUsers.find(u => u.id === d.user_id);
+          const refId = `DEP-${d.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+          txMap.set(d.id, {
+            id: d.id,
+            userId: d.user_id,
+            userName: user?.name || user?.username || 'User',
+            userEmail: user?.email,
+            type: 'DEPOSIT',
+            amount: parseFloat(d.amount) || 0,
+            currency: d.currency || 'USDT',
+            status: (d.status?.toUpperCase() || 'PENDING') as TransactionStatus,
+            description: d.status === 'APPROVED'
+              ? `USDT Deposit Verified & Approved (+${parseFloat(d.amount) || 0} USDT credited)`
+              : d.status === 'REJECTED'
+              ? `USDT Deposit Verification Rejected: ${d.admin_note || 'Invalid TxID'}`
+              : `USDT Deposit Submitted (${(d.deposit_address || '').slice(0, 8)}...) - Pending Admin Verification`,
+            referenceId: refId,
+            createdAt: d.created_at || new Date().toISOString(),
+            address: d.deposit_address,
+            txHash: d.tx_hash,
+            adminRemarks: d.admin_note
+          });
+        });
+      }
+
+      // 2. Fetch from withdrawals table (authoritative table for withdrawals)
+      let wthQuery = supabase.from('withdrawals').select('*').order('created_at', { ascending: false });
+      if (userId) {
+        wthQuery = wthQuery.eq('user_id', userId);
+      }
+      const { data: wthData } = await wthQuery;
+
+      if (wthData && wthData.length > 0) {
+        wthData.forEach(d => {
+          const user = allUsers.find(u => u.id === d.user_id);
+          const refId = `WTH-${d.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+          txMap.set(d.id, {
+            id: d.id,
+            userId: d.user_id,
+            userName: user?.name || user?.username || 'User',
+            userEmail: user?.email,
+            type: 'WITHDRAWAL',
+            amount: parseFloat(d.amount) || 0,
+            currency: d.currency || 'USDT',
+            status: (d.status?.toUpperCase() || 'PENDING') as TransactionStatus,
+            description: d.status === 'APPROVED'
+              ? `Withdrawal Approved & Dispatched (-${parseFloat(d.amount) || 0} USDT)`
+              : d.status === 'REJECTED'
+              ? `Withdrawal Rejected by Admin (Refunded ${parseFloat(d.amount) || 0} USDT): ${d.admin_note || 'Security Review'}`
+              : `Withdrawal Request to ${(d.recipient_address || '').slice(0, 8)}... - Pending Admin Review`,
+            referenceId: refId,
+            createdAt: d.created_at || new Date().toISOString(),
+            address: d.recipient_address,
+            adminRemarks: d.admin_note
+          });
+        });
+      }
+
+      // 3. Fetch non-deposit, non-withdrawal records from wallet_transactions table (bonuses, trades, admin adjustments)
       let txQuery = supabase.from('wallet_transactions').select('*').order('created_at', { ascending: false });
       if (userId) {
         txQuery = txQuery.eq('user_id', userId);
@@ -256,6 +323,9 @@ export const walletService = {
 
       if (txData && txData.length > 0) {
         txData.forEach(d => {
+          // Avoid duplicate deposits/withdrawals already indexed by ID
+          if (txMap.has(d.id)) return;
+
           const user = allUsers.find(u => u.id === d.user_id);
           txMap.set(d.id, {
             id: d.id,
@@ -269,87 +339,12 @@ export const walletService = {
             description: d.description || '',
             referenceId: d.reference_id || d.id,
             createdAt: d.created_at || new Date().toISOString(),
-            address: d.metadata?.address,
+            address: d.metadata?.address || d.metadata?.depositAddress || d.metadata?.recipientAddress,
             txHash: d.metadata?.txHash,
-            adminRemarks: d.metadata?.adminRemarks
+            adminRemarks: d.metadata?.adminRemarks || d.description
           });
         });
       }
-
-      // 2. Fetch from deposits table (captures all pending deposits directly submitted)
-      let depQuery = supabase.from('deposits').select('*').order('created_at', { ascending: false });
-      if (userId) {
-        depQuery = depQuery.eq('user_id', userId);
-      }
-      const { data: depData } = await depQuery;
-
-      if (depData && depData.length > 0) {
-        depData.forEach(d => {
-          const user = allUsers.find(u => u.id === d.user_id);
-          const depId = d.id;
-          const exists = Array.from(txMap.values()).some(
-            t => t.id === depId || (d.tx_hash && t.txHash === d.tx_hash)
-          );
-
-          if (!exists) {
-            txMap.set(depId, {
-              id: depId,
-              userId: d.user_id,
-              userName: user?.name || user?.username || 'User',
-              userEmail: user?.email,
-              type: 'DEPOSIT',
-              amount: parseFloat(d.amount) || 0,
-              currency: d.currency || 'USDT',
-              status: (d.status?.toUpperCase() || 'PENDING') as TransactionStatus,
-              description: `USDT Deposit Submitted (${(d.deposit_address || '').slice(0, 8)}...) - Pending Admin Verification`,
-              referenceId: `DEP-${depId.toString().slice(-6)}`,
-              createdAt: d.created_at || new Date().toISOString(),
-              address: d.deposit_address,
-              txHash: d.tx_hash
-            });
-          }
-        });
-      }
-
-      // 3. Fetch from withdrawals table
-      let wthQuery = supabase.from('withdrawals').select('*').order('created_at', { ascending: false });
-      if (userId) {
-        wthQuery = wthQuery.eq('user_id', userId);
-      }
-      const { data: wthData } = await wthQuery;
-
-      if (wthData && wthData.length > 0) {
-        wthData.forEach(d => {
-          const user = allUsers.find(u => u.id === d.user_id);
-          const wthId = d.id;
-          const exists = Array.from(txMap.values()).some(t => t.id === wthId);
-
-          if (!exists) {
-            txMap.set(wthId, {
-              id: wthId,
-              userId: d.user_id,
-              userName: user?.name || user?.username || 'User',
-              userEmail: user?.email,
-              type: 'WITHDRAWAL',
-              amount: parseFloat(d.amount) || 0,
-              currency: d.currency || 'USDT',
-              status: (d.status?.toUpperCase() || 'PENDING') as TransactionStatus,
-              description: `USDT Withdrawal Request (${(d.withdrawal_address || '').slice(0, 8)}...) - Pending Admin Review`,
-              referenceId: `WTH-${wthId.toString().slice(-6)}`,
-              createdAt: d.created_at || new Date().toISOString(),
-              address: d.withdrawal_address
-            });
-          }
-        });
-      }
-
-      // 4. Merge local transactions
-      const local = this.getTransactions();
-      local.forEach(t => {
-        if (!txMap.has(t.id)) {
-          txMap.set(t.id, t);
-        }
-      });
 
       const merged = Array.from(txMap.values()).sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -397,15 +392,24 @@ export const walletService = {
   },
 
   /**
-   * Submits a Deposit request into PENDING status under Admin Verification.
+   * Submits a Deposit request into PENDING status under Admin Verification (Database Backed).
    */
-  async submitDeposit(amount: number, address: string, txHash: string, userMeta?: { id?: string; name?: string; email?: string }): Promise<{
+  async submitDeposit(
+    amount: number,
+    address: string,
+    txHash: string,
+    userMeta?: { id?: string; name?: string; email?: string }
+  ): Promise<{
     depositTx: WalletTransaction;
     newWallet: WalletState;
   }> {
-    const wallet = userMeta?.id ? this.getWalletForUser(userMeta.id) : this.getWallet();
+    if (!userMeta?.id) {
+      throw new Error('Please login to submit a deposit.');
+    }
 
-    // Check WP Swings style restrictions
+    const wallet = this.getWalletForUser(userMeta.id);
+
+    // Restrictions check
     if (wallet.status === 'INACTIVE' || wallet.status === 'FROZEN') {
       throw new Error(`Wallet is ${wallet.status}. Deposits are currently disabled on your account.`);
     }
@@ -413,67 +417,136 @@ export const walletService = {
       throw new Error(wallet.restrictionReason || 'Deposit feature is restricted on your wallet by Admin.');
     }
 
-    // Add to pending balance
-    const updatedWallet: WalletState = {
-      ...wallet,
-      pendingBalance: Number((wallet.pendingBalance + amount).toFixed(4)),
-      totalBalance: Number((wallet.totalBalance + amount).toFixed(4))
-    };
-
-    if (userMeta?.id) {
-      this.saveWalletForUser(userMeta.id, updatedWallet);
-    } else {
-      this.saveWallet(updatedWallet);
+    if (amount <= 0) {
+      throw new Error('Deposit amount must be greater than zero.');
     }
 
-    // Record pending deposit transaction
-    const depositTx = this.addTransaction({
-      userId: userMeta?.id,
-      userName: userMeta?.name,
-      userEmail: userMeta?.email,
-      type: 'DEPOSIT',
-      amount,
-      currency: 'USDT',
-      status: 'PENDING',
-      description: `USDT Deposit Submitted (${address.slice(0, 8)}...) - Pending Admin Verification`,
-      referenceId: `DEP-${Date.now().toString().slice(-6)}`,
-      address,
-      txHash
+    if (!txHash.trim()) {
+      throw new Error('Transaction hash / receipt ID is required.');
+    }
+
+    // Call PostgreSQL atomic RPC function
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('submit_deposit_request', {
+      p_user_id: userMeta.id,
+      p_amount: amount,
+      p_deposit_address: address,
+      p_tx_hash: txHash.trim(),
+      p_currency: 'USDT',
+      p_network: 'TRC20'
     });
 
-    // Write to Supabase deposits table
-    try {
-      await supabase.from('deposits').insert({
-        user_id: userMeta?.id || null,
+    if (rpcErr || !rpcRes?.success) {
+      // Fallback: direct atomic DB insert if RPC is unreachable
+      const { data: depData, error: depErr } = await supabase
+        .from('deposits')
+        .insert({
+          user_id: userMeta.id,
+          amount,
+          currency: 'USDT',
+          network: 'TRC20',
+          deposit_address: address,
+          tx_hash: txHash.trim(),
+          status: 'PENDING'
+        })
+        .select()
+        .single();
+
+      if (depErr || !depData) {
+        throw new Error(depErr?.message || 'Failed to record deposit in database. Please try again.');
+      }
+
+      const updatedWallet: WalletState = {
+        ...wallet,
+        pendingBalance: Number((wallet.pendingBalance + amount).toFixed(4)),
+        totalBalance: Number((wallet.totalBalance + amount).toFixed(4))
+      };
+      this.saveWalletForUser(userMeta.id, updatedWallet);
+
+      const depositTx: WalletTransaction = {
+        id: depData.id,
+        userId: userMeta.id,
+        userName: userMeta.name,
+        userEmail: userMeta.email,
+        type: 'DEPOSIT',
         amount,
         currency: 'USDT',
-        network: 'TRC20',
-        deposit_address: address,
-        tx_hash: txHash,
-        status: 'PENDING'
-      });
-    } catch {
-      // ignore
+        status: 'PENDING',
+        description: `USDT Deposit Submitted (${address.slice(0, 8)}...) - Pending Admin Verification`,
+        referenceId: `DEP-${depData.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+        createdAt: depData.created_at,
+        address,
+        txHash
+      };
+
+      const currTxs = this.getTransactions();
+      this.saveTransactions([depositTx, ...currTxs.filter(t => t.id !== depositTx.id)]);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('ivestbot_deposit_submitted'));
+      }
+
+      return { depositTx, newWallet: updatedWallet };
     }
 
-    // Dispatch instant real-time event
+    // Success via RPC
+    const dbWallet = rpcRes.wallet;
+    const dbDeposit = rpcRes.deposit;
+
+    const syncedWallet: WalletState = {
+      ...wallet,
+      totalBalance: parseFloat(dbWallet.total_balance) || 0,
+      availableBalance: parseFloat(dbWallet.available_balance) || 0,
+      pendingBalance: parseFloat(dbWallet.pending_balance) || 0,
+      updatedAt: dbWallet.updated_at
+    };
+    this.saveWalletForUser(userMeta.id, syncedWallet);
+
+    const depositTx: WalletTransaction = {
+      id: dbDeposit.id,
+      userId: userMeta.id,
+      userName: userMeta.name,
+      userEmail: userMeta.email,
+      type: 'DEPOSIT',
+      amount: parseFloat(dbDeposit.amount) || amount,
+      currency: dbDeposit.currency || 'USDT',
+      status: 'PENDING',
+      description: `USDT Deposit Submitted (${address.slice(0, 8)}...) - Pending Admin Verification`,
+      referenceId: `DEP-${dbDeposit.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+      createdAt: dbDeposit.created_at,
+      address,
+      txHash
+    };
+
+    const currentTxs = this.getTransactions();
+    this.saveTransactions([depositTx, ...currentTxs.filter(t => t.id !== depositTx.id)]);
+
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('ivestbot_deposit_submitted'));
     }
 
-    return {
-      depositTx,
-      newWallet: updatedWallet
-    };
+    return { depositTx, newWallet: syncedWallet };
   },
 
   /**
-   * Submits a Withdrawal request into PENDING status under Admin Verification.
+   * Submits a Withdrawal request into PENDING status under Admin Verification (Database Backed).
    */
-  async submitWithdrawal(amount: number, address: string, userMeta?: { id?: string; name?: string; email?: string }): Promise<{ success: boolean; message: string; newWallet: WalletState }> {
-    const wallet = userMeta?.id ? this.getWalletForUser(userMeta.id) : this.getWallet();
+  async submitWithdrawal(
+    amount: number,
+    address: string,
+    userMeta?: { id?: string; name?: string; email?: string }
+  ): Promise<{
+    success: boolean;
+    message: string;
+    newWallet: WalletState;
+    withdrawalTx: WalletTransaction;
+  }> {
+    if (!userMeta?.id) {
+      throw new Error('Please login to submit a withdrawal.');
+    }
 
-    // Check restrictions
+    const wallet = this.getWalletForUser(userMeta.id);
+
+    // Restrictions check
     if (wallet.status === 'INACTIVE' || wallet.status === 'FROZEN') {
       throw new Error(`Wallet is ${wallet.status}. Withdrawals are temporarily locked on your account.`);
     }
@@ -481,522 +554,312 @@ export const walletService = {
       throw new Error(wallet.restrictionReason || 'Withdrawal feature is restricted on your wallet by Admin.');
     }
 
-    if (amount > wallet.availableBalance) {
-      throw new Error(`Insufficient available balance (${wallet.availableBalance.toFixed(2)} USDT)`);
+    if (amount <= 0) {
+      throw new Error('Please enter a valid withdrawal amount.');
     }
 
-    // Deduct from available balance, hold in pending balance until admin approves
-    const updatedWallet: WalletState = {
-      ...wallet,
-      availableBalance: Number((wallet.availableBalance - amount).toFixed(4)),
-      pendingBalance: Number((wallet.pendingBalance + amount).toFixed(4))
-    };
-
-    if (userMeta?.id) {
-      this.saveWalletForUser(userMeta.id, updatedWallet);
-    } else {
-      this.saveWallet(updatedWallet);
+    if (!address.trim()) {
+      throw new Error('Please enter your recipient USDT wallet address.');
     }
 
-    // Add to transactions ledger with PENDING status
-    this.addTransaction({
-      userId: userMeta?.id,
-      userName: userMeta?.name,
-      userEmail: userMeta?.email,
-      type: 'WITHDRAWAL',
-      amount,
-      currency: 'USDT',
-      status: 'PENDING',
-      description: `Withdrawal Request to ${address.slice(0, 8)}...${address.slice(-6)} - Pending Admin Review`,
-      referenceId: `WTH-${Date.now().toString().slice(-6)}`,
-      address
+    // Call PostgreSQL atomic RPC function
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('submit_withdrawal_request', {
+      p_user_id: userMeta.id,
+      p_amount: amount,
+      p_recipient_address: address.trim(),
+      p_currency: 'USDT'
     });
 
-    // Write to Supabase withdrawals table
-    try {
-      await supabase.from('withdrawals').insert({
-        user_id: userMeta?.id || null,
-        amount,
-        currency: 'USDT',
-        recipient_address: address,
-        status: 'PENDING'
-      });
-    } catch {
-      // ignore
+    if (rpcErr || !rpcRes?.success) {
+      const errMsg = rpcErr?.message || 'Withdrawal submission failed';
+      throw new Error(errMsg);
+    }
+
+    const dbWallet = rpcRes.wallet;
+    const dbWithdrawal = rpcRes.withdrawal;
+
+    const syncedWallet: WalletState = {
+      ...wallet,
+      totalBalance: parseFloat(dbWallet.total_balance) || 0,
+      availableBalance: parseFloat(dbWallet.available_balance) || 0,
+      pendingBalance: parseFloat(dbWallet.pending_balance) || 0,
+      updatedAt: dbWallet.updated_at
+    };
+    this.saveWalletForUser(userMeta.id, syncedWallet);
+
+    const withdrawalTx: WalletTransaction = {
+      id: dbWithdrawal.id,
+      userId: userMeta.id,
+      userName: userMeta.name,
+      userEmail: userMeta.email,
+      type: 'WITHDRAWAL',
+      amount: parseFloat(dbWithdrawal.amount) || amount,
+      currency: dbWithdrawal.currency || 'USDT',
+      status: 'PENDING',
+      description: `Withdrawal Request to ${address.slice(0, 8)}... - Pending Admin Review`,
+      referenceId: `WTH-${dbWithdrawal.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+      createdAt: dbWithdrawal.created_at,
+      address
+    };
+
+    const currentTxs = this.getTransactions();
+    this.saveTransactions([withdrawalTx, ...currentTxs.filter(t => t.id !== withdrawalTx.id)]);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('ivestbot_withdrawal_submitted'));
     }
 
     return {
       success: true,
-      message: `Withdrawal request of ${amount.toFixed(2)} USDT submitted! Amount held in pending until admin verification.`,
-      newWallet: updatedWallet
+      message: `Withdrawal request of ${amount.toFixed(2)} USDT submitted! Amount is held in Pending Balance until Admin verification.`,
+      newWallet: syncedWallet,
+      withdrawalTx
     };
   },
 
   /**
-   * Admin Action: Approve a Pending Deposit
+   * Admin Action: Approve a Pending Deposit (Database Backed & Idempotent).
    */
-  approveDeposit(txId: string, hasSponsor: boolean = true, adminRemarks?: string): {
+  async approveDeposit(
+    txId: string,
+    hasSponsor: boolean = true,
+    adminRemarks?: string
+  ): Promise<{
     updatedWallet: WalletState;
     approvedTx: WalletTransaction;
     welcomeBonus: number;
     sponsorBonus: number;
-  } {
+  }> {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('approve_deposit_request', {
+      p_deposit_id: txId,
+      p_admin_id: 'admin',
+      p_remarks: adminRemarks || 'Deposit verified and credited by Admin'
+    });
+
+    if (rpcErr || !rpcRes?.success) {
+      throw new Error(rpcErr?.message || 'Failed to approve deposit in database');
+    }
+
+    const dbWallet = rpcRes.wallet;
+    const userId = dbWallet.user_id;
+    const syncedWallet: WalletState = {
+      ...this.getWalletForUser(userId),
+      totalBalance: parseFloat(dbWallet.total_balance) || 0,
+      availableBalance: parseFloat(dbWallet.available_balance) || 0,
+      pendingBalance: parseFloat(dbWallet.pending_balance) || 0,
+      updatedAt: dbWallet.updated_at
+    };
+    this.saveWalletForUser(userId, syncedWallet);
+
+    await this.syncTransactionsFromSupabase();
+
     const transactions = this.getTransactions();
-    const txIndex = transactions.findIndex(t => t.id === txId && t.type === 'DEPOSIT');
-    if (txIndex === -1) throw new Error('Deposit transaction not found');
-
-    const tx = transactions[txIndex];
-    if (tx.status !== 'PENDING') throw new Error('Transaction is not in PENDING status');
-
-    const amount = tx.amount;
-    const userId = tx.userId;
-    const wallet = userId ? this.getWalletForUser(userId) : this.getWallet();
-
-    // 1. Find depositor profile & activate account status
-    const allUsers = authService.getAllUsers();
-    const depositor = allUsers.find(
-      u => (userId && u.id === userId) ||
-           (tx.userEmail && u.email.toLowerCase() === tx.userEmail.toLowerCase()) ||
-           (tx.userName && u.username.toLowerCase() === tx.userName.toLowerCase())
-    );
-
-    if (depositor) {
-      depositor.status = 'ACTIVE';
-      authService.upsertUser(depositor);
-      supabase.from('profiles').update({ status: 'ACTIVE' }).eq('id', depositor.id).then(() => {}, () => {});
-    }
-
-    // 2. Calculate referral milestone bonus
-    let welcomeBonus = 0;
-    let sponsorBonus = 0;
-    const hasEffectiveSponsor = !!(depositor?.referredBy || hasSponsor);
-
-    if (hasEffectiveSponsor && amount >= WALLET_CONFIG.depositBonusRatio.minDeposit) {
-      const units = Math.floor(Math.min(amount, WALLET_CONFIG.depositBonusRatio.maxDeposit) / WALLET_CONFIG.depositBonusRatio.unitDeposit);
-      sponsorBonus = units * WALLET_CONFIG.depositBonusRatio.sponsorBonusPerUnit;
-      welcomeBonus = units * WALLET_CONFIG.depositBonusRatio.newUserBonusPerUnit;
-    }
-
-    // Move from pending to available for depositor
-    const newPending = Math.max(0, Number((wallet.pendingBalance - amount).toFixed(4)));
-    const newAvailable = Number((wallet.availableBalance + amount + welcomeBonus).toFixed(4));
-    const newTotal = Number((newAvailable + newPending).toFixed(4));
-
-    const updatedWallet: WalletState = {
-      ...wallet,
-      pendingBalance: newPending,
-      availableBalance: newAvailable,
-      totalBalance: newTotal
+    const approvedTx = transactions.find(t => t.id === txId) || {
+      id: txId,
+      userId,
+      type: 'DEPOSIT' as TransactionType,
+      amount: rpcRes.creditedAmount || 0,
+      currency: 'USDT',
+      status: 'APPROVED' as TransactionStatus,
+      description: `USDT Deposit Verified & Approved (+${rpcRes.creditedAmount} USDT credited)`,
+      referenceId: `DEP-${txId.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+      createdAt: new Date().toISOString()
     };
-
-    if (userId) {
-      this.saveWalletForUser(userId, updatedWallet);
-    } else {
-      this.saveWallet(updatedWallet);
-    }
-
-    // Update transaction to APPROVED
-    const approvedTx: WalletTransaction = {
-      ...tx,
-      status: 'APPROVED',
-      description: `USDT Deposit Verified & Approved (+${amount} USDT credited)`,
-      adminRemarks: adminRemarks || 'Deposit verified and credited by Admin.'
-    };
-    transactions[txIndex] = approvedTx;
-
-    // Log welcome bonus for depositor if applicable
-    if (welcomeBonus > 0) {
-      const bonusTx: WalletTransaction = {
-        id: `tx-${Date.now().toString().slice(-6)}-wel`,
-        userId: tx.userId,
-        userName: tx.userName,
-        type: 'WELCOME_BONUS',
-        amount: welcomeBonus,
-        currency: 'USDT',
-        status: 'COMPLETED',
-        description: `Deposit Referral Welcome Bonus (+${welcomeBonus} USDT for verified ${amount} USDT deposit)`,
-        referenceId: `BON-${Date.now().toString().slice(-6)}`,
-        createdAt: new Date().toISOString()
-      };
-      transactions.unshift(bonusTx);
-    }
-
-    // 3. AUTOMATIC COMMISSION DISTRIBUTION TO UPLINE SPONSORS (Tiers A, B, C)
-    const depositorRefCode = depositor?.referredBy?.trim();
-    if (depositorRefCode) {
-      // Find Tier A (Direct) Sponsor
-      const sponsorA = allUsers.find(
-        u => u.referralCode?.toUpperCase() === depositorRefCode.toUpperCase() ||
-             u.username.toLowerCase() === depositorRefCode.toLowerCase()
-      );
-
-      if (sponsorA && sponsorA.id !== depositor?.id) {
-        const directCommission = Number((amount * (WALLET_CONFIG.referralRates.A / 100)).toFixed(4));
-        const tierAReward = sponsorBonus > 0 ? (sponsorBonus + directCommission) : directCommission;
-
-        if (tierAReward > 0) {
-          const wA = this.getWalletForUser(sponsorA.id);
-          const updatedWA: WalletState = {
-            ...wA,
-            availableBalance: Number((wA.availableBalance + tierAReward).toFixed(4)),
-            totalBalance: Number((wA.totalBalance + tierAReward).toFixed(4))
-          };
-          this.saveWalletForUser(sponsorA.id, updatedWA);
-
-          const bonusTxA: WalletTransaction = {
-            id: `tx-${Date.now().toString().slice(-6)}-refA`,
-            userId: sponsorA.id,
-            userName: sponsorA.username,
-            userEmail: sponsorA.email,
-            type: 'REFERRAL_BONUS',
-            amount: tierAReward,
-            currency: 'USDT',
-            status: 'COMPLETED',
-            description: `Direct Referral Commission (+${tierAReward.toFixed(2)} USDT from @${depositor?.username || tx.userName || 'downline'} deposit of ${amount} USDT)`,
-            referenceId: `REF-${Date.now().toString().slice(-6)}`,
-            createdAt: new Date().toISOString()
-          };
-          transactions.unshift(bonusTxA);
-
-          // Supabase sync for Tier A
-          supabase.from('wallets').upsert({
-            user_id: sponsorA.id,
-            total_balance: updatedWA.totalBalance,
-            available_balance: updatedWA.availableBalance,
-            pending_balance: updatedWA.pendingBalance,
-            currency: updatedWA.currency || 'USDT',
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'user_id' }).then(() => {}, () => {});
-
-          supabase.from('wallet_transactions').insert({
-            user_id: sponsorA.id,
-            type: 'REFERRAL_BONUS',
-            amount: tierAReward,
-            currency: 'USDT',
-            status: 'COMPLETED',
-            description: bonusTxA.description,
-            reference_id: bonusTxA.referenceId
-          }).then(() => {}, () => {});
-        }
-
-        // Find Tier B (Indirect 2nd Tier) Sponsor
-        if (sponsorA.referredBy?.trim()) {
-          const sponsorBCode = sponsorA.referredBy.trim();
-          const sponsorB = allUsers.find(
-            u => u.referralCode?.toUpperCase() === sponsorBCode.toUpperCase() ||
-                 u.username.toLowerCase() === sponsorBCode.toLowerCase()
-          );
-
-          if (sponsorB && sponsorB.id !== sponsorA.id && sponsorB.id !== depositor?.id) {
-            const tierBReward = Number((amount * (WALLET_CONFIG.referralRates.B / 100)).toFixed(4));
-            if (tierBReward > 0) {
-              const wB = this.getWalletForUser(sponsorB.id);
-              const updatedWB: WalletState = {
-                ...wB,
-                availableBalance: Number((wB.availableBalance + tierBReward).toFixed(4)),
-                totalBalance: Number((wB.totalBalance + tierBReward).toFixed(4))
-              };
-              this.saveWalletForUser(sponsorB.id, updatedWB);
-
-              const bonusTxB: WalletTransaction = {
-                id: `tx-${Date.now().toString().slice(-6)}-refB`,
-                userId: sponsorB.id,
-                userName: sponsorB.username,
-                userEmail: sponsorB.email,
-                type: 'REFERRAL_BONUS',
-                amount: tierBReward,
-                currency: 'USDT',
-                status: 'COMPLETED',
-                description: `Tier-B Referral Commission (+${tierBReward.toFixed(2)} USDT from @${depositor?.username || tx.userName || 'downline'} deposit of ${amount} USDT)`,
-                referenceId: `REF-${Date.now().toString().slice(-6)}`,
-                createdAt: new Date().toISOString()
-              };
-              transactions.unshift(bonusTxB);
-
-              supabase.from('wallets').upsert({
-                user_id: sponsorB.id,
-                total_balance: updatedWB.totalBalance,
-                available_balance: updatedWB.availableBalance,
-                pending_balance: updatedWB.pendingBalance,
-                currency: updatedWB.currency || 'USDT',
-                updated_at: new Date().toISOString()
-              }, { onConflict: 'user_id' }).then(() => {}, () => {});
-
-              supabase.from('wallet_transactions').insert({
-                user_id: sponsorB.id,
-                type: 'REFERRAL_BONUS',
-                amount: tierBReward,
-                currency: 'USDT',
-                status: 'COMPLETED',
-                description: bonusTxB.description,
-                reference_id: bonusTxB.referenceId
-              }).then(() => {}, () => {});
-            }
-
-            // Find Tier C (Indirect 3rd Tier) Sponsor
-            if (sponsorB.referredBy?.trim()) {
-              const sponsorCCode = sponsorB.referredBy.trim();
-              const sponsorC = allUsers.find(
-                u => u.referralCode?.toUpperCase() === sponsorCCode.toUpperCase() ||
-                     u.username.toLowerCase() === sponsorCCode.toLowerCase()
-              );
-
-              if (sponsorC && sponsorC.id !== sponsorB.id && sponsorC.id !== sponsorA.id && sponsorC.id !== depositor?.id) {
-                const tierCReward = Number((amount * (WALLET_CONFIG.referralRates.C / 100)).toFixed(4));
-                if (tierCReward > 0) {
-                  const wC = this.getWalletForUser(sponsorC.id);
-                  const updatedWC: WalletState = {
-                    ...wC,
-                    availableBalance: Number((wC.availableBalance + tierCReward).toFixed(4)),
-                    totalBalance: Number((wC.totalBalance + tierCReward).toFixed(4))
-                  };
-                  this.saveWalletForUser(sponsorC.id, updatedWC);
-
-                  const bonusTxC: WalletTransaction = {
-                    id: `tx-${Date.now().toString().slice(-6)}-refC`,
-                    userId: sponsorC.id,
-                    userName: sponsorC.username,
-                    userEmail: sponsorC.email,
-                    type: 'REFERRAL_BONUS',
-                    amount: tierCReward,
-                    currency: 'USDT',
-                    status: 'COMPLETED',
-                    description: `Tier-C Referral Commission (+${tierCReward.toFixed(2)} USDT from @${depositor?.username || tx.userName || 'downline'} deposit of ${amount} USDT)`,
-                    referenceId: `REF-${Date.now().toString().slice(-6)}`,
-                    createdAt: new Date().toISOString()
-                  };
-                  transactions.unshift(bonusTxC);
-
-                  supabase.from('wallets').upsert({
-                    user_id: sponsorC.id,
-                    total_balance: updatedWC.totalBalance,
-                    available_balance: updatedWC.availableBalance,
-                    pending_balance: updatedWC.pendingBalance,
-                    currency: updatedWC.currency || 'USDT',
-                    updated_at: new Date().toISOString()
-                  }, { onConflict: 'user_id' }).then(() => {}, () => {});
-
-                  supabase.from('wallet_transactions').insert({
-                    user_id: sponsorC.id,
-                    type: 'REFERRAL_BONUS',
-                    amount: tierCReward,
-                    currency: 'USDT',
-                    status: 'COMPLETED',
-                    description: bonusTxC.description,
-                    reference_id: bonusTxC.referenceId
-                  }).then(() => {}, () => {});
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    this.saveTransactions(transactions);
-
-    // Sync depositor updates to Supabase
-    if (userId) {
-      supabase.from('deposits').update({ status: 'APPROVED' }).eq('user_id', userId).eq('status', 'PENDING').then(() => {}, () => {});
-      supabase.from('wallet_transactions').update({ status: 'APPROVED' }).eq('user_id', userId).eq('type', 'DEPOSIT').eq('status', 'PENDING').then(() => {}, () => {});
-      supabase.from('wallets').upsert({
-        user_id: userId,
-        total_balance: updatedWallet.totalBalance,
-        available_balance: updatedWallet.availableBalance,
-        pending_balance: updatedWallet.pendingBalance,
-        currency: updatedWallet.currency || 'USDT',
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' }).then(() => {}, () => {});
-    }
 
     return {
-      updatedWallet,
+      updatedWallet: syncedWallet,
       approvedTx,
-      welcomeBonus,
-      sponsorBonus
+      welcomeBonus: rpcRes.welcomeBonus || 0,
+      sponsorBonus: 0
     };
   },
 
   /**
-   * Admin Action: Reject a Pending Deposit
+   * Admin Action: Reject a Pending Deposit (Database Backed & Idempotent).
    */
-  rejectDeposit(txId: string, adminRemarks?: string): { updatedWallet: WalletState; rejectedTx: WalletTransaction } {
+  async rejectDeposit(
+    txId: string,
+    adminRemarks?: string
+  ): Promise<{ updatedWallet: WalletState; rejectedTx: WalletTransaction }> {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('reject_deposit_request', {
+      p_deposit_id: txId,
+      p_admin_id: 'admin',
+      p_remarks: adminRemarks || 'Deposit rejected by Admin'
+    });
+
+    if (rpcErr || !rpcRes?.success) {
+      throw new Error(rpcErr?.message || 'Failed to reject deposit in database');
+    }
+
+    const dbWallet = rpcRes.wallet;
+    const userId = dbWallet.user_id;
+    const syncedWallet: WalletState = {
+      ...this.getWalletForUser(userId),
+      totalBalance: parseFloat(dbWallet.total_balance) || 0,
+      availableBalance: parseFloat(dbWallet.available_balance) || 0,
+      pendingBalance: parseFloat(dbWallet.pending_balance) || 0,
+      updatedAt: dbWallet.updated_at
+    };
+    this.saveWalletForUser(userId, syncedWallet);
+
+    await this.syncTransactionsFromSupabase();
+
     const transactions = this.getTransactions();
-    const txIndex = transactions.findIndex(t => t.id === txId && t.type === 'DEPOSIT');
-    if (txIndex === -1) throw new Error('Deposit transaction not found');
-
-    const tx = transactions[txIndex];
-    const amount = tx.amount;
-    const userId = tx.userId;
-    const wallet = userId ? this.getWalletForUser(userId) : this.getWallet();
-
-    const newPending = Math.max(0, Number((wallet.pendingBalance - amount).toFixed(4)));
-    const newTotal = Math.max(0, Number((wallet.totalBalance - amount).toFixed(4)));
-
-    const updatedWallet: WalletState = {
-      ...wallet,
-      pendingBalance: newPending,
-      totalBalance: newTotal
+    const rejectedTx = transactions.find(t => t.id === txId) || {
+      id: txId,
+      userId,
+      type: 'DEPOSIT' as TransactionType,
+      amount: 0,
+      currency: 'USDT',
+      status: 'REJECTED' as TransactionStatus,
+      description: `USDT Deposit Verification Rejected: ${adminRemarks || 'Invalid receipt'}`,
+      referenceId: `DEP-${txId.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+      createdAt: new Date().toISOString(),
+      adminRemarks
     };
 
-    if (userId) {
-      this.saveWalletForUser(userId, updatedWallet);
-    } else {
-      this.saveWallet(updatedWallet);
-    }
-
-    const rejectedTx: WalletTransaction = {
-      ...tx,
-      status: 'REJECTED',
-      description: `USDT Deposit Verification Rejected by Admin: ${adminRemarks || 'Invalid TxID or receipt'}`,
-      adminRemarks: adminRemarks || 'Rejected by Admin'
-    };
-    transactions[txIndex] = rejectedTx;
-    this.saveTransactions(transactions);
-
-    if (userId) {
-      supabase.from('deposits').update({ status: 'REJECTED' }).eq('user_id', userId).eq('status', 'PENDING').then(() => {}, () => {});
-      supabase.from('wallet_transactions').update({ status: 'REJECTED' }).eq('user_id', userId).eq('type', 'DEPOSIT').eq('status', 'PENDING').then(() => {}, () => {});
-    }
-
-    return { updatedWallet, rejectedTx };
+    return { updatedWallet: syncedWallet, rejectedTx };
   },
 
   /**
-   * Admin Action: Approve a Pending Withdrawal
+   * Admin Action: Approve a Pending Withdrawal (Database Backed & Idempotent).
    */
-  approveWithdrawal(txId: string, adminRemarks?: string): { updatedWallet: WalletState; approvedTx: WalletTransaction } {
+  async approveWithdrawal(
+    txId: string,
+    adminRemarks?: string
+  ): Promise<{ updatedWallet: WalletState; approvedTx: WalletTransaction }> {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('approve_withdrawal_request', {
+      p_withdrawal_id: txId,
+      p_admin_id: 'admin',
+      p_remarks: adminRemarks || 'Withdrawal dispatched by Admin'
+    });
+
+    if (rpcErr || !rpcRes?.success) {
+      throw new Error(rpcErr?.message || 'Failed to approve withdrawal in database');
+    }
+
+    const dbWallet = rpcRes.wallet;
+    const userId = dbWallet.user_id;
+    const syncedWallet: WalletState = {
+      ...this.getWalletForUser(userId),
+      totalBalance: parseFloat(dbWallet.total_balance) || 0,
+      availableBalance: parseFloat(dbWallet.available_balance) || 0,
+      pendingBalance: parseFloat(dbWallet.pending_balance) || 0,
+      updatedAt: dbWallet.updated_at
+    };
+    this.saveWalletForUser(userId, syncedWallet);
+
+    await this.syncTransactionsFromSupabase();
+
     const transactions = this.getTransactions();
-    const txIndex = transactions.findIndex(t => t.id === txId && t.type === 'WITHDRAWAL');
-    if (txIndex === -1) throw new Error('Withdrawal transaction not found');
-
-    const tx = transactions[txIndex];
-    const amount = tx.amount;
-    const userId = tx.userId;
-    const wallet = userId ? this.getWalletForUser(userId) : this.getWallet();
-
-    // Deduct pending balance permanently
-    const newPending = Math.max(0, Number((wallet.pendingBalance - amount).toFixed(4)));
-    const newTotal = Math.max(0, Number((wallet.totalBalance - amount).toFixed(4)));
-
-    const updatedWallet: WalletState = {
-      ...wallet,
-      pendingBalance: newPending,
-      totalBalance: newTotal
+    const approvedTx = transactions.find(t => t.id === txId) || {
+      id: txId,
+      userId,
+      type: 'WITHDRAWAL' as TransactionType,
+      amount: 0,
+      currency: 'USDT',
+      status: 'APPROVED' as TransactionStatus,
+      description: `Withdrawal Approved & Dispatched`,
+      referenceId: `WTH-${txId.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+      createdAt: new Date().toISOString(),
+      adminRemarks
     };
 
-    if (userId) {
-      this.saveWalletForUser(userId, updatedWallet);
-    } else {
-      this.saveWallet(updatedWallet);
-    }
-
-    const approvedTx: WalletTransaction = {
-      ...tx,
-      status: 'APPROVED',
-      description: `Withdrawal Approved & Dispatched (-${amount} USDT)`,
-      adminRemarks: adminRemarks || 'Dispatched by Admin'
-    };
-    transactions[txIndex] = approvedTx;
-    this.saveTransactions(transactions);
-
-    if (userId) {
-      supabase.from('withdrawals').update({ status: 'APPROVED' }).eq('user_id', userId).eq('status', 'PENDING').then(() => {}, () => {});
-      supabase.from('wallet_transactions').update({ status: 'APPROVED' }).eq('user_id', userId).eq('type', 'WITHDRAWAL').eq('status', 'PENDING').then(() => {}, () => {});
-    }
-
-    return { updatedWallet, approvedTx };
+    return { updatedWallet: syncedWallet, approvedTx };
   },
 
   /**
-   * Admin Action: Reject a Pending Withdrawal (Refunds back to available balance)
+   * Admin Action: Reject a Pending Withdrawal (Refunds back to available balance).
    */
-  rejectWithdrawal(txId: string, adminRemarks?: string): { updatedWallet: WalletState; rejectedTx: WalletTransaction } {
+  async rejectWithdrawal(
+    txId: string,
+    adminRemarks?: string
+  ): Promise<{ updatedWallet: WalletState; rejectedTx: WalletTransaction }> {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('reject_withdrawal_request', {
+      p_withdrawal_id: txId,
+      p_admin_id: 'admin',
+      p_remarks: adminRemarks || 'Withdrawal rejected and refunded by Admin'
+    });
+
+    if (rpcErr || !rpcRes?.success) {
+      throw new Error(rpcErr?.message || 'Failed to reject withdrawal in database');
+    }
+
+    const dbWallet = rpcRes.wallet;
+    const userId = dbWallet.user_id;
+    const syncedWallet: WalletState = {
+      ...this.getWalletForUser(userId),
+      totalBalance: parseFloat(dbWallet.total_balance) || 0,
+      availableBalance: parseFloat(dbWallet.available_balance) || 0,
+      pendingBalance: parseFloat(dbWallet.pending_balance) || 0,
+      updatedAt: dbWallet.updated_at
+    };
+    this.saveWalletForUser(userId, syncedWallet);
+
+    await this.syncTransactionsFromSupabase();
+
     const transactions = this.getTransactions();
-    const txIndex = transactions.findIndex(t => t.id === txId && t.type === 'WITHDRAWAL');
-    if (txIndex === -1) throw new Error('Withdrawal transaction not found');
-
-    const tx = transactions[txIndex];
-    const amount = tx.amount;
-    const userId = tx.userId;
-    const wallet = userId ? this.getWalletForUser(userId) : this.getWallet();
-
-    // Refund from pending back to available balance
-    const newPending = Math.max(0, Number((wallet.pendingBalance - amount).toFixed(4)));
-    const newAvailable = Number((wallet.availableBalance + amount).toFixed(4));
-
-    const updatedWallet: WalletState = {
-      ...wallet,
-      pendingBalance: newPending,
-      availableBalance: newAvailable
+    const rejectedTx = transactions.find(t => t.id === txId) || {
+      id: txId,
+      userId,
+      type: 'WITHDRAWAL' as TransactionType,
+      amount: rpcRes.refundedAmount || 0,
+      currency: 'USDT',
+      status: 'REJECTED' as TransactionStatus,
+      description: `Withdrawal Rejected by Admin (Refunded ${rpcRes.refundedAmount || 0} USDT)`,
+      referenceId: `WTH-${txId.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+      createdAt: new Date().toISOString(),
+      adminRemarks
     };
 
-    if (userId) {
-      this.saveWalletForUser(userId, updatedWallet);
-    } else {
-      this.saveWallet(updatedWallet);
-    }
-
-    const rejectedTx: WalletTransaction = {
-      ...tx,
-      status: 'REJECTED',
-      description: `Withdrawal Rejected by Admin (Refunded ${amount} USDT to available balance)`,
-      adminRemarks: adminRemarks || 'Rejected and refunded by Admin'
-    };
-    transactions[txIndex] = rejectedTx;
-    this.saveTransactions(transactions);
-
-    if (userId) {
-      supabase.from('withdrawals').update({ status: 'REJECTED' }).eq('user_id', userId).eq('status', 'PENDING').then(() => {}, () => {});
-      supabase.from('wallet_transactions').update({ status: 'REJECTED' }).eq('user_id', userId).eq('type', 'WITHDRAWAL').eq('status', 'PENDING').then(() => {}, () => {});
-    }
-
-    return { updatedWallet, rejectedTx };
+    return { updatedWallet: syncedWallet, rejectedTx };
   },
 
   /**
    * User Action: Cancel a Pending Withdrawal and refund back to available balance
    */
-  cancelWithdrawal(txId: string, reason: string = 'Withdrawal request cancelled by user'): {
+  async cancelWithdrawal(
+    txId: string,
+    userId: string
+  ): Promise<{
     updatedWallet: WalletState;
     cancelledTx: WalletTransaction;
-  } {
-    const transactions = this.getTransactions();
-    const txIndex = transactions.findIndex(t => t.id === txId && t.type === 'WITHDRAWAL');
-    if (txIndex === -1) throw new Error('Withdrawal transaction not found');
+  }> {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('cancel_withdrawal_request', {
+      p_withdrawal_id: txId,
+      p_user_id: userId
+    });
 
-    const tx = transactions[txIndex];
-    if (tx.status !== 'PENDING') throw new Error('Only PENDING withdrawal requests can be cancelled');
-
-    const amount = tx.amount;
-    const userId = tx.userId;
-    const wallet = userId ? this.getWalletForUser(userId) : this.getWallet();
-
-    const newPending = Math.max(0, Number((wallet.pendingBalance - amount).toFixed(4)));
-    const newAvailable = Number((wallet.availableBalance + amount).toFixed(4));
-
-    const updatedWallet: WalletState = {
-      ...wallet,
-      pendingBalance: newPending,
-      availableBalance: newAvailable
-    };
-
-    if (userId) {
-      this.saveWalletForUser(userId, updatedWallet);
-    } else {
-      this.saveWallet(updatedWallet);
+    if (rpcErr || !rpcRes?.success) {
+      throw new Error(rpcErr?.message || 'Failed to cancel withdrawal');
     }
 
-    const cancelledTx: WalletTransaction = {
-      ...tx,
-      status: 'REJECTED',
-      description: `Withdrawal Cancelled by User (Refunded ${amount} USDT back to Available Balance)`,
-      adminRemarks: reason
+    const dbWallet = rpcRes.wallet;
+    const syncedWallet: WalletState = {
+      ...this.getWalletForUser(userId),
+      totalBalance: parseFloat(dbWallet.total_balance) || 0,
+      availableBalance: parseFloat(dbWallet.available_balance) || 0,
+      pendingBalance: parseFloat(dbWallet.pending_balance) || 0,
+      updatedAt: dbWallet.updated_at
     };
-    transactions[txIndex] = cancelledTx;
-    this.saveTransactions(transactions);
+    this.saveWalletForUser(userId, syncedWallet);
 
-    return { updatedWallet, cancelledTx };
+    await this.syncTransactionsFromSupabase();
+
+    const transactions = this.getTransactions();
+    const cancelledTx = transactions.find(t => t.id === txId) || {
+      id: txId,
+      userId,
+      type: 'WITHDRAWAL' as TransactionType,
+      amount: rpcRes.refundedAmount || 0,
+      currency: 'USDT',
+      status: 'REJECTED' as TransactionStatus,
+      description: `Withdrawal Cancelled by User (Refunded ${rpcRes.refundedAmount || 0} USDT)`,
+      referenceId: `WTH-${txId.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+      createdAt: new Date().toISOString()
+    };
+
+    return { updatedWallet: syncedWallet, cancelledTx };
   },
 
   /**

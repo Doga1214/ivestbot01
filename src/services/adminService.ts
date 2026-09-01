@@ -209,21 +209,21 @@ export const adminService = {
     return walletService.getTransactions().filter(t => t.type === 'WITHDRAWAL' && t.status === 'PENDING');
   },
 
-  approveDeposit(txId: string, remarks?: string): { approvedTx: WalletTransaction; updatedWallet: WalletState } {
-    const res = walletService.approveDeposit(txId, true, remarks);
+  async approveDeposit(txId: string, remarks?: string): Promise<{ approvedTx: WalletTransaction; updatedWallet: WalletState }> {
+    const res = await walletService.approveDeposit(txId, true, remarks);
     return { approvedTx: res.approvedTx, updatedWallet: res.updatedWallet };
   },
 
-  rejectDeposit(txId: string, remarks?: string): { rejectedTx: WalletTransaction; updatedWallet: WalletState } {
-    return walletService.rejectDeposit(txId, remarks);
+  async rejectDeposit(txId: string, remarks?: string): Promise<{ rejectedTx: WalletTransaction; updatedWallet: WalletState }> {
+    return await walletService.rejectDeposit(txId, remarks);
   },
 
-  approveWithdrawal(txId: string, remarks?: string): { approvedTx: WalletTransaction; updatedWallet: WalletState } {
-    return walletService.approveWithdrawal(txId, remarks);
+  async approveWithdrawal(txId: string, remarks?: string): Promise<{ approvedTx: WalletTransaction; updatedWallet: WalletState }> {
+    return await walletService.approveWithdrawal(txId, remarks);
   },
 
-  rejectWithdrawal(txId: string, remarks?: string): { rejectedTx: WalletTransaction; updatedWallet: WalletState } {
-    return walletService.rejectWithdrawal(txId, remarks);
+  async rejectWithdrawal(txId: string, remarks?: string): Promise<{ rejectedTx: WalletTransaction; updatedWallet: WalletState }> {
+    return await walletService.rejectWithdrawal(txId, remarks);
   },
 
   creditUserWallet(userId: string, amount: number, reason: string): { updatedWallet: WalletState; tx: WalletTransaction } {

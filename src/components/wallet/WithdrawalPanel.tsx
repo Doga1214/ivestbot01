@@ -31,6 +31,19 @@ export const WithdrawalPanel: React.FC = () => {
   // Active pending withdrawals for this user
   const pendingWithdrawals = transactions.filter(t => t.type === 'WITHDRAWAL' && t.status === 'PENDING');
 
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  const handleCancel = async (txId: string) => {
+    setCancellingId(txId);
+    try {
+      await cancelWithdrawal(txId);
+    } catch {
+      // handled
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   const isRestricted =
     wallet.status === 'INACTIVE' ||
     wallet.status === 'FROZEN' ||
@@ -124,10 +137,11 @@ export const WithdrawalPanel: React.FC = () => {
                   variant="outlined"
                   color="error"
                   size="small"
-                  onClick={() => cancelWithdrawal(tx.id)}
+                  disabled={cancellingId === tx.id}
+                  onClick={() => handleCancel(tx.id)}
                   sx={{ fontWeight: 800, textTransform: 'none', flexShrink: 0 }}
                 >
-                  Cancel Request & Refund
+                  {cancellingId === tx.id ? 'Cancelling...' : 'Cancel Request & Refund'}
                 </Button>
               </Box>
             ))}

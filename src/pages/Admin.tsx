@@ -115,24 +115,40 @@ export const Admin: React.FC = () => {
     showSnackbar('Admin session closed.', 'info');
   };
 
-  const handleApproveDeposit = (txId: string, remarks?: string) => {
-    adminApproveDeposit(txId, remarks);
-    loadAdminData();
+  const handleApproveDeposit = async (txId: string, remarks?: string) => {
+    try {
+      await adminApproveDeposit(txId, remarks);
+      await loadAdminData();
+    } catch {
+      // notification handled in context
+    }
   };
 
-  const handleRejectDeposit = (txId: string, remarks?: string) => {
-    adminRejectDeposit(txId, remarks);
-    loadAdminData();
+  const handleRejectDeposit = async (txId: string, remarks?: string) => {
+    try {
+      await adminRejectDeposit(txId, remarks);
+      await loadAdminData();
+    } catch {
+      // notification handled in context
+    }
   };
 
-  const handleApproveWithdrawal = (txId: string, remarks?: string) => {
-    adminApproveWithdrawal(txId, remarks);
-    loadAdminData();
+  const handleApproveWithdrawal = async (txId: string, remarks?: string) => {
+    try {
+      await adminApproveWithdrawal(txId, remarks);
+      await loadAdminData();
+    } catch {
+      // notification handled in context
+    }
   };
 
-  const handleRejectWithdrawal = (txId: string, remarks?: string) => {
-    adminRejectWithdrawal(txId, remarks);
-    loadAdminData();
+  const handleRejectWithdrawal = async (txId: string, remarks?: string) => {
+    try {
+      await adminRejectWithdrawal(txId, remarks);
+      await loadAdminData();
+    } catch {
+      // notification handled in context
+    }
   };
 
   const handleAdjustBalance = (userId: string, type: 'CREDIT' | 'DEBIT', amount: number, reason: string) => {

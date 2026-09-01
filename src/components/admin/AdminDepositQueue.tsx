@@ -50,6 +50,7 @@ export const AdminDepositQueue: React.FC<AdminDepositQueueProps> = ({
   const [actionType, setActionType] = useState<'APPROVE' | 'REJECT' | null>(null);
   const [adminRemarks, setAdminRemarks] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleOpenAction = (tx: WalletTransaction, type: 'APPROVE' | 'REJECT') => {
     setSelectedTx(tx);
@@ -57,15 +58,22 @@ export const AdminDepositQueue: React.FC<AdminDepositQueueProps> = ({
     setAdminRemarks(type === 'APPROVE' ? 'Deposit verified on blockchain. Credited.' : 'Invalid transaction hash / receipt not matched.');
   };
 
-  const handleConfirmAction = () => {
-    if (!selectedTx || !actionType) return;
-    if (actionType === 'APPROVE') {
-      onApprove(selectedTx.id, adminRemarks);
-    } else {
-      onReject(selectedTx.id, adminRemarks);
+  const handleConfirmAction = async () => {
+    if (!selectedTx || !actionType || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      if (actionType === 'APPROVE') {
+        await onApprove(selectedTx.id, adminRemarks);
+      } else {
+        await onReject(selectedTx.id, adminRemarks);
+      }
+      setSelectedTx(null);
+      setActionType(null);
+    } catch {
+      // notification handled in context
+    } finally {
+      setIsSubmitting(false);
     }
-    setSelectedTx(null);
-    setActionType(null);
   };
 
   const handleManualRefresh = async () => {
@@ -325,16 +333,21 @@ export const AdminDepositQueue: React.FC<AdminDepositQueueProps> = ({
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button onClick={() => { setSelectedTx(null); setActionType(null); }} sx={{ color: '#9CA3AF' }}>
+          <Button disabled={isSubmitting} onClick={() => { setSelectedTx(null); setActionType(null); }} sx={{ color: '#9CA3AF' }}>
             Cancel
           </Button>
           <Button
             variant="contained"
             color={actionType === 'APPROVE' ? 'success' : 'error'}
             onClick={handleConfirmAction}
+            disabled={isSubmitting}
             sx={{ fontWeight: 800 }}
           >
-            {actionType === 'APPROVE' ? 'Confirm Approval' : 'Confirm Rejection'}
+            {isSubmitting
+              ? 'Processing...'
+              : actionType === 'APPROVE'
+              ? 'Confirm Approval'
+              : 'Confirm Rejection'}
           </Button>
         </DialogActions>
       </Dialog>

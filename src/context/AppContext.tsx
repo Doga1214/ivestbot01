@@ -39,14 +39,14 @@ interface AppContextType {
   refreshWallet: () => void;
   submitDeposit: (amount: number, address: string, txHash: string) => Promise<void>;
   submitWithdrawal: (amount: number, address: string) => Promise<{ success: boolean; message: string }>;
-  cancelWithdrawal: (txId: string) => void;
+  cancelWithdrawal: (txId: string) => Promise<void>;
   submitKyc: (data: { fullName: string; documentType: string; documentNumber: string; documentFileName?: string }) => Promise<void>;
   
   // Admin Operations
-  adminApproveDeposit: (txId: string, remarks?: string) => void;
-  adminRejectDeposit: (txId: string, remarks?: string) => void;
-  adminApproveWithdrawal: (txId: string, remarks?: string) => void;
-  adminRejectWithdrawal: (txId: string, remarks?: string) => void;
+  adminApproveDeposit: (txId: string, remarks?: string) => Promise<void>;
+  adminRejectDeposit: (txId: string, remarks?: string) => Promise<void>;
+  adminApproveWithdrawal: (txId: string, remarks?: string) => Promise<void>;
+  adminRejectWithdrawal: (txId: string, remarks?: string) => Promise<void>;
   adminCreditUser: (userId: string, amount: number, reason: string) => void;
   adminDebitUser: (userId: string, amount: number, reason: string) => void;
   adminUpdateWalletRestrictions: (userId: string, status: WalletStatus, restrictions: WalletRestrictions, reason?: string) => void;
@@ -227,42 +227,71 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Admin Verification Actions
-  const adminApproveDeposit = (txId: string, remarks?: string) => {
-    const hasSponsor = !!(user?.referredBy || initialReferralCode);
-    const result = walletService.approveDeposit(txId, hasSponsor, remarks);
-    setWallet(result.updatedWallet);
-    setTransactions(walletService.getTransactions());
-    setSyncTick(t => t + 1);
-    showSnackbar(`Deposit approved by Admin! ${result.approvedTx.amount} USDT credited to Available Balance!`, 'success');
+  const adminApproveDeposit = async (txId: string, remarks?: string) => {
+    try {
+      const hasSponsor = !!(user?.referredBy || initialReferralCode);
+      const result = await walletService.approveDeposit(txId, hasSponsor, remarks);
+      setWallet(result.updatedWallet);
+      setTransactions(walletService.getTransactions());
+      setSyncTick(t => t + 1);
+      showSnackbar(`Deposit approved by Admin! ${result.approvedTx.amount} USDT credited to Available Balance!`, 'success');
+    } catch (err: any) {
+      showSnackbar(err.message || 'Failed to approve deposit', 'error');
+      throw err;
+    }
   };
 
-  const adminRejectDeposit = (txId: string, remarks?: string) => {
-    const result = walletService.rejectDeposit(txId, remarks);
-    setWallet(result.updatedWallet);
-    setTransactions(walletService.getTransactions());
-    setSyncTick(t => t + 1);
-    showSnackbar(`Deposit rejected by Admin: ${remarks || 'Verification failed'}`, 'warning');
+  const adminRejectDeposit = async (txId: string, remarks?: string) => {
+    try {
+      const result = await walletService.rejectDeposit(txId, remarks);
+      setWallet(result.updatedWallet);
+      setTransactions(walletService.getTransactions());
+      setSyncTick(t => t + 1);
+      showSnackbar(`Deposit rejected by Admin: ${remarks || 'Verification failed'}`, 'warning');
+    } catch (err: any) {
+      showSnackbar(err.message || 'Failed to reject deposit', 'error');
+      throw err;
+    }
   };
 
-  const adminApproveWithdrawal = (txId: string, remarks?: string) => {
-    const result = walletService.approveWithdrawal(txId, remarks);
-    setWallet(result.updatedWallet);
-    setTransactions(walletService.getTransactions());
-    showSnackbar(`Withdrawal of ${result.approvedTx.amount} USDT approved by Admin!`, 'success');
+  const adminApproveWithdrawal = async (txId: string, remarks?: string) => {
+    try {
+      const result = await walletService.approveWithdrawal(txId, remarks);
+      setWallet(result.updatedWallet);
+      setTransactions(walletService.getTransactions());
+      setSyncTick(t => t + 1);
+      showSnackbar(`Withdrawal approved & dispatched by Admin!`, 'success');
+    } catch (err: any) {
+      showSnackbar(err.message || 'Failed to approve withdrawal', 'error');
+      throw err;
+    }
   };
 
-  const adminRejectWithdrawal = (txId: string, remarks?: string) => {
-    const result = walletService.rejectWithdrawal(txId, remarks);
-    setWallet(result.updatedWallet);
-    setTransactions(walletService.getTransactions());
-    showSnackbar(`Withdrawal rejected by Admin. ${result.rejectedTx.amount} USDT refunded to Available Balance.`, 'info');
+  const adminRejectWithdrawal = async (txId: string, remarks?: string) => {
+    try {
+      const result = await walletService.rejectWithdrawal(txId, remarks);
+      setWallet(result.updatedWallet);
+      setTransactions(walletService.getTransactions());
+      setSyncTick(t => t + 1);
+      showSnackbar(`Withdrawal rejected by Admin. ${result.rejectedTx.amount} USDT refunded to Available Balance.`, 'info');
+    } catch (err: any) {
+      showSnackbar(err.message || 'Failed to reject withdrawal', 'error');
+      throw err;
+    }
   };
 
-  const cancelWithdrawal = (txId: string) => {
-    const result = walletService.cancelWithdrawal(txId);
-    setWallet(result.updatedWallet);
-    setTransactions(walletService.getTransactions());
-    showSnackbar(`Withdrawal request cancelled! ${result.cancelledTx.amount} USDT refunded to Available Balance.`, 'success');
+  const cancelWithdrawal = async (txId: string) => {
+    if (!user?.id) return;
+    try {
+      const result = await walletService.cancelWithdrawal(txId, user.id);
+      setWallet(result.updatedWallet);
+      setTransactions(walletService.getTransactions());
+      setSyncTick(t => t + 1);
+      showSnackbar(`Withdrawal request cancelled! ${result.cancelledTx.amount} USDT refunded to Available Balance.`, 'success');
+    } catch (err: any) {
+      showSnackbar(err.message || 'Failed to cancel withdrawal', 'error');
+      throw err;
+    }
   };
 
   const adminCreditUser = (userId: string, amount: number, reason: string) => {
