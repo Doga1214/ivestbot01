@@ -84,37 +84,7 @@ const DEFAULT_WALLET: WalletState = {
   restrictions: DEFAULT_RESTRICTIONS
 };
 
-const DEFAULT_TRANSACTIONS: WalletTransaction[] = [
-  {
-    id: 'tx-dep-sample-1',
-    userId: 'a0000000-0000-0000-0000-000000000002',
-    userName: 'Vikram Patel',
-    userEmail: 'vikram@example.com',
-    type: 'DEPOSIT',
-    amount: 100.0,
-    currency: 'USDT',
-    status: 'PENDING',
-    description: 'USDT Deposit Submitted (THSahZbP...) - Pending Admin Verification',
-    referenceId: 'DEP-884219',
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    address: 'THSahZbPSUspYRKmEQgrKb3NXutckSBXsZ',
-    txHash: '0x89b12c4488219ef10adbc14838e129188'
-  },
-  {
-    id: 'tx-wth-sample-1',
-    userId: 'a0000000-0000-0000-0000-000000000003',
-    userName: 'Priya Singh',
-    userEmail: 'priya@crypto.io',
-    type: 'WITHDRAWAL',
-    amount: 50.0,
-    currency: 'USDT',
-    status: 'PENDING',
-    description: 'Withdrawal Request to 0x71C...489 - Pending Admin Review',
-    referenceId: 'WTH-991204',
-    createdAt: new Date(Date.now() - 3600000 * 1).toISOString(),
-    address: '0x71C3829adbf198302198000491823901928489'
-  }
-];
+const DEFAULT_TRANSACTIONS: WalletTransaction[] = [];
 
 export const walletService = {
   getWallet(): WalletState {
@@ -191,7 +161,11 @@ export const walletService = {
   getTransactions(): WalletTransaction[] {
     try {
       const stored = localStorage.getItem(TRANSACTIONS_STORAGE_KEY);
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed: WalletTransaction[] = JSON.parse(stored);
+        // Exclude dummy/sample withdrawal or deposit transactions
+        return parsed.filter(t => t.id !== 'tx-wth-sample-1' && t.id !== 'tx-dep-sample-1');
+      }
     } catch {
       // ignore
     }

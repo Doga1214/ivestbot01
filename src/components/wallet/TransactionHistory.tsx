@@ -21,10 +21,14 @@ import { formatDate } from '../../utils/formatters';
 import type { WalletTransaction } from '../../services/walletService';
 
 export const TransactionHistory: React.FC = () => {
-  const { transactions, cancelWithdrawal } = useApp();
+  const { user, transactions, cancelWithdrawal } = useApp();
   const [filterType, setFilterType] = useState<string>('ALL');
 
-  const filteredTransactions = transactions.filter((tx) => {
+  const userTransactions = transactions.filter(
+    (tx) => !tx.userId || (user && tx.userId === user.id) || (user && tx.userEmail === user.email)
+  );
+
+  const filteredTransactions = userTransactions.filter((tx) => {
     if (filterType === 'ALL') return true;
     if (filterType === 'PENDING') return tx.status === 'PENDING';
     if (filterType === 'BONUS') return tx.type === 'REFERRAL_BONUS' || tx.type === 'WELCOME_BONUS';
