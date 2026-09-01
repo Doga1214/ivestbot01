@@ -1,7 +1,7 @@
 import { supabase } from './supabaseClient';
 
 export interface UserProfile {
-  id: string;
+  id: string; // Must always be a canonical UUID
   name: string;
   username: string;
   email: string;
@@ -11,6 +11,11 @@ export interface UserProfile {
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'BLOCKED';
   kycStatus: 'NOT_SUBMITTED' | 'PENDING' | 'VERIFIED' | 'REJECTED';
   createdAt: string;
+}
+
+export function isValidUuid(id?: string | null): boolean {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 }
 
 const STORAGE_KEY = 'ivestbot_auth_user';
@@ -66,18 +71,8 @@ export const authService = {
           createdAt: d.created_at || new Date().toISOString()
         }));
 
-        const local = this.getAllUsers();
-        const mergedMap = new Map<string, UserProfile>();
-        remoteUsers.forEach(u => mergedMap.set(u.id, u));
-        local.forEach(u => {
-          if (!mergedMap.has(u.id)) {
-            mergedMap.set(u.id, u);
-          }
-        });
-
-        const merged = Array.from(mergedMap.values());
-        this.saveAllUsers(merged);
-        return merged;
+        this.saveAllUsers(remoteUsers);
+        return remoteUsers;
       }
     } catch {
       // ignore network errors
@@ -89,7 +84,8 @@ export const authService = {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        return parsed;
       }
     } catch {
       // ignore
@@ -97,49 +93,87 @@ export const authService = {
     return null;
   },
 
+  /**
+   * Validates active session and automatically migrates any legacy non-UUID IDs (e.g. usr-xxxxxx)
+   * to canonical Supabase UUIDs by querying profiles by email/username.
+   */
   async verifyUserAlive(userId: string): Promise<UserProfile | null> {
-    const localUsers = this.getAllUsers();
-    const localUser = localUsers.find(u => u.id === userId);
     const currentUser = this.getCurrentUser();
 
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
+    // 1. If userId is a valid UUID, fetch by ID directly from Supabase
+    if (isValidUuid(userId)) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
 
-      if (data && !error) {
-        const user: UserProfile = {
-          id: data.id,
-          name: data.name,
-          username: data.username,
-          email: data.email,
-          referralCode: data.referral_code,
-          referredBy: data.referred_by_code || undefined,
-          level: data.level || 1,
-          status: (data.status || 'INACTIVE') as any,
-          kycStatus: data.kyc_status || 'NOT_SUBMITTED',
-          createdAt: data.created_at
-        };
+        if (data && !error) {
+          const user: UserProfile = {
+            id: data.id,
+            name: data.name,
+            username: data.username,
+            email: data.email,
+            referralCode: data.referral_code,
+            referredBy: data.referred_by_code || undefined,
+            level: data.level || 1,
+            status: (data.status || 'INACTIVE') as any,
+            kycStatus: data.kyc_status || 'NOT_SUBMITTED',
+            createdAt: data.created_at
+          };
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-        this.upsertUser(user);
-        return user;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+          this.upsertUser(user);
+          return user;
+        }
+      } catch {
+        // network issue
       }
-    } catch {
-      // ignore network errors
     }
 
-    // If user exists locally in active storage, keep them logged in safely
-    if (localUser) {
-      return localUser;
-    }
-    if (currentUser && currentUser.id === userId) {
-      return currentUser;
+    // 2. Legacy Migration Strategy: If userId is non-UUID (e.g. usr-643103), resolve canonical UUID from Supabase profiles
+    if (currentUser?.email || currentUser?.username) {
+      try {
+        const cleanEmail = (currentUser.email || '').toLowerCase().trim();
+        const cleanUsername = (currentUser.username || '').toLowerCase().trim();
+
+        let query = supabase.from('profiles').select('*');
+        if (cleanEmail && cleanUsername) {
+          query = query.or(`email.eq.${cleanEmail},username.eq.${cleanUsername}`);
+        } else if (cleanEmail) {
+          query = query.eq('email', cleanEmail);
+        } else if (cleanUsername) {
+          query = query.eq('username', cleanUsername);
+        }
+
+        const { data: matchedProfile } = await query.maybeSingle();
+
+        if (matchedProfile && isValidUuid(matchedProfile.id)) {
+          const migratedUser: UserProfile = {
+            id: matchedProfile.id,
+            name: matchedProfile.name,
+            username: matchedProfile.username,
+            email: matchedProfile.email,
+            referralCode: matchedProfile.referral_code,
+            referredBy: matchedProfile.referred_by_code || undefined,
+            level: matchedProfile.level || 1,
+            status: (matchedProfile.status || 'INACTIVE') as any,
+            kycStatus: matchedProfile.kyc_status || 'NOT_SUBMITTED',
+            createdAt: matchedProfile.created_at
+          };
+
+          // Overwrite legacy ID with canonical UUID
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(migratedUser));
+          this.upsertUser(migratedUser);
+          return migratedUser;
+        }
+      } catch {
+        // ignore
+      }
     }
 
-    return null;
+    return currentUser;
   },
 
   async login(usernameOrEmail: string, password?: string): Promise<UserProfile> {
@@ -155,7 +189,7 @@ export const authService = {
         : supabase.from('profiles').select('*').eq('username', cleanQuery).maybeSingle();
 
       const { data, error } = await query;
-      if (data && !error) {
+      if (data && !error && isValidUuid(data.id)) {
         // If password_hash is recorded and user entered a password, check
         if (data.password_hash && password && data.password_hash !== password) {
           throw new Error('Invalid password. Please try again.');
@@ -183,109 +217,47 @@ export const authService = {
       }
     }
 
-    // Check local stored users
-    const all = this.getAllUsers();
-    const existing = all.find(u => u.username.toLowerCase() === cleanQuery || u.email.toLowerCase() === cleanQuery);
-    
-    if (existing) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
-      return existing;
-    }
-
-    throw new Error('Account not found with this username or email. Please create an account first.');
+    throw new Error('Account not found with this username or email. Please register first.');
   },
 
   async register(data: { name: string; username: string; email: string; password?: string; referralCode?: string }): Promise<UserProfile> {
-    const all = this.getAllUsers();
     const cleanUsername = data.username.toLowerCase().trim();
     const cleanEmail = data.email.toLowerCase().trim();
     const referredByClean = data.referralCode?.trim() || undefined;
 
-    // Check if user already exists locally
-    const existingLocal = all.find(u => u.username.toLowerCase() === cleanUsername || u.email.toLowerCase() === cleanEmail);
-    if (existingLocal) {
-      throw new Error('An account with this username or email already exists. Please login instead.');
+    if (!cleanUsername || !cleanEmail) {
+      throw new Error('Username and email are required.');
     }
 
-    const newRefCode = generateUniqueReferralCode(all);
+    // Call PostgreSQL atomic RPC function to resolve or create profile and initialize wallet
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('resolve_or_create_profile', {
+      p_name: data.name.trim() || 'User',
+      p_username: cleanUsername,
+      p_email: cleanEmail,
+      p_password: data.password || null,
+      p_referral_code: generateUniqueReferralCode(this.getAllUsers()),
+      p_referred_by: referredByClean || null
+    });
 
-    try {
-      // Check existing in Supabase
-      const { data: existingSupabase } = await supabase
-        .from('profiles')
-        .select('id')
-        .or(`username.eq.${cleanUsername},email.eq.${cleanEmail}`)
-        .maybeSingle();
-
-      if (existingSupabase) {
-        throw new Error('An account with this username or email already exists in the system. Please login.');
-      }
-
-      const { data: inserted, error } = await supabase
-        .from('profiles')
-        .insert({
-          name: data.name.trim(),
-          username: cleanUsername,
-          email: cleanEmail,
-          password_hash: data.password || null,
-          referral_code: newRefCode,
-          referred_by_code: referredByClean || null,
-          level: 1,
-          status: 'INACTIVE',
-          kyc_status: 'NOT_SUBMITTED'
-        })
-        .select()
-        .single();
-
-      if (inserted && !error) {
-        // Initialize user wallet in database
-        try {
-          await supabase.from('wallets').insert({
-            user_id: inserted.id,
-            total_balance: 0.0,
-            available_balance: 0.0,
-            pending_balance: 0.0,
-            currency: 'USDT'
-          });
-        } catch {
-          // ignore
-        }
-
-        const user: UserProfile = {
-          id: inserted.id,
-          name: inserted.name,
-          username: inserted.username,
-          email: inserted.email,
-          referralCode: inserted.referral_code,
-          referredBy: inserted.referred_by_code || undefined,
-          level: inserted.level || 1,
-          status: 'INACTIVE',
-          kycStatus: inserted.kyc_status || 'NOT_SUBMITTED',
-          createdAt: inserted.created_at
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-        this.upsertUser(user);
-        return user;
-      }
-    } catch (err: any) {
-      if (err?.message?.includes('already exists')) {
-        throw err;
-      }
+    if (rpcErr || !rpcRes?.success || !rpcRes?.profile?.id || !isValidUuid(rpcRes.profile.id)) {
+      console.error('[Registration Error]', rpcErr || rpcRes);
+      throw new Error(rpcErr?.message || 'Registration failed on server. Please try again.');
     }
 
-    // Fallback if offline
+    const profile = rpcRes.profile;
     const user: UserProfile = {
-      id: `usr-${Date.now().toString().slice(-6)}`,
-      name: data.name.trim(),
-      username: cleanUsername,
-      email: cleanEmail,
-      referralCode: newRefCode,
-      referredBy: referredByClean,
-      level: 1,
-      status: 'INACTIVE',
-      kycStatus: 'NOT_SUBMITTED',
-      createdAt: new Date().toISOString()
+      id: profile.id, // Guaranteed canonical UUID
+      name: profile.name,
+      username: profile.username,
+      email: profile.email,
+      referralCode: profile.referral_code,
+      referredBy: profile.referred_by_code || undefined,
+      level: profile.level || 1,
+      status: profile.status || 'INACTIVE',
+      kycStatus: profile.kyc_status || 'NOT_SUBMITTED',
+      createdAt: profile.created_at
     };
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
     this.upsertUser(user);
     return user;
@@ -293,7 +265,7 @@ export const authService = {
 
   upsertUser(user: UserProfile): void {
     const all = this.getAllUsers();
-    const index = all.findIndex(u => u.id === user.id || u.username.toLowerCase() === user.username.toLowerCase());
+    const index = all.findIndex(u => u.id === user.id || (u.username && user.username && u.username.toLowerCase() === user.username.toLowerCase()));
     if (index >= 0) {
       all[index] = { ...all[index], ...user };
     } else {
@@ -331,6 +303,10 @@ export const authService = {
   },
 
   async deleteUser(userId: string): Promise<boolean> {
+    if (!isValidUuid(userId)) {
+      return false;
+    }
+
     try {
       await supabase.from('deposits').delete().eq('user_id', userId);
       await supabase.from('withdrawals').delete().eq('user_id', userId);

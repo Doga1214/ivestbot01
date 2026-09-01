@@ -1,6 +1,6 @@
 import { WALLET_CONFIG } from '../config/walletConfig';
 import { supabase } from './supabaseClient';
-import { authService } from './authService';
+import { authService, isValidUuid } from './authService';
 
 export type WalletStatus = 'ACTIVE' | 'INACTIVE' | 'FROZEN' | 'RESTRICTED';
 
@@ -188,7 +188,48 @@ export const walletService = {
       .then(() => {}, () => {});
   },
 
+  /**
+   * Resolves the canonical Supabase Auth / PostgreSQL UUID for an account.
+   * If a legacy non-UUID identifier (e.g. usr-643103) is passed, queries Supabase profiles
+   * to obtain the genuine UUID. Throws if no valid UUID can be resolved.
+   */
+  async resolveCanonicalUserId(userMeta?: { id?: string; name?: string; email?: string }): Promise<string> {
+    if (userMeta?.id && isValidUuid(userMeta.id)) {
+      return userMeta.id;
+    }
+
+    if (userMeta?.email || userMeta?.name) {
+      const cleanEmail = (userMeta.email || '').toLowerCase().trim();
+      const cleanName = (userMeta.name || '').toLowerCase().trim();
+
+      let query = supabase.from('profiles').select('id');
+      if (cleanEmail && cleanName) {
+        query = query.or(`email.eq.${cleanEmail},username.eq.${cleanName}`);
+      } else if (cleanEmail) {
+        query = query.eq('email', cleanEmail);
+      } else if (cleanName) {
+        query = query.eq('username', cleanName);
+      }
+
+      const { data: profile } = await query.maybeSingle();
+      if (profile?.id && isValidUuid(profile.id)) {
+        return profile.id;
+      }
+    }
+
+    const currentUser = authService.getCurrentUser();
+    if (currentUser?.id && isValidUuid(currentUser.id)) {
+      return currentUser.id;
+    }
+
+    throw new Error('Your session has an invalid account ID. Please sign in again to verify your account.');
+  },
+
   async syncWalletFromSupabase(userId: string): Promise<WalletState | null> {
+    if (!isValidUuid(userId)) {
+      return null;
+    }
+
     try {
       const { data, error } = await supabase
         .from('wallets')
@@ -244,13 +285,14 @@ export const walletService = {
 
   async syncTransactionsFromSupabase(userId?: string): Promise<WalletTransaction[]> {
     try {
+      const validUserId = userId && isValidUuid(userId) ? userId : undefined;
       const allUsers = authService.getAllUsers();
       const txMap = new Map<string, WalletTransaction>();
 
       // 1. Fetch from deposits table (authoritative table for deposits)
       let depQuery = supabase.from('deposits').select('*').order('created_at', { ascending: false });
-      if (userId) {
-        depQuery = depQuery.eq('user_id', userId);
+      if (validUserId) {
+        depQuery = depQuery.eq('user_id', validUserId);
       }
       const { data: depData } = await depQuery;
 
@@ -403,11 +445,8 @@ export const walletService = {
     depositTx: WalletTransaction;
     newWallet: WalletState;
   }> {
-    if (!userMeta?.id) {
-      throw new Error('Please login to submit a deposit.');
-    }
-
-    const wallet = this.getWalletForUser(userMeta.id);
+    const canonicalUserId = await this.resolveCanonicalUserId(userMeta);
+    const wallet = this.getWalletForUser(canonicalUserId);
 
     // Restrictions check
     if (wallet.status === 'INACTIVE' || wallet.status === 'FROZEN') {
@@ -425,9 +464,9 @@ export const walletService = {
       throw new Error('Transaction hash / receipt ID is required.');
     }
 
-    // Call PostgreSQL atomic RPC function
+    // Call PostgreSQL atomic RPC function with verified canonical UUID
     const { data: rpcRes, error: rpcErr } = await supabase.rpc('submit_deposit_request', {
-      p_user_id: userMeta.id,
+      p_user_id: canonicalUserId,
       p_amount: amount,
       p_deposit_address: address,
       p_tx_hash: txHash.trim(),
@@ -452,13 +491,13 @@ export const walletService = {
       pendingBalance: parseFloat(dbWallet.pending_balance) || 0,
       updatedAt: dbWallet.updated_at
     };
-    this.saveWalletForUser(userMeta.id, syncedWallet);
+    this.saveWalletForUser(canonicalUserId, syncedWallet);
 
     const depositTx: WalletTransaction = {
       id: dbDeposit.id,
-      userId: userMeta.id,
-      userName: userMeta.name,
-      userEmail: userMeta.email,
+      userId: canonicalUserId,
+      userName: userMeta?.name,
+      userEmail: userMeta?.email,
       type: 'DEPOSIT',
       amount: parseFloat(dbDeposit.amount) || amount,
       currency: dbDeposit.currency || 'USDT',
@@ -493,11 +532,8 @@ export const walletService = {
     newWallet: WalletState;
     withdrawalTx: WalletTransaction;
   }> {
-    if (!userMeta?.id) {
-      throw new Error('Please login to submit a withdrawal.');
-    }
-
-    const wallet = this.getWalletForUser(userMeta.id);
+    const canonicalUserId = await this.resolveCanonicalUserId(userMeta);
+    const wallet = this.getWalletForUser(canonicalUserId);
 
     // Restrictions check
     if (wallet.status === 'INACTIVE' || wallet.status === 'FROZEN') {
@@ -515,9 +551,9 @@ export const walletService = {
       throw new Error('Please enter your recipient USDT wallet address.');
     }
 
-    // Call PostgreSQL atomic RPC function
+    // Call PostgreSQL atomic RPC function with verified canonical UUID
     const { data: rpcRes, error: rpcErr } = await supabase.rpc('submit_withdrawal_request', {
-      p_user_id: userMeta.id,
+      p_user_id: canonicalUserId,
       p_amount: amount,
       p_recipient_address: address.trim(),
       p_currency: 'USDT'
@@ -538,13 +574,13 @@ export const walletService = {
       pendingBalance: parseFloat(dbWallet.pending_balance) || 0,
       updatedAt: dbWallet.updated_at
     };
-    this.saveWalletForUser(userMeta.id, syncedWallet);
+    this.saveWalletForUser(canonicalUserId, syncedWallet);
 
     const withdrawalTx: WalletTransaction = {
       id: dbWithdrawal.id,
-      userId: userMeta.id,
-      userName: userMeta.name,
-      userEmail: userMeta.email,
+      userId: canonicalUserId,
+      userName: userMeta?.name,
+      userEmail: userMeta?.email,
       type: 'WITHDRAWAL',
       amount: parseFloat(dbWithdrawal.amount) || amount,
       currency: dbWithdrawal.currency || 'USDT',
@@ -778,9 +814,11 @@ export const walletService = {
     updatedWallet: WalletState;
     cancelledTx: WalletTransaction;
   }> {
+    const canonicalUserId = await this.resolveCanonicalUserId({ id: userId });
+
     const { data: rpcRes, error: rpcErr } = await supabase.rpc('cancel_withdrawal_request', {
       p_withdrawal_id: txId,
-      p_user_id: userId
+      p_user_id: canonicalUserId
     });
 
     if (rpcErr || !rpcRes?.success) {
@@ -789,13 +827,13 @@ export const walletService = {
 
     const dbWallet = rpcRes.wallet;
     const syncedWallet: WalletState = {
-      ...this.getWalletForUser(userId),
+      ...this.getWalletForUser(canonicalUserId),
       totalBalance: parseFloat(dbWallet.total_balance) || 0,
       availableBalance: parseFloat(dbWallet.available_balance) || 0,
       pendingBalance: parseFloat(dbWallet.pending_balance) || 0,
       updatedAt: dbWallet.updated_at
     };
-    this.saveWalletForUser(userId, syncedWallet);
+    this.saveWalletForUser(canonicalUserId, syncedWallet);
 
     await this.syncTransactionsFromSupabase();
 
