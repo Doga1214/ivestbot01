@@ -1,12 +1,15 @@
 import React from 'react';
 import { Card, CardContent, Typography, Box, Avatar, Chip, Button } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import {
   EditIcon,
-  VerifiedIcon
+  VerifiedIcon,
+  AdminPanelSettingsIcon
 } from '../common/Icons';
 import { useApp } from '../../context/AppContext';
 
 export const ProfileHeader: React.FC = () => {
+  const navigate = useNavigate();
   const { user, showSnackbar } = useApp();
 
   if (!user) return null;
@@ -69,23 +72,43 @@ export const ProfileHeader: React.FC = () => {
             </Box>
           </Box>
 
-          {/* Edit Profile Action */}
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<EditIcon />}
-            onClick={() => showSnackbar('Profile details synced with account database.', 'info')}
-            sx={{
-              borderColor: 'rgba(255, 255, 255, 0.15)',
-              color: '#ffffff',
-              '&:hover': {
-                borderColor: 'primary.main',
-                backgroundColor: 'rgba(139, 92, 246, 0.08)'
-              }
-            }}
-          >
-            Edit Profile
-          </Button>
+          {/* Actions */}
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<AdminPanelSettingsIcon sx={{ color: '#f59e0b' }} />}
+              onClick={() => navigate('/admin')}
+              sx={{
+                borderColor: 'rgba(245, 158, 11, 0.4)',
+                color: '#f59e0b',
+                fontWeight: 700,
+                backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                '&:hover': {
+                  borderColor: '#f59e0b',
+                  backgroundColor: 'rgba(245, 158, 11, 0.18)'
+                }
+              }}
+            >
+              Admin Portal
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<EditIcon />}
+              onClick={() => showSnackbar('Profile details synced with account database.', 'info')}
+              sx={{
+                borderColor: 'rgba(255, 255, 255, 0.15)',
+                color: '#ffffff',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  backgroundColor: 'rgba(139, 92, 246, 0.08)'
+                }
+              }}
+            >
+              Edit Profile
+            </Button>
+          </Box>
         </Box>
       </CardContent>
     </Card>

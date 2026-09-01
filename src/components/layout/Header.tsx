@@ -17,7 +17,8 @@ import {
 import {
   NotificationsNoneIcon,
   LogoutIcon,
-  PersonOutlineIcon
+  PersonOutlineIcon,
+  AdminPanelSettingsIcon
 } from '../common/Icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
@@ -230,6 +231,12 @@ export const Header: React.FC = () => {
                     </ListItemIcon>
                     <ListItemText primary="Wallet & Deposits" />
                   </MenuItem>
+                  <MenuItem onClick={() => { handleMenuClose(); navigate('/admin'); }} sx={{ color: '#f59e0b' }}>
+                    <ListItemIcon>
+                      <AdminPanelSettingsIcon fontSize="small" sx={{ color: '#f59e0b' }} />
+                    </ListItemIcon>
+                    <ListItemText primary="Admin Portal" sx={{ '& .MuiTypography-root': { fontWeight: 700 } }} />
+                  </MenuItem>
                   <MenuItem onClick={handleLogout}>
                     <ListItemIcon>
                       <LogoutIcon fontSize="small" sx={{ color: '#f87171' }} />
@@ -240,6 +247,20 @@ export const Header: React.FC = () => {
               </>
             ) : (
               <>
+                <Tooltip title="Admin Panel Access">
+                  <IconButton
+                    onClick={() => navigate('/admin')}
+                    size="small"
+                    sx={{
+                      color: '#f59e0b',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      bgcolor: 'rgba(245, 158, 11, 0.1)',
+                      mr: 0.5
+                    }}
+                  >
+                    <AdminPanelSettingsIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
                 <Button
                   variant="text"
                   onClick={openLoginModal}
