@@ -8,7 +8,7 @@ export interface UserProfile {
   referralCode: string;
   referredBy?: string;
   level: number;
-  status: 'ACTIVE' | 'SUSPENDED' | 'BLOCKED';
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'BLOCKED';
   kycStatus: 'NOT_SUBMITTED' | 'PENDING' | 'VERIFIED' | 'REJECTED';
   createdAt: string;
 }
@@ -61,7 +61,7 @@ export const authService = {
           referralCode: d.referral_code || 'IVEST100',
           referredBy: d.referred_by_code || undefined,
           level: d.level || 1,
-          status: d.status || 'ACTIVE',
+          status: (d.status || 'INACTIVE') as any,
           kycStatus: d.kyc_status || 'NOT_SUBMITTED',
           createdAt: d.created_at || new Date().toISOString()
         }));
@@ -118,7 +118,7 @@ export const authService = {
         referralCode: data.referral_code,
         referredBy: data.referred_by_code || undefined,
         level: data.level || 1,
-        status: data.status || 'ACTIVE',
+        status: (data.status || 'INACTIVE') as any,
         kycStatus: data.kyc_status || 'NOT_SUBMITTED',
         createdAt: data.created_at
       };
@@ -157,7 +157,7 @@ export const authService = {
           referralCode: data.referral_code,
           referredBy: data.referred_by_code || undefined,
           level: data.level || 1,
-          status: data.status || 'ACTIVE',
+          status: (data.status || 'INACTIVE') as any,
           kycStatus: data.kyc_status || 'NOT_SUBMITTED',
           createdAt: data.created_at
         };
@@ -219,7 +219,7 @@ export const authService = {
           referral_code: newRefCode,
           referred_by_code: referredByClean || null,
           level: 1,
-          status: 'ACTIVE',
+          status: 'INACTIVE',
           kyc_status: 'NOT_SUBMITTED'
         })
         .select()
@@ -247,7 +247,7 @@ export const authService = {
           referralCode: inserted.referral_code,
           referredBy: inserted.referred_by_code || undefined,
           level: inserted.level || 1,
-          status: inserted.status || 'ACTIVE',
+          status: 'INACTIVE',
           kycStatus: inserted.kyc_status || 'NOT_SUBMITTED',
           createdAt: inserted.created_at
         };
@@ -270,7 +270,7 @@ export const authService = {
       referralCode: newRefCode,
       referredBy: referredByClean,
       level: 1,
-      status: 'ACTIVE',
+      status: 'INACTIVE',
       kycStatus: 'NOT_SUBMITTED',
       createdAt: new Date().toISOString()
     };

@@ -1,5 +1,6 @@
 import { WALLET_CONFIG } from '../config/walletConfig';
 import { supabase } from './supabaseClient';
+import { authService } from './authService';
 
 export type WalletStatus = 'ACTIVE' | 'INACTIVE' | 'FROZEN' | 'RESTRICTED';
 
@@ -184,8 +185,7 @@ export const walletService = {
         },
         { onConflict: 'user_id' }
       )
-      .then(() => {})
-      .catch(() => {});
+      .then(() => {}, () => {});
   },
 
   async syncWalletFromSupabase(userId: string): Promise<WalletState | null> {
@@ -315,8 +315,7 @@ export const walletService = {
           adminRemarks: tx.adminRemarks
         }
       })
-      .then(() => {})
-      .catch(() => {});
+      .then(() => {}, () => {});
 
     return newTx;
   },
@@ -472,16 +471,32 @@ export const walletService = {
     const userId = tx.userId;
     const wallet = userId ? this.getWalletForUser(userId) : this.getWallet();
 
-    // Calculate referral milestone bonus
+    // 1. Find depositor profile & activate account status
+    const allUsers = authService.getAllUsers();
+    const depositor = allUsers.find(
+      u => (userId && u.id === userId) ||
+           (tx.userEmail && u.email.toLowerCase() === tx.userEmail.toLowerCase()) ||
+           (tx.userName && u.username.toLowerCase() === tx.userName.toLowerCase())
+    );
+
+    if (depositor) {
+      depositor.status = 'ACTIVE';
+      authService.upsertUser(depositor);
+      supabase.from('profiles').update({ status: 'ACTIVE' }).eq('id', depositor.id).then(() => {}, () => {});
+    }
+
+    // 2. Calculate referral milestone bonus
     let welcomeBonus = 0;
     let sponsorBonus = 0;
-    if (hasSponsor && amount >= WALLET_CONFIG.depositBonusRatio.minDeposit) {
+    const hasEffectiveSponsor = !!(depositor?.referredBy || hasSponsor);
+
+    if (hasEffectiveSponsor && amount >= WALLET_CONFIG.depositBonusRatio.minDeposit) {
       const units = Math.floor(Math.min(amount, WALLET_CONFIG.depositBonusRatio.maxDeposit) / WALLET_CONFIG.depositBonusRatio.unitDeposit);
       sponsorBonus = units * WALLET_CONFIG.depositBonusRatio.sponsorBonusPerUnit;
       welcomeBonus = units * WALLET_CONFIG.depositBonusRatio.newUserBonusPerUnit;
     }
 
-    // Move from pending to available
+    // Move from pending to available for depositor
     const newPending = Math.max(0, Number((wallet.pendingBalance - amount).toFixed(4)));
     const newAvailable = Number((wallet.availableBalance + amount + welcomeBonus).toFixed(4));
     const newTotal = Number((newAvailable + newPending).toFixed(4));
@@ -508,10 +523,10 @@ export const walletService = {
     };
     transactions[txIndex] = approvedTx;
 
-    // Log welcome bonus if applicable
+    // Log welcome bonus for depositor if applicable
     if (welcomeBonus > 0) {
       const bonusTx: WalletTransaction = {
-        id: `tx-${Date.now().toString().slice(-6)}`,
+        id: `tx-${Date.now().toString().slice(-6)}-wel`,
         userId: tx.userId,
         userName: tx.userName,
         type: 'WELCOME_BONUS',
@@ -525,12 +540,192 @@ export const walletService = {
       transactions.unshift(bonusTx);
     }
 
+    // 3. AUTOMATIC COMMISSION DISTRIBUTION TO UPLINE SPONSORS (Tiers A, B, C)
+    const depositorRefCode = depositor?.referredBy?.trim();
+    if (depositorRefCode) {
+      // Find Tier A (Direct) Sponsor
+      const sponsorA = allUsers.find(
+        u => u.referralCode?.toUpperCase() === depositorRefCode.toUpperCase() ||
+             u.username.toLowerCase() === depositorRefCode.toLowerCase()
+      );
+
+      if (sponsorA && sponsorA.id !== depositor?.id) {
+        const directCommission = Number((amount * (WALLET_CONFIG.referralRates.A / 100)).toFixed(4));
+        const tierAReward = sponsorBonus > 0 ? (sponsorBonus + directCommission) : directCommission;
+
+        if (tierAReward > 0) {
+          const wA = this.getWalletForUser(sponsorA.id);
+          const updatedWA: WalletState = {
+            ...wA,
+            availableBalance: Number((wA.availableBalance + tierAReward).toFixed(4)),
+            totalBalance: Number((wA.totalBalance + tierAReward).toFixed(4))
+          };
+          this.saveWalletForUser(sponsorA.id, updatedWA);
+
+          const bonusTxA: WalletTransaction = {
+            id: `tx-${Date.now().toString().slice(-6)}-refA`,
+            userId: sponsorA.id,
+            userName: sponsorA.username,
+            userEmail: sponsorA.email,
+            type: 'REFERRAL_BONUS',
+            amount: tierAReward,
+            currency: 'USDT',
+            status: 'COMPLETED',
+            description: `Direct Referral Commission (+${tierAReward.toFixed(2)} USDT from @${depositor?.username || tx.userName || 'downline'} deposit of ${amount} USDT)`,
+            referenceId: `REF-${Date.now().toString().slice(-6)}`,
+            createdAt: new Date().toISOString()
+          };
+          transactions.unshift(bonusTxA);
+
+          // Supabase sync for Tier A
+          supabase.from('wallets').upsert({
+            user_id: sponsorA.id,
+            total_balance: updatedWA.totalBalance,
+            available_balance: updatedWA.availableBalance,
+            pending_balance: updatedWA.pendingBalance,
+            currency: updatedWA.currency || 'USDT',
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' }).then(() => {}, () => {});
+
+          supabase.from('wallet_transactions').insert({
+            user_id: sponsorA.id,
+            type: 'REFERRAL_BONUS',
+            amount: tierAReward,
+            currency: 'USDT',
+            status: 'COMPLETED',
+            description: bonusTxA.description,
+            reference_id: bonusTxA.referenceId
+          }).then(() => {}, () => {});
+        }
+
+        // Find Tier B (Indirect 2nd Tier) Sponsor
+        if (sponsorA.referredBy?.trim()) {
+          const sponsorBCode = sponsorA.referredBy.trim();
+          const sponsorB = allUsers.find(
+            u => u.referralCode?.toUpperCase() === sponsorBCode.toUpperCase() ||
+                 u.username.toLowerCase() === sponsorBCode.toLowerCase()
+          );
+
+          if (sponsorB && sponsorB.id !== sponsorA.id && sponsorB.id !== depositor?.id) {
+            const tierBReward = Number((amount * (WALLET_CONFIG.referralRates.B / 100)).toFixed(4));
+            if (tierBReward > 0) {
+              const wB = this.getWalletForUser(sponsorB.id);
+              const updatedWB: WalletState = {
+                ...wB,
+                availableBalance: Number((wB.availableBalance + tierBReward).toFixed(4)),
+                totalBalance: Number((wB.totalBalance + tierBReward).toFixed(4))
+              };
+              this.saveWalletForUser(sponsorB.id, updatedWB);
+
+              const bonusTxB: WalletTransaction = {
+                id: `tx-${Date.now().toString().slice(-6)}-refB`,
+                userId: sponsorB.id,
+                userName: sponsorB.username,
+                userEmail: sponsorB.email,
+                type: 'REFERRAL_BONUS',
+                amount: tierBReward,
+                currency: 'USDT',
+                status: 'COMPLETED',
+                description: `Tier-B Referral Commission (+${tierBReward.toFixed(2)} USDT from @${depositor?.username || tx.userName || 'downline'} deposit of ${amount} USDT)`,
+                referenceId: `REF-${Date.now().toString().slice(-6)}`,
+                createdAt: new Date().toISOString()
+              };
+              transactions.unshift(bonusTxB);
+
+              supabase.from('wallets').upsert({
+                user_id: sponsorB.id,
+                total_balance: updatedWB.totalBalance,
+                available_balance: updatedWB.availableBalance,
+                pending_balance: updatedWB.pendingBalance,
+                currency: updatedWB.currency || 'USDT',
+                updated_at: new Date().toISOString()
+              }, { onConflict: 'user_id' }).then(() => {}, () => {});
+
+              supabase.from('wallet_transactions').insert({
+                user_id: sponsorB.id,
+                type: 'REFERRAL_BONUS',
+                amount: tierBReward,
+                currency: 'USDT',
+                status: 'COMPLETED',
+                description: bonusTxB.description,
+                reference_id: bonusTxB.referenceId
+              }).then(() => {}, () => {});
+            }
+
+            // Find Tier C (Indirect 3rd Tier) Sponsor
+            if (sponsorB.referredBy?.trim()) {
+              const sponsorCCode = sponsorB.referredBy.trim();
+              const sponsorC = allUsers.find(
+                u => u.referralCode?.toUpperCase() === sponsorCCode.toUpperCase() ||
+                     u.username.toLowerCase() === sponsorCCode.toLowerCase()
+              );
+
+              if (sponsorC && sponsorC.id !== sponsorB.id && sponsorC.id !== sponsorA.id && sponsorC.id !== depositor?.id) {
+                const tierCReward = Number((amount * (WALLET_CONFIG.referralRates.C / 100)).toFixed(4));
+                if (tierCReward > 0) {
+                  const wC = this.getWalletForUser(sponsorC.id);
+                  const updatedWC: WalletState = {
+                    ...wC,
+                    availableBalance: Number((wC.availableBalance + tierCReward).toFixed(4)),
+                    totalBalance: Number((wC.totalBalance + tierCReward).toFixed(4))
+                  };
+                  this.saveWalletForUser(sponsorC.id, updatedWC);
+
+                  const bonusTxC: WalletTransaction = {
+                    id: `tx-${Date.now().toString().slice(-6)}-refC`,
+                    userId: sponsorC.id,
+                    userName: sponsorC.username,
+                    userEmail: sponsorC.email,
+                    type: 'REFERRAL_BONUS',
+                    amount: tierCReward,
+                    currency: 'USDT',
+                    status: 'COMPLETED',
+                    description: `Tier-C Referral Commission (+${tierCReward.toFixed(2)} USDT from @${depositor?.username || tx.userName || 'downline'} deposit of ${amount} USDT)`,
+                    referenceId: `REF-${Date.now().toString().slice(-6)}`,
+                    createdAt: new Date().toISOString()
+                  };
+                  transactions.unshift(bonusTxC);
+
+                  supabase.from('wallets').upsert({
+                    user_id: sponsorC.id,
+                    total_balance: updatedWC.totalBalance,
+                    available_balance: updatedWC.availableBalance,
+                    pending_balance: updatedWC.pendingBalance,
+                    currency: updatedWC.currency || 'USDT',
+                    updated_at: new Date().toISOString()
+                  }, { onConflict: 'user_id' }).then(() => {}, () => {});
+
+                  supabase.from('wallet_transactions').insert({
+                    user_id: sponsorC.id,
+                    type: 'REFERRAL_BONUS',
+                    amount: tierCReward,
+                    currency: 'USDT',
+                    status: 'COMPLETED',
+                    description: bonusTxC.description,
+                    reference_id: bonusTxC.referenceId
+                  }).then(() => {}, () => {});
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
     this.saveTransactions(transactions);
 
-    // Sync to Supabase
+    // Sync depositor updates to Supabase
     if (userId) {
-      supabase.from('deposits').update({ status: 'APPROVED' }).eq('user_id', userId).eq('status', 'PENDING').then(() => {}).catch(() => {});
-      supabase.from('wallet_transactions').update({ status: 'APPROVED' }).eq('user_id', userId).eq('type', 'DEPOSIT').eq('status', 'PENDING').then(() => {}).catch(() => {});
+      supabase.from('deposits').update({ status: 'APPROVED' }).eq('user_id', userId).eq('status', 'PENDING').then(() => {}, () => {});
+      supabase.from('wallet_transactions').update({ status: 'APPROVED' }).eq('user_id', userId).eq('type', 'DEPOSIT').eq('status', 'PENDING').then(() => {}, () => {});
+      supabase.from('wallets').upsert({
+        user_id: userId,
+        total_balance: updatedWallet.totalBalance,
+        available_balance: updatedWallet.availableBalance,
+        pending_balance: updatedWallet.pendingBalance,
+        currency: updatedWallet.currency || 'USDT',
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' }).then(() => {}, () => {});
     }
 
     return {
@@ -579,8 +774,8 @@ export const walletService = {
     this.saveTransactions(transactions);
 
     if (userId) {
-      supabase.from('deposits').update({ status: 'REJECTED' }).eq('user_id', userId).eq('status', 'PENDING').then(() => {}).catch(() => {});
-      supabase.from('wallet_transactions').update({ status: 'REJECTED' }).eq('user_id', userId).eq('type', 'DEPOSIT').eq('status', 'PENDING').then(() => {}).catch(() => {});
+      supabase.from('deposits').update({ status: 'REJECTED' }).eq('user_id', userId).eq('status', 'PENDING').then(() => {}, () => {});
+      supabase.from('wallet_transactions').update({ status: 'REJECTED' }).eq('user_id', userId).eq('type', 'DEPOSIT').eq('status', 'PENDING').then(() => {}, () => {});
     }
 
     return { updatedWallet, rejectedTx };
@@ -625,8 +820,8 @@ export const walletService = {
     this.saveTransactions(transactions);
 
     if (userId) {
-      supabase.from('withdrawals').update({ status: 'APPROVED' }).eq('user_id', userId).eq('status', 'PENDING').then(() => {}).catch(() => {});
-      supabase.from('wallet_transactions').update({ status: 'APPROVED' }).eq('user_id', userId).eq('type', 'WITHDRAWAL').eq('status', 'PENDING').then(() => {}).catch(() => {});
+      supabase.from('withdrawals').update({ status: 'APPROVED' }).eq('user_id', userId).eq('status', 'PENDING').then(() => {}, () => {});
+      supabase.from('wallet_transactions').update({ status: 'APPROVED' }).eq('user_id', userId).eq('type', 'WITHDRAWAL').eq('status', 'PENDING').then(() => {}, () => {});
     }
 
     return { updatedWallet, approvedTx };
@@ -671,8 +866,8 @@ export const walletService = {
     this.saveTransactions(transactions);
 
     if (userId) {
-      supabase.from('withdrawals').update({ status: 'REJECTED' }).eq('user_id', userId).eq('status', 'PENDING').then(() => {}).catch(() => {});
-      supabase.from('wallet_transactions').update({ status: 'REJECTED' }).eq('user_id', userId).eq('type', 'WITHDRAWAL').eq('status', 'PENDING').then(() => {}).catch(() => {});
+      supabase.from('withdrawals').update({ status: 'REJECTED' }).eq('user_id', userId).eq('status', 'PENDING').then(() => {}, () => {});
+      supabase.from('wallet_transactions').update({ status: 'REJECTED' }).eq('user_id', userId).eq('type', 'WITHDRAWAL').eq('status', 'PENDING').then(() => {}, () => {});
     }
 
     return { updatedWallet, rejectedTx };

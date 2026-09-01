@@ -1,15 +1,12 @@
 import React from 'react';
 import { Card, CardContent, Typography, Box, Avatar, Chip, Button } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
 import {
   EditIcon,
-  VerifiedIcon,
-  AdminPanelSettingsIcon
+  VerifiedIcon
 } from '../common/Icons';
 import { useApp } from '../../context/AppContext';
 
 export const ProfileHeader: React.FC = () => {
-  const navigate = useNavigate();
   const { user, showSnackbar } = useApp();
 
   if (!user) return null;
@@ -56,7 +53,8 @@ export const ProfileHeader: React.FC = () => {
                 <VerifiedIcon sx={{ color: '#8b5cf6', fontSize: 20 }} />
                 <Chip
                   label={user.status}
-                  color="success"
+                  color={user.status === 'ACTIVE' ? 'success' : user.status === 'INACTIVE' ? 'warning' : 'error'}
+                  variant={user.status === 'ACTIVE' ? 'filled' : 'outlined'}
                   size="small"
                   sx={{ fontWeight: 700, fontSize: '0.68rem', height: 22 }}
                 />

@@ -17,8 +17,7 @@ import {
 import {
   NotificationsNoneIcon,
   LogoutIcon,
-  PersonOutlineIcon,
-  AdminPanelSettingsIcon
+  PersonOutlineIcon
 } from '../common/Icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';

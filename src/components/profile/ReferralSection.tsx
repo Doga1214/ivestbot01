@@ -137,7 +137,7 @@ export const ReferralSection: React.FC = () => {
         </Typography>
 
         <Grid container spacing={2}>
-          <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
             <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.25)', textAlign: 'center' }}>
               <Typography variant="caption" sx={{ color: '#a78bfa', fontWeight: 600, display: 'block' }}>
                 A Members (Direct)
@@ -148,7 +148,7 @@ export const ReferralSection: React.FC = () => {
             </Box>
           </Grid>
 
-          <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
             <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', textAlign: 'center' }}>
               <Typography variant="caption" sx={{ color: '#60a5fa', fontWeight: 600, display: 'block' }}>
                 B Members (Tier 2)
@@ -159,7 +159,7 @@ export const ReferralSection: React.FC = () => {
             </Box>
           </Grid>
 
-          <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
             <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', textAlign: 'center' }}>
               <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 600, display: 'block' }}>
                 C Members (Tier 3)
@@ -170,7 +170,7 @@ export const ReferralSection: React.FC = () => {
             </Box>
           </Grid>
 
-          <Grid size={{ xs: 6, sm: 6, md: 2.4 }}>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
             <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', textAlign: 'center' }}>
               <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, display: 'block' }}>
                 Total Members
@@ -181,13 +181,24 @@ export const ReferralSection: React.FC = () => {
             </Box>
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', textAlign: 'center' }}>
+              <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 600, display: 'block' }}>
+                Active (Deposited)
+              </Typography>
+              <Typography variant="h5" sx={{ fontWeight: 900, color: '#34d399', mt: 0.5 }}>
+                {referralSummary.activeMembersCount}
+              </Typography>
+            </Box>
+          </Grid>
+
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
             <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', textAlign: 'center' }}>
               <Typography variant="caption" sx={{ color: '#fbbf24', fontWeight: 600, display: 'block' }}>
-                Active Members
+                Inactive (Pending)
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 900, color: '#fbbf24', mt: 0.5 }}>
-                {referralSummary.activeMembersCount}
+                {referralSummary.inactiveMembersCount}
               </Typography>
             </Box>
           </Grid>

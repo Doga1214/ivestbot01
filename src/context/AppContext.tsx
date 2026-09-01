@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { authService } from '../services/authService';
 import type { UserProfile } from '../services/authService';
 import { walletService } from '../services/walletService';
@@ -98,6 +98,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [markets] = useState<MarketPair[]>(() => tradeService.getMarkets());
   const [tradeHistory, setTradeHistory] = useState<DemoTradeRecord[]>(() => tradeService.getTradeHistory());
+  const [syncTick, setSyncTick] = useState(0);
 
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'info' | 'warning' | 'error' }>({
     open: false,
@@ -116,29 +117,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const refreshWallet = useCallback(() => {
     setWallet(walletService.getWallet());
     setTransactions(walletService.getTransactions());
+    setSyncTick(t => t + 1);
   }, []);
 
-  // Background Fast Sync: Auto-sync wallet & transactions from database in real time
+  // Background Fast Sync: Auto-sync wallet, transactions & all users from database in real time
   useEffect(() => {
-    if (!user?.id) return;
-
     const syncUserData = async () => {
       try {
-        // 1. Verify if user is still active in database
-        const validUser = await authService.verifyUserAlive(user.id);
-        if (!validUser) {
-          // Account was deleted by Admin! Immediate termination on user device
-          authService.logout();
-          setUser(null);
-          showSnackbar('Your account has been deleted by Administrator.', 'error');
-          return;
-        }
+        // Sync downline & network users list from database
+        await authService.syncAllUsersFromSupabase();
 
-        // 2. Sync wallet & transactions
-        await walletService.syncWalletFromSupabase(user.id);
-        await walletService.syncTransactionsFromSupabase(user.id);
-        setWallet(walletService.getWallet());
-        setTransactions(walletService.getTransactions());
+        if (user?.id) {
+          // 1. Verify if user is still active in database
+          const validUser = await authService.verifyUserAlive(user.id);
+          if (!validUser) {
+            // Account was deleted by Admin! Immediate termination on user device
+            authService.logout();
+            setUser(null);
+            showSnackbar('Your account has been deleted by Administrator.', 'error');
+            return;
+          }
+
+          // 2. Sync wallet & transactions
+          await walletService.syncWalletFromSupabase(user.id);
+          await walletService.syncTransactionsFromSupabase(user.id);
+          setWallet(walletService.getWallet());
+          setTransactions(walletService.getTransactions());
+        }
+        setSyncTick(t => t + 1);
       } catch {
         // ignore
       }
@@ -231,6 +237,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const result = walletService.approveDeposit(txId, hasSponsor, remarks);
     setWallet(result.updatedWallet);
     setTransactions(walletService.getTransactions());
+    setSyncTick(t => t + 1);
     showSnackbar(`Deposit approved by Admin! ${result.approvedTx.amount} USDT credited to Available Balance!`, 'success');
   };
 
@@ -238,6 +245,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const result = walletService.rejectDeposit(txId, remarks);
     setWallet(result.updatedWallet);
     setTransactions(walletService.getTransactions());
+    setSyncTick(t => t + 1);
     showSnackbar(`Deposit rejected by Admin: ${remarks || 'Verification failed'}`, 'warning');
   };
 
@@ -401,13 +409,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Computed Levels & Referrals
-  const referralSummary = referralService.getReferralSummary(user?.referralCode || 'IVEST100');
-  const userLevel = levelService.calculateUserLevel({
-    walletBalance: wallet.totalBalance,
-    aMembers: referralSummary.aMembersCount,
-    bMembers: referralSummary.bMembersCount,
-    cMembers: referralSummary.cMembersCount
-  });
+  const referralSummary = useMemo(
+    () => referralService.getReferralSummary(user?.referralCode || 'IVEST100'),
+    [user?.referralCode, syncTick, wallet.totalBalance, transactions.length]
+  );
+  const userLevel = useMemo(
+    () =>
+      levelService.calculateUserLevel({
+        walletBalance: wallet.totalBalance,
+        aMembers: referralSummary.aMembersCount,
+        bMembers: referralSummary.bMembersCount,
+        cMembers: referralSummary.cMembersCount
+      }),
+    [wallet.totalBalance, referralSummary.aMembersCount, referralSummary.bMembersCount, referralSummary.cMembersCount]
+  );
 
   return (
     <AppContext.Provider

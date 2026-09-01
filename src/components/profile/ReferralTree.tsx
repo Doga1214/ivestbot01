@@ -98,7 +98,13 @@ export const ReferralTree: React.FC = () => {
                         </TableCell>
                         <TableCell sx={{ color: '#9CA3AF', fontSize: '0.85rem' }}>{formatDate(m.joinedAt)}</TableCell>
                         <TableCell>
-                          <Chip label={m.status} color="success" size="small" sx={{ fontSize: '0.68rem' }} />
+                          <Chip
+                            label={m.status}
+                            color={m.status === 'ACTIVE' ? 'success' : 'warning'}
+                            variant={m.status === 'ACTIVE' ? 'filled' : 'outlined'}
+                            size="small"
+                            sx={{ fontSize: '0.68rem', fontWeight: 700 }}
+                          />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -149,6 +155,7 @@ export const ReferralTree: React.FC = () => {
                       <TableCell sx={{ color: '#9CA3AF' }}>Referred By</TableCell>
                       <TableCell sx={{ color: '#9CA3AF' }}>Level</TableCell>
                       <TableCell sx={{ color: '#9CA3AF' }}>Join Date</TableCell>
+                      <TableCell sx={{ color: '#9CA3AF' }}>Status</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -161,6 +168,15 @@ export const ReferralTree: React.FC = () => {
                           <Chip label={`Level ${m.level}`} size="small" sx={{ fontSize: '0.7rem' }} />
                         </TableCell>
                         <TableCell sx={{ color: '#9CA3AF', fontSize: '0.85rem' }}>{formatDate(m.joinedAt)}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={m.status}
+                            color={m.status === 'ACTIVE' ? 'success' : 'warning'}
+                            variant={m.status === 'ACTIVE' ? 'filled' : 'outlined'}
+                            size="small"
+                            sx={{ fontSize: '0.68rem', fontWeight: 700 }}
+                          />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -209,6 +225,7 @@ export const ReferralTree: React.FC = () => {
                       <TableCell sx={{ color: '#9CA3AF' }}>Referred By</TableCell>
                       <TableCell sx={{ color: '#9CA3AF' }}>Level</TableCell>
                       <TableCell sx={{ color: '#9CA3AF' }}>Join Date</TableCell>
+                      <TableCell sx={{ color: '#9CA3AF' }}>Status</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -221,6 +238,15 @@ export const ReferralTree: React.FC = () => {
                           <Chip label={`Level ${m.level}`} size="small" sx={{ fontSize: '0.7rem' }} />
                         </TableCell>
                         <TableCell sx={{ color: '#9CA3AF', fontSize: '0.85rem' }}>{formatDate(m.joinedAt)}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={m.status}
+                            color={m.status === 'ACTIVE' ? 'success' : 'warning'}
+                            variant={m.status === 'ACTIVE' ? 'filled' : 'outlined'}
+                            size="small"
+                            sx={{ fontSize: '0.68rem', fontWeight: 700 }}
+                          />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

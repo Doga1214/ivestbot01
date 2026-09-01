@@ -31,6 +31,7 @@ export interface ReferralSummary {
   cMembersCount: number;
   totalMembersCount: number;
   activeMembersCount: number;
+  inactiveMembersCount: number;
   todayEarnings: number;
   totalEarnings: number;
   pendingBonus: number;
@@ -47,11 +48,24 @@ export const referralService = {
   getReferralSummary(referralCode: string = 'IVEST100'): ReferralSummary {
     const origin = typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'http://localhost:5173';
     const allUsers = authService.getAllUsers();
+    const allTransactions = walletService.getTransactions();
     
     // Find target user who owns this referral code
     const currentUser = allUsers.find(u => u.referralCode === referralCode) || allUsers[0];
     const userRefCode = currentUser ? currentUser.referralCode : referralCode;
     const userUsername = currentUser ? currentUser.username.toLowerCase() : '';
+
+    const checkMemberStatus = (u: any, balance: number): 'ACTIVE' | 'INACTIVE' => {
+      // An account is active if it was approved/activated (status ACTIVE) or has deposited funds
+      const hasApprovedDeposit = allTransactions.some(
+        t => (t.userId === u.id || (t.userName && t.userName.toLowerCase() === u.username.toLowerCase())) &&
+             t.type === 'DEPOSIT' && t.status === 'APPROVED'
+      );
+      if (u.status === 'ACTIVE' || balance > 0 || hasApprovedDeposit) {
+        return 'ACTIVE';
+      }
+      return 'INACTIVE';
+    };
 
     // Level A (Direct): Anyone whose referredBy === userRefCode or referredBy === userUsername
     const tierAUsers = allUsers.filter(u => {
@@ -67,7 +81,7 @@ export const referralService = {
         name: u.name,
         username: u.username,
         level: u.level || 1,
-        status: u.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+        status: checkMemberStatus(u, w.totalBalance),
         walletBalance: w.totalBalance,
         joinedAt: u.createdAt,
         referredBy: u.referredBy
@@ -75,11 +89,11 @@ export const referralService = {
     });
 
     // Level B (Indirect 2nd Tier): Referred by Tier A members
-    const tierACodes = new Set(tierAUsers.map(u => u.referralCode.toLowerCase()));
-    const tierAUsernames = new Set(tierAUsers.map(u => u.username.toLowerCase()));
+    const tierACodes = new Set(tierAUsers.map(u => (u.referralCode || '').toLowerCase()));
+    const tierAUsernames = new Set(tierAUsers.map(u => (u.username || '').toLowerCase()));
 
     const tierBUsers = allUsers.filter(u => {
-      if (u.id === currentUser?.id || tierACodes.has(u.referralCode.toLowerCase())) return false;
+      if (u.id === currentUser?.id || tierACodes.has((u.referralCode || '').toLowerCase())) return false;
       const ref = (u.referredBy || '').toLowerCase();
       return tierACodes.has(ref) || tierAUsernames.has(ref);
     });
@@ -91,7 +105,7 @@ export const referralService = {
         name: u.name,
         username: u.username,
         level: u.level || 1,
-        status: u.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+        status: checkMemberStatus(u, w.totalBalance),
         walletBalance: w.totalBalance,
         joinedAt: u.createdAt,
         referredBy: u.referredBy
@@ -99,11 +113,15 @@ export const referralService = {
     });
 
     // Level C (Indirect 3rd Tier): Referred by Tier B members
-    const tierBCodes = new Set(tierBUsers.map(u => u.referralCode.toLowerCase()));
-    const tierBUsernames = new Set(tierBUsers.map(u => u.username.toLowerCase()));
+    const tierBCodes = new Set(tierBUsers.map(u => (u.referralCode || '').toLowerCase()));
+    const tierBUsernames = new Set(tierBUsers.map(u => (u.username || '').toLowerCase()));
 
     const tierCUsers = allUsers.filter(u => {
-      if (u.id === currentUser?.id || tierACodes.has(u.referralCode.toLowerCase()) || tierBCodes.has(u.referralCode.toLowerCase())) return false;
+      if (
+        u.id === currentUser?.id ||
+        tierACodes.has((u.referralCode || '').toLowerCase()) ||
+        tierBCodes.has((u.referralCode || '').toLowerCase())
+      ) return false;
       const ref = (u.referredBy || '').toLowerCase();
       return tierBCodes.has(ref) || tierBUsernames.has(ref);
     });
@@ -115,33 +133,51 @@ export const referralService = {
         name: u.name,
         username: u.username,
         level: u.level || 1,
-        status: u.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+        status: checkMemberStatus(u, w.totalBalance),
         walletBalance: w.totalBalance,
         joinedAt: u.createdAt,
         referredBy: u.referredBy
       };
     });
 
-    // Calculate real commissions from ledger
-    const allTransactions = walletService.getTransactions();
+    // Calculate real commissions for current user
     const earningsHistory: ReferralEarningRecord[] = allTransactions
-      .filter(t => t.type === 'REFERRAL_BONUS' || t.type === 'WELCOME_BONUS')
-      .map(t => ({
-        id: t.id,
-        fromMemberUsername: t.userName || 'Downline Member',
-        tier: (t.type === 'WELCOME_BONUS' ? 'DEPOSIT_BONUS' : 'A') as 'A' | 'B' | 'C' | 'DEPOSIT_BONUS',
-        amount: t.amount,
-        createdAt: t.createdAt,
-        description: t.description
-      }));
+      .filter(t => {
+        const isForCurrentUser = currentUser?.id
+          ? (t.userId === currentUser.id || (t.userName && t.userName.toLowerCase() === currentUser.username.toLowerCase()))
+          : true;
+        return isForCurrentUser && (t.type === 'REFERRAL_BONUS' || t.type === 'WELCOME_BONUS');
+      })
+      .map(t => {
+        let tier: 'A' | 'B' | 'C' | 'DEPOSIT_BONUS' = 'A';
+        if (t.type === 'WELCOME_BONUS') {
+          tier = 'DEPOSIT_BONUS';
+        } else if (t.description?.includes('Tier-B') || t.description?.includes('Tier B')) {
+          tier = 'B';
+        } else if (t.description?.includes('Tier-C') || t.description?.includes('Tier C')) {
+          tier = 'C';
+        }
+        return {
+          id: t.id,
+          fromMemberUsername: t.userName || 'Downline Member',
+          tier,
+          amount: t.amount,
+          createdAt: t.createdAt,
+          description: t.description
+        };
+      });
 
     const aCount = tierAMembers.length;
     const bCount = tierBMembers.length;
     const cCount = tierCMembers.length;
     const total = aCount + bCount + cCount;
     const active = tierAMembers.concat(tierBMembers, tierCMembers).filter(m => m.status === 'ACTIVE').length;
+    const inactive = Math.max(0, total - active);
 
     const totalEarn = earningsHistory.reduce((sum, e) => sum + e.amount, 0);
+    const tierAEarn = earningsHistory.filter(e => e.tier === 'A' || e.tier === 'DEPOSIT_BONUS').reduce((sum, e) => sum + e.amount, 0);
+    const tierBEarn = earningsHistory.filter(e => e.tier === 'B').reduce((sum, e) => sum + e.amount, 0);
+    const tierCEarn = earningsHistory.filter(e => e.tier === 'C').reduce((sum, e) => sum + e.amount, 0);
 
     return {
       referralCode: userRefCode,
@@ -151,15 +187,16 @@ export const referralService = {
       cMembersCount: cCount,
       totalMembersCount: total,
       activeMembersCount: active,
+      inactiveMembersCount: inactive,
       todayEarnings: Number((totalEarn * 0.25).toFixed(2)),
       totalEarnings: Number(totalEarn.toFixed(2)),
       pendingBonus: 0,
       tierAMembers,
       tierBMembers,
       tierCMembers,
-      tierAEarnings: Number((totalEarn * 0.7).toFixed(2)),
-      tierBEarnings: Number((totalEarn * 0.2).toFixed(2)),
-      tierCEarnings: Number((totalEarn * 0.1).toFixed(2)),
+      tierAEarnings: Number(tierAEarn.toFixed(2)),
+      tierBEarnings: Number(tierBEarn.toFixed(2)),
+      tierCEarnings: Number(tierCEarn.toFixed(2)),
       earningsHistory
     };
   },
