@@ -183,7 +183,7 @@ export const Reservation: React.FC = () => {
             WebkitTextFillColor: 'transparent'
           }}
         >
-          MiniG BOT
+          IvestBot
         </Typography>
       </Box>
 
@@ -198,7 +198,7 @@ export const Reservation: React.FC = () => {
           mb: 0.5
         }}
       >
-        Reserve NFTs
+        Reserve AutoBot
       </Typography>
       <Typography variant="body2" sx={{ color: '#94A3B8', mb: 2, fontSize: '0.9rem' }}>
         Reserve once a day to earn passive USDT income.
@@ -659,7 +659,7 @@ export const Reservation: React.FC = () => {
                   ⏳ 24-Hour Cycle Active
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#94A3B8' }}>
-                  Next NFT reservation unlocked in:
+                  Next AutoBot reservation unlocked in:
                 </Typography>
               </Box>
               <Typography variant="h6" sx={{ fontFamily: 'monospace', fontWeight: 900, color: '#f59e0b' }}>
@@ -703,7 +703,7 @@ export const Reservation: React.FC = () => {
               ? `Executing Settlement (${processingSecondsLeft}s)...`
               : isLocked
               ? `Locked (${formatLockTime(secondsRemaining)})`
-              : 'Reserve NFT Now'}
+              : 'Reserve AutoBot Now'}
           </Button>
         </Box>
       )}
@@ -876,7 +876,7 @@ export const Reservation: React.FC = () => {
         }}
       >
         <DialogTitle sx={{ fontWeight: 900, color: '#22d3ee', textAlign: 'center', pt: 3 }}>
-          🎉 NFT Reservation Executed!
+          🎉 AutoBot Reservation Executed!
         </DialogTitle>
         <DialogContent sx={{ textAlign: 'center' }}>
           <Typography variant="h4" sx={{ fontWeight: 900, color: '#10b981', mb: 1 }}>
