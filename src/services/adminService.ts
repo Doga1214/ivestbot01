@@ -81,7 +81,7 @@ export const adminService = {
 
     return users.map(user => {
       const wallet = walletService.getWalletForUser(user.id);
-      const userTx = allTransactions.filter(tx => tx.userId === user.id || (!tx.userId && user.id === users[0].id));
+      const userTx = allTransactions.filter(tx => tx.userId === user.id);
       const pendingDeposits = userTx.filter(tx => tx.type === 'DEPOSIT' && tx.status === 'PENDING');
       const pendingSum = pendingDeposits.reduce((acc, curr) => acc + curr.amount, 0);
 
@@ -105,7 +105,7 @@ export const adminService = {
 
     const wallet = walletService.getWalletForUser(userId);
     const allTransactions = walletService.getTransactions();
-    const userTx = allTransactions.filter(tx => tx.userId === userId || (!tx.userId && userId === users[0].id));
+    const userTx = allTransactions.filter(tx => tx.userId === userId);
 
     const lifetimeDeposits = userTx
       .filter(tx => tx.type === 'DEPOSIT' && (tx.status === 'COMPLETED' || tx.status === 'APPROVED'))

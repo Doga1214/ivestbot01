@@ -26,8 +26,8 @@ export const LoginModal: React.FC = () => {
   const { isLoginModalOpen, closeLoginModal, openRegisterModal, login } = useApp();
   const navigate = useNavigate();
 
-  const [usernameOrEmail, setUsernameOrEmail] = useState('rahul');
-  const [password, setPassword] = useState('demo123');
+  const [usernameOrEmail, setUsernameOrEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,8 +51,8 @@ export const LoginModal: React.FC = () => {
     try {
       await login(usernameOrEmail, password);
       navigate('/profile');
-    } catch {
-      setError('Invalid login credentials. Please try again.');
+    } catch (err: any) {
+      setError(err?.message || 'Invalid login credentials. Please try again.');
     } finally {
       setLoading(false);
     }

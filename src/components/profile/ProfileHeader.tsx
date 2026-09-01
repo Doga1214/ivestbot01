@@ -77,24 +77,6 @@ export const ProfileHeader: React.FC = () => {
             <Button
               variant="outlined"
               size="small"
-              startIcon={<AdminPanelSettingsIcon sx={{ color: '#f59e0b' }} />}
-              onClick={() => navigate('/admin')}
-              sx={{
-                borderColor: 'rgba(245, 158, 11, 0.4)',
-                color: '#f59e0b',
-                fontWeight: 700,
-                backgroundColor: 'rgba(245, 158, 11, 0.08)',
-                '&:hover': {
-                  borderColor: '#f59e0b',
-                  backgroundColor: 'rgba(245, 158, 11, 0.18)'
-                }
-              }}
-            >
-              Admin Portal
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
               startIcon={<EditIcon />}
               onClick={() => showSnackbar('Profile details synced with account database.', 'info')}
               sx={{

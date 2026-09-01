@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Tabs, Tab, Paper, Badge } from '@mui/material';
 import { walletService } from '../services/walletService';
 import { adminService } from '../services/adminService';
+import { authService } from '../services/authService';
 import type { AdminUserListItem, PlatformStats } from '../services/adminService';
 import { useApp } from '../context/AppContext';
 import { AdminAuthGate } from '../components/admin/AdminAuthGate';
@@ -50,7 +51,12 @@ export const Admin: React.FC = () => {
     restrictedWalletsCount: 0
   });
 
-  const loadAdminData = useCallback(() => {
+  const loadAdminData = useCallback(async () => {
+    try {
+      await authService.syncAllUsersFromSupabase();
+    } catch {
+      // ignore
+    }
     const userList = adminService.getAdminUsersList();
     const platformStats = adminService.getPlatformStats();
     setUsers(userList);

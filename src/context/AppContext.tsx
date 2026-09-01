@@ -17,7 +17,7 @@ interface AppContextType {
   user: UserProfile | null;
   isAuthenticated: boolean;
   login: (usernameOrEmail: string, password?: string) => Promise<void>;
-  register: (data: { name: string; username: string; email: string; referralCode?: string }) => Promise<void>;
+  register: (data: { name: string; username: string; email: string; password?: string; referralCode?: string }) => Promise<void>;
   logout: () => void;
 
   // Modals
@@ -140,7 +140,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showSnackbar(`Welcome back, ${loggedInUser.name}!`, 'success');
   };
 
-  const register = async (data: { name: string; username: string; email: string; referralCode?: string }) => {
+  const register = async (data: { name: string; username: string; email: string; password?: string; referralCode?: string }) => {
     const registeredUser = await authService.register(data);
     setUser(registeredUser);
     const zeroWallet: WalletState = {

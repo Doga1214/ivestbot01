@@ -133,8 +133,20 @@ export const walletService = {
     } catch {
       // ignore
     }
-    // Fallback to active wallet if matches or default
-    return this.getWallet();
+
+    // Fallback to active wallet only if it is the current user session
+    const currentStored = localStorage.getItem('ivestbot_auth_user');
+    if (currentStored) {
+      try {
+        const currentUser = JSON.parse(currentStored);
+        if (currentUser.id === userId) {
+          return this.getWallet();
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return DEFAULT_WALLET;
   },
 
   saveWalletForUser(userId: string, wallet: WalletState): void {

@@ -75,14 +75,15 @@ export const RegisterModal: React.FC = () => {
 
     try {
       await register({
-        name: fullName,
-        username,
-        email,
+        name: fullName.trim(),
+        username: username.trim(),
+        email: email.trim(),
+        password,
         referralCode: referralCode.trim() || undefined
       });
       navigate('/profile');
-    } catch {
-      setError('Registration failed. Please try again.');
+    } catch (err: any) {
+      setError(err?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
