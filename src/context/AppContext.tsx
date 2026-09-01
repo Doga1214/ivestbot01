@@ -117,6 +117,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTransactions(walletService.getTransactions());
   }, []);
 
+  // Background Fast Sync: Auto-sync wallet & transactions from database in real time
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const syncUserData = async () => {
+      try {
+        await walletService.syncWalletFromSupabase(user.id);
+        await walletService.syncTransactionsFromSupabase(user.id);
+        setWallet(walletService.getWallet());
+        setTransactions(walletService.getTransactions());
+      } catch {
+        // ignore
+      }
+    };
+
+    // Initial sync
+    syncUserData();
+
+    // Fast 2.5-second polling interval for instant admin approval sync
+    const interval = setInterval(syncUserData, 2500);
+    return () => clearInterval(interval);
+  }, [user?.id]);
+
   // Referral URL check (?ref=XXXX)
   useEffect(() => {
     if (typeof window !== 'undefined') {

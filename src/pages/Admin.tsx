@@ -54,6 +54,7 @@ export const Admin: React.FC = () => {
   const loadAdminData = useCallback(async () => {
     try {
       await authService.syncAllUsersFromSupabase();
+      await walletService.syncTransactionsFromSupabase();
     } catch {
       // ignore
     }
@@ -64,9 +65,15 @@ export const Admin: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (isAdminAuth) {
+    if (!isAdminAuth) return;
+    loadAdminData();
+
+    // Fast real-time polling every 2.5s for instant deposit / withdrawal requests
+    const interval = setInterval(() => {
       loadAdminData();
-    }
+    }, 2500);
+
+    return () => clearInterval(interval);
   }, [isAdminAuth, loadAdminData]);
 
   const handleLogout = () => {
