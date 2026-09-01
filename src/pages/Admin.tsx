@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Tabs, Tab, Paper, Badge } from '@mui/material';
+import { supabase } from '../services/supabaseClient';
 import { walletService } from '../services/walletService';
 import { adminService } from '../services/adminService';
 import { authService } from '../services/authService';
@@ -67,14 +68,45 @@ export const Admin: React.FC = () => {
 
   useEffect(() => {
     if (!isAdminAuth) return;
+
+    // 1. Instant load on mount
     loadAdminData();
 
-    // Fast real-time polling every 2.5s for instant deposit / withdrawal requests
+    // 2. Supabase Realtime Subscription for zero-latency instant updates
+    const channel = supabase
+      .channel('admin_realtime_sync_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, () => {
+        loadAdminData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wallet_transactions' }, () => {
+        loadAdminData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, () => {
+        loadAdminData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        loadAdminData();
+      })
+      .subscribe();
+
+    // 3. Fast 1.2s polling fallback
     const interval = setInterval(() => {
       loadAdminData();
-    }, 2500);
+    }, 1200);
 
-    return () => clearInterval(interval);
+    // 4. Instant multi-tab / local event triggers
+    const handleInstantTrigger = () => {
+      loadAdminData();
+    };
+    window.addEventListener('storage', handleInstantTrigger);
+    window.addEventListener('ivestbot_deposit_submitted', handleInstantTrigger);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+      window.removeEventListener('storage', handleInstantTrigger);
+      window.removeEventListener('ivestbot_deposit_submitted', handleInstantTrigger);
+    };
   }, [isAdminAuth, loadAdminData]);
 
   const handleLogout = () => {
@@ -224,6 +256,7 @@ export const Admin: React.FC = () => {
           deposits={pendingDeposits}
           onApprove={handleApproveDeposit}
           onReject={handleRejectDeposit}
+          onRefresh={loadAdminData}
           showSnackbar={showSnackbar}
         />
       )}

@@ -244,42 +244,118 @@ export const walletService = {
 
   async syncTransactionsFromSupabase(userId?: string): Promise<WalletTransaction[]> {
     try {
-      let query = supabase.from('wallet_transactions').select('*').order('created_at', { ascending: false });
-      if (userId) {
-        query = query.eq('user_id', userId);
-      }
-      const { data, error } = await query;
-      if (data && !error) {
-        const remoteTxs: WalletTransaction[] = data.map(d => ({
-          id: d.id,
-          userId: d.user_id,
-          userName: d.metadata?.userName,
-          userEmail: d.metadata?.userEmail,
-          type: d.type as TransactionType,
-          amount: parseFloat(d.amount) || 0,
-          currency: d.currency || 'USDT',
-          status: (d.status?.toUpperCase() || 'PENDING') as TransactionStatus,
-          description: d.description || '',
-          referenceId: d.reference_id || d.id,
-          createdAt: d.created_at || new Date().toISOString(),
-          address: d.metadata?.address,
-          txHash: d.metadata?.txHash,
-          adminRemarks: d.metadata?.adminRemarks
-        }));
+      const allUsers = authService.getAllUsers();
+      const txMap = new Map<string, WalletTransaction>();
 
-        const local = this.getTransactions();
-        const txMap = new Map<string, WalletTransaction>();
-        remoteTxs.forEach(t => txMap.set(t.id, t));
-        local.forEach(t => {
-          if (!txMap.has(t.id)) {
-            txMap.set(t.id, t);
+      // 1. Fetch from wallet_transactions table
+      let txQuery = supabase.from('wallet_transactions').select('*').order('created_at', { ascending: false });
+      if (userId) {
+        txQuery = txQuery.eq('user_id', userId);
+      }
+      const { data: txData } = await txQuery;
+
+      if (txData && txData.length > 0) {
+        txData.forEach(d => {
+          const user = allUsers.find(u => u.id === d.user_id);
+          txMap.set(d.id, {
+            id: d.id,
+            userId: d.user_id,
+            userName: d.metadata?.userName || user?.name || user?.username,
+            userEmail: d.metadata?.userEmail || user?.email,
+            type: d.type as TransactionType,
+            amount: parseFloat(d.amount) || 0,
+            currency: d.currency || 'USDT',
+            status: (d.status?.toUpperCase() || 'PENDING') as TransactionStatus,
+            description: d.description || '',
+            referenceId: d.reference_id || d.id,
+            createdAt: d.created_at || new Date().toISOString(),
+            address: d.metadata?.address,
+            txHash: d.metadata?.txHash,
+            adminRemarks: d.metadata?.adminRemarks
+          });
+        });
+      }
+
+      // 2. Fetch from deposits table (captures all pending deposits directly submitted)
+      let depQuery = supabase.from('deposits').select('*').order('created_at', { ascending: false });
+      if (userId) {
+        depQuery = depQuery.eq('user_id', userId);
+      }
+      const { data: depData } = await depQuery;
+
+      if (depData && depData.length > 0) {
+        depData.forEach(d => {
+          const user = allUsers.find(u => u.id === d.user_id);
+          const depId = d.id;
+          const exists = Array.from(txMap.values()).some(
+            t => t.id === depId || (d.tx_hash && t.txHash === d.tx_hash)
+          );
+
+          if (!exists) {
+            txMap.set(depId, {
+              id: depId,
+              userId: d.user_id,
+              userName: user?.name || user?.username || 'User',
+              userEmail: user?.email,
+              type: 'DEPOSIT',
+              amount: parseFloat(d.amount) || 0,
+              currency: d.currency || 'USDT',
+              status: (d.status?.toUpperCase() || 'PENDING') as TransactionStatus,
+              description: `USDT Deposit Submitted (${(d.deposit_address || '').slice(0, 8)}...) - Pending Admin Verification`,
+              referenceId: `DEP-${depId.toString().slice(-6)}`,
+              createdAt: d.created_at || new Date().toISOString(),
+              address: d.deposit_address,
+              txHash: d.tx_hash
+            });
           }
         });
-
-        const merged = Array.from(txMap.values()).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        this.saveTransactions(merged);
-        return merged;
       }
+
+      // 3. Fetch from withdrawals table
+      let wthQuery = supabase.from('withdrawals').select('*').order('created_at', { ascending: false });
+      if (userId) {
+        wthQuery = wthQuery.eq('user_id', userId);
+      }
+      const { data: wthData } = await wthQuery;
+
+      if (wthData && wthData.length > 0) {
+        wthData.forEach(d => {
+          const user = allUsers.find(u => u.id === d.user_id);
+          const wthId = d.id;
+          const exists = Array.from(txMap.values()).some(t => t.id === wthId);
+
+          if (!exists) {
+            txMap.set(wthId, {
+              id: wthId,
+              userId: d.user_id,
+              userName: user?.name || user?.username || 'User',
+              userEmail: user?.email,
+              type: 'WITHDRAWAL',
+              amount: parseFloat(d.amount) || 0,
+              currency: d.currency || 'USDT',
+              status: (d.status?.toUpperCase() || 'PENDING') as TransactionStatus,
+              description: `USDT Withdrawal Request (${(d.withdrawal_address || '').slice(0, 8)}...) - Pending Admin Review`,
+              referenceId: `WTH-${wthId.toString().slice(-6)}`,
+              createdAt: d.created_at || new Date().toISOString(),
+              address: d.withdrawal_address
+            });
+          }
+        });
+      }
+
+      // 4. Merge local transactions
+      const local = this.getTransactions();
+      local.forEach(t => {
+        if (!txMap.has(t.id)) {
+          txMap.set(t.id, t);
+        }
+      });
+
+      const merged = Array.from(txMap.values()).sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      this.saveTransactions(merged);
+      return merged;
     } catch {
       // ignore
     }
@@ -378,6 +454,11 @@ export const walletService = {
       });
     } catch {
       // ignore
+    }
+
+    // Dispatch instant real-time event
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('ivestbot_deposit_submitted'));
     }
 
     return {

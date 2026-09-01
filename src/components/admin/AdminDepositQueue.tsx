@@ -24,7 +24,8 @@ import {
   CheckIcon,
   CancelIcon,
   ContentCopyIcon,
-  PendingActionsIcon
+  PendingActionsIcon,
+  RefreshIcon
 } from '../common/Icons';
 import type { WalletTransaction } from '../../services/walletService';
 import { formatUSDT, formatDateTime } from '../../utils/formatters';
@@ -34,6 +35,7 @@ interface AdminDepositQueueProps {
   deposits: WalletTransaction[];
   onApprove: (txId: string, remarks?: string) => void;
   onReject: (txId: string, remarks?: string) => void;
+  onRefresh?: () => void;
   showSnackbar: (message: string, severity?: 'success' | 'info' | 'warning' | 'error') => void;
 }
 
@@ -41,11 +43,13 @@ export const AdminDepositQueue: React.FC<AdminDepositQueueProps> = ({
   deposits,
   onApprove,
   onReject,
+  onRefresh,
   showSnackbar
 }) => {
   const [selectedTx, setSelectedTx] = useState<WalletTransaction | null>(null);
   const [actionType, setActionType] = useState<'APPROVE' | 'REJECT' | null>(null);
   const [adminRemarks, setAdminRemarks] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleOpenAction = (tx: WalletTransaction, type: 'APPROVE' | 'REJECT') => {
     setSelectedTx(tx);
@@ -64,6 +68,17 @@ export const AdminDepositQueue: React.FC<AdminDepositQueueProps> = ({
     setActionType(null);
   };
 
+  const handleManualRefresh = async () => {
+    if (!onRefresh) return;
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+      showSnackbar('Deposit queue refreshed!', 'info');
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
+
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     showSnackbar(`Copied ${label} to clipboard!`, 'success');
@@ -79,7 +94,7 @@ export const AdminDepositQueue: React.FC<AdminDepositQueueProps> = ({
       }}
     >
       <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 800 }}>
               Deposit Verification Queue
@@ -88,11 +103,29 @@ export const AdminDepositQueue: React.FC<AdminDepositQueueProps> = ({
               Verify blockchain TxID / Receipts submitted by users and credit available balances.
             </Typography>
           </Box>
-          <Chip
-            label={`${deposits.length} PENDING`}
-            color={deposits.length > 0 ? 'warning' : 'default'}
-            sx={{ fontWeight: 800 }}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            {onRefresh && (
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                startIcon={!isRefreshing && <RefreshIcon fontSize="small" />}
+                sx={{
+                  borderColor: 'rgba(255, 255, 255, 0.15)',
+                  color: '#9CA3AF',
+                  '&:hover': { borderColor: '#a78bfa', color: '#a78bfa' }
+                }}
+              >
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            )}
+            <Chip
+              label={`${deposits.length} PENDING`}
+              color={deposits.length > 0 ? 'warning' : 'default'}
+              sx={{ fontWeight: 800 }}
+            />
+          </Box>
         </Box>
 
         {deposits.length === 0 ? (
