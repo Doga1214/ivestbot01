@@ -97,6 +97,39 @@ export const authService = {
     return null;
   },
 
+  async verifyUserAlive(userId: string): Promise<UserProfile | null> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error || !data) {
+        // User does not exist in database (e.g. deleted by admin)
+        return null;
+      }
+
+      const user: UserProfile = {
+        id: data.id,
+        name: data.name,
+        username: data.username,
+        email: data.email,
+        referralCode: data.referral_code,
+        referredBy: data.referred_by_code || undefined,
+        level: data.level || 1,
+        status: data.status || 'ACTIVE',
+        kycStatus: data.kyc_status || 'NOT_SUBMITTED',
+        createdAt: data.created_at
+      };
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+      return user;
+    } catch {
+      return null;
+    }
+  },
+
   async login(usernameOrEmail: string, password?: string): Promise<UserProfile> {
     const cleanQuery = usernameOrEmail.toLowerCase().trim();
     if (!cleanQuery) {
