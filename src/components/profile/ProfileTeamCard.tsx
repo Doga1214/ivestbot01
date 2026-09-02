@@ -17,7 +17,6 @@ import {
   TableRow,
   Paper,
   Chip,
-  Avatar,
   Button
 } from '@mui/material';
 import {
@@ -26,9 +25,7 @@ import {
   AssignmentIcon,
   ShareOutlinedIcon,
   CloseIcon,
-  ContentCopyIcon,
-  QrCode2Icon,
-  CheckCircleIcon
+  ContentCopyIcon
 } from '../common/Icons';
 import { useApp } from '../../context/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -394,15 +391,15 @@ export const ProfileTeamCard: React.FC = () => {
                   {allDownlines.map(row => (
                     <TableRow key={row.id} sx={{ '& td': { borderColor: 'rgba(255,255,255,0.05)' } }}>
                       <TableCell sx={{ color: '#fff', fontWeight: 700 }}>
-                        @{row.referredUserName || 'Member'}
+                        @{row.refereeUsername || 'Member'}
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={`Tier ${row.tier}`}
+                          label={`Tier ${row.tierLevel}`}
                           size="small"
                           sx={{
-                            bgcolor: row.tier === 'A' ? 'rgba(139, 92, 246, 0.15)' : 'rgba(56, 189, 248, 0.15)',
-                            color: row.tier === 'A' ? '#a78bfa' : '#38bdf8',
+                            bgcolor: row.tierLevel === 'A' ? 'rgba(139, 92, 246, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                            color: row.tierLevel === 'A' ? '#a78bfa' : '#38bdf8',
                             fontWeight: 800,
                             fontSize: '0.7rem'
                           }}
@@ -413,15 +410,15 @@ export const ProfileTeamCard: React.FC = () => {
                           label={row.status}
                           size="small"
                           sx={{
-                            bgcolor: row.status === 'ACTIVE' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                            color: row.status === 'ACTIVE' ? '#34d399' : '#9CA3AF',
+                            bgcolor: (row.status === 'COMPLETED' || row.status === 'CLAIMED') ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                            color: (row.status === 'COMPLETED' || row.status === 'CLAIMED') ? '#34d399' : '#9CA3AF',
                             fontWeight: 800,
                             fontSize: '0.7rem'
                           }}
                         />
                       </TableCell>
                       <TableCell align="right" sx={{ color: '#34d399', fontWeight: 800 }}>
-                        ${row.depositAmount.toFixed(2)}
+                        ${(row.depositAmountUSDT ?? 0).toFixed(2)}
                       </TableCell>
                     </TableRow>
                   ))}

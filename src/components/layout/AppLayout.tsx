@@ -20,8 +20,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.05) 0px, transparent 50%)
         `,
         pb: { xs: 'calc(74px + env(safe-area-inset-bottom, 0px))', md: 4 }, // dynamic padding for mobile bottom nav + safe area
-        maxWidth: '100vw',
-        overflowX: 'hidden'
+        maxWidth: '100%',
+        overflowX: 'hidden',
+        overflowY: 'visible'
       }}
     >
       <Header />

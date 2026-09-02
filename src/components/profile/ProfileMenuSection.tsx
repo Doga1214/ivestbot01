@@ -11,12 +11,8 @@ import {
   Button,
   TextField,
   Switch,
-  FormControlLabel,
-  Divider,
   List,
-  ListItem,
-  ListItemText,
-  ListItemIcon
+  ListItem
 } from '@mui/material';
 import {
   SettingsIcon,
