@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Tabs, Tab, Paper, Badge } from '@mui/material';
 import { supabase } from '../services/supabaseClient';
-import { walletService } from '../services/walletService';
+import { walletService, type WalletTransaction } from '../services/walletService';
 import { adminService } from '../services/adminService';
-import { authService } from '../services/authService';
 import type { AdminUserListItem, PlatformStats } from '../services/adminService';
 import { useApp } from '../context/AppContext';
 import { AdminAuthGate } from '../components/admin/AdminAuthGate';
@@ -15,12 +14,14 @@ import { AdminUserList } from '../components/admin/AdminUserList';
 import { AdminKycQueue } from '../components/admin/AdminKycQueue';
 import { AdminGlobalLedger } from '../components/admin/AdminGlobalLedger';
 import { AdminBroadcastModal } from '../components/admin/AdminBroadcastModal';
+import { AdminReferralManager } from '../components/admin/AdminReferralManager';
 import {
   ArrowDownwardIcon,
   ArrowUpwardIcon,
   GroupsIcon,
   VerifiedUserIcon,
-  ReceiptLongIcon
+  ReceiptLongIcon,
+  MonetizationOnIcon
 } from '../components/common/Icons';
 
 export const Admin: React.FC = () => {
@@ -269,6 +270,12 @@ export const Admin: React.FC = () => {
             iconPosition="start"
             label="Global Ledger Audit"
           />
+
+          <Tab
+            icon={<MonetizationOnIcon />}
+            iconPosition="start"
+            label="Referrals & Payouts"
+          />
         </Tabs>
       </Paper>
 
@@ -313,6 +320,12 @@ export const Admin: React.FC = () => {
       {activeTab === 4 && (
         <AdminGlobalLedger
           transactions={globalLedger}
+        />
+      )}
+
+      {activeTab === 5 && (
+        <AdminReferralManager
+          showSnackbar={showSnackbar}
         />
       )}
 

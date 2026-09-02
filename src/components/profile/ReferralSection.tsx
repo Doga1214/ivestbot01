@@ -14,7 +14,10 @@ import {
 } from '../common/Icons';
 import { useApp } from '../../context/AppContext';
 
+import { useNavigate } from 'react-router-dom';
+
 export const ReferralSection: React.FC = () => {
+  const navigate = useNavigate();
   const { referralSummary, showSnackbar } = useApp();
 
   const handleCopy = (text: string, label: string) => {
@@ -25,29 +28,43 @@ export const ReferralSection: React.FC = () => {
   return (
     <Card sx={{ mb: 4 }}>
       <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-          <Box
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box
+              sx={{
+                width: 44,
+                height: 44,
+                borderRadius: 2.5,
+                background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff'
+              }}
+            >
+              <GroupsIcon fontSize="medium" />
+            </Box>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                My Referral Network
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
+                Share your invite link to build direct A members and passive B/C networks
+              </Typography>
+            </Box>
+          </Box>
+
+          <Button
+            variant="contained"
+            onClick={() => navigate('/referrals')}
             sx={{
-              width: 44,
-              height: 44,
-              borderRadius: 2.5,
+              fontWeight: 800,
               background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff'
+              px: 2.5
             }}
           >
-            <GroupsIcon fontSize="medium" />
-          </Box>
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 800 }}>
-              My Referral Network
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-              Share your invite link to build direct A members and passive B/C networks
-            </Typography>
-          </Box>
+            Open Referral Hub & Withdraw
+          </Button>
         </Box>
 
         {/* Link & Code Copy Boxes */}

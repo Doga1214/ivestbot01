@@ -19,5 +19,56 @@ export const WALLET_CONFIG = {
     maxDeposit: 1000
   },
   processingDurationSeconds: 20, // 20-second processing period
-  reservationLockHours: 24 // 24-hour cycle (1 reservation per 24 hours)
+  reservationLockHours: 24, // 24-hour cycle (1 reservation per 24 hours)
+
+  // Multi-Tier Referral System Configuration (All values in USDT)
+  referralSystem: {
+    minWithdrawalUSDT: 10,
+    minAccountAgeDays: 0,
+    requireKycForWithdrawal: false,
+    baseRewardUSDT: 5, // 5 USDT per qualified referral
+    tiers: [
+      {
+        tier: 1 as const,
+        name: 'Bronze Ambassador',
+        minReferrals: 0,
+        maxReferrals: 10,
+        rewardPerReferralUSDT: 5,
+        tierBonusUSDT: 25,
+        badgeColor: '#CD7F32',
+        benefits: ['5 USDT per active referral', '25 USDT Tier 1 Unlock Bonus', '1% Direct Level A Commission']
+      },
+      {
+        tier: 2 as const,
+        name: 'Silver Partner',
+        minReferrals: 11,
+        maxReferrals: 25,
+        rewardPerReferralUSDT: 7.5,
+        tierBonusUSDT: 50,
+        badgeColor: '#C0C0C0',
+        benefits: ['7.5 USDT per active referral', '50 USDT Tier 2 Milestone Bonus', '+0.5% Level B Indirect Commission']
+      },
+      {
+        tier: 3 as const,
+        name: 'Gold Leader',
+        minReferrals: 26,
+        maxReferrals: 50,
+        rewardPerReferralUSDT: 10,
+        tierBonusUSDT: 100,
+        badgeColor: '#FFD700',
+        benefits: ['10 USDT per active referral', '100 USDT Tier 3 Milestone Bonus', '+0.5% Level C Indirect Commission']
+      },
+      {
+        tier: 4 as const,
+        name: 'Diamond VIP',
+        minReferrals: 51,
+        maxReferrals: 999999,
+        rewardPerReferralUSDT: 15,
+        tierBonusUSDT: 250,
+        badgeColor: '#00E5FF',
+        benefits: ['15 USDT per active referral', '250 USDT Diamond Cash Reward', 'VIP Priority Payouts & Private Account Manager']
+      }
+    ]
+  }
 };
+

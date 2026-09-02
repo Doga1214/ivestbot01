@@ -8,6 +8,7 @@ import { Home } from './pages/Home';
 import { Reservation } from './pages/Reservation';
 import { Wallet } from './pages/Wallet';
 import { Profile } from './pages/Profile';
+import { Referral } from './pages/Referral';
 import { Admin } from './pages/Admin';
 import { LoginModal } from './components/auth/LoginModal';
 import { RegisterModal } from './components/auth/RegisterModal';
@@ -67,6 +68,14 @@ const AppContent: React.FC = () => {
           element={
             <ProtectedRoute>
               <Wallet />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/referrals"
+          element={
+            <ProtectedRoute>
+              <Referral />
             </ProtectedRoute>
           }
         />

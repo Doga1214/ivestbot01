@@ -4,7 +4,8 @@ import {
   HomeOutlinedIcon,
   EventAvailableOutlinedIcon,
   AccountBalanceWalletOutlinedIcon,
-  PersonOutlineOutlinedIcon
+  PersonOutlineOutlinedIcon,
+  GroupsIcon
 } from '../common/Icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -20,8 +21,10 @@ export const MobileBottomNav: React.FC = () => {
         return 1;
       case '/wallet':
         return 2;
-      case '/profile':
+      case '/referrals':
         return 3;
+      case '/profile':
+        return 4;
       default:
         return 0;
     }
@@ -56,6 +59,9 @@ export const MobileBottomNav: React.FC = () => {
               navigate('/wallet');
               break;
             case 3:
+              navigate('/referrals');
+              break;
+            case 4:
               navigate('/profile');
               break;
           }
@@ -73,8 +79,9 @@ export const MobileBottomNav: React.FC = () => {
         }}
       >
         <BottomNavigationAction label="Home" icon={<HomeOutlinedIcon />} />
-        <BottomNavigationAction label="Reservation" icon={<EventAvailableOutlinedIcon />} />
+        <BottomNavigationAction label="Reserve" icon={<EventAvailableOutlinedIcon />} />
         <BottomNavigationAction label="Wallet" icon={<AccountBalanceWalletOutlinedIcon />} />
+        <BottomNavigationAction label="Referrals" icon={<GroupsIcon />} />
         <BottomNavigationAction label="Profile" icon={<PersonOutlineOutlinedIcon />} />
       </BottomNavigation>
     </Paper>

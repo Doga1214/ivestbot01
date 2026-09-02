@@ -66,6 +66,10 @@ export const authService = {
         .select('*')
         .order('created_at', { ascending: false });
 
+      if (error) {
+        console.warn('Supabase sync users fetch error:', error.message);
+      }
+
       const localUsers = this.getAllUsers();
 
       // 2. Safe Auto-Recovery Migration:

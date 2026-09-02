@@ -88,9 +88,9 @@ export const adminService = {
   async getAdminUsersList(): Promise<AdminUserListItem[]> {
     try {
       const { data: profiles, error: pErr } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-      const { data: wallets, error: wErr } = await supabase.from('wallets').select('*');
-      const { data: deposits, error: dErr } = await supabase.from('deposits').select('*').eq('status', 'PENDING');
-      const { data: txs, error: tErr } = await supabase.from('wallet_transactions').select('id, user_id');
+      const { data: wallets } = await supabase.from('wallets').select('*');
+      const { data: deposits } = await supabase.from('deposits').select('*').eq('status', 'PENDING');
+      const { data: txs } = await supabase.from('wallet_transactions').select('id, user_id');
 
       if (profiles && !pErr) {
         const walletMap = new Map((wallets || []).map(w => [w.user_id, w]));

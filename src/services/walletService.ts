@@ -1,4 +1,3 @@
-import { WALLET_CONFIG } from '../config/walletConfig';
 import { supabase } from './supabaseClient';
 import { authService, isValidUuid } from './authService';
 
@@ -611,7 +610,7 @@ export const walletService = {
    */
   async approveDeposit(
     txId: string,
-    hasSponsor: boolean = true,
+    _hasSponsor: boolean = true,
     adminRemarks?: string
   ): Promise<{
     updatedWallet: WalletState;

@@ -26,7 +26,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Alert
+  CircularProgress
 } from '@mui/material';
 import {
   PersonOutlineIcon,
@@ -60,6 +60,7 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
   showSnackbar
 }) => {
   const [data, setData] = useState<UserDetailed360 | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<number>(0);
 
   // Edit Profile Form State
@@ -82,9 +83,11 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
   const [canTrade, setCanTrade] = useState(true);
   const [restrictionReason, setRestrictionReason] = useState('');
 
-  const loadData = () => {
-    if (userId) {
-      const detailed = adminService.getUserDetailed360(userId);
+  const loadData = async () => {
+    if (!userId) return;
+    setLoading(true);
+    try {
+      const detailed = await adminService.getUserDetailed360(userId);
       if (detailed) {
         setData(detailed);
         setName(detailed.profile.name);
@@ -100,6 +103,10 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
         setCanTrade(detailed.wallet.restrictions?.canTrade ?? true);
         setRestrictionReason(detailed.wallet.restrictionReason || '');
       }
+    } catch (err) {
+      console.error('[Error loading 360 data]', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -107,14 +114,15 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
     if (open && userId) {
       loadData();
       setActiveTab(0);
+    } else {
+      setData(null);
     }
   }, [open, userId]);
 
-  if (!data) return null;
-
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    adminService.updateUserProfile(data.profile.id, {
+    if (!data) return;
+    await adminService.updateUserProfile(data.profile.id, {
       name,
       email,
       level,
@@ -122,12 +130,13 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
       kycStatus
     });
     showSnackbar('User profile details updated successfully!', 'success');
-    loadData();
+    await loadData();
     onRefresh();
   };
 
-  const handleQuickAdjust = (e: React.FormEvent) => {
+  const handleQuickAdjust = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!data) return;
     const amt = parseFloat(adjustAmount);
     if (!amt || amt <= 0) {
       showSnackbar('Please enter a valid amount', 'error');
@@ -142,12 +151,13 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
       showSnackbar(`Debited -${amt.toFixed(2)} USDT from ${data.profile.name}!`, 'info');
     }
     setAdjustAmount('');
-    loadData();
+    await loadData();
     onRefresh();
   };
 
-  const handleSaveRestrictions = (e: React.FormEvent) => {
+  const handleSaveRestrictions = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!data) return;
     const restrictions: WalletRestrictions = {
       canDeposit,
       canWithdraw,
@@ -160,19 +170,20 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
       restrictions,
       restrictionReason.trim() || undefined
     );
-    showSnackbar('WP Swings wallet rules and restrictions updated!', 'success');
-    loadData();
+    showSnackbar('Wallet rules and restrictions updated!', 'success');
+    await loadData();
     onRefresh();
   };
 
-  const handleResetCooldown = () => {
+  const handleResetCooldown = async () => {
     adminService.resetUserMiningLock();
     showSnackbar('24-Hour Mining Cycle Lock reset! User can start AI mining cycle immediately.', 'success');
-    loadData();
+    await loadData();
     onRefresh();
   };
 
   const handleImpersonate = () => {
+    if (!data) return;
     adminService.impersonateUser(data.profile.id);
     showSnackbar(`Switched active user to ${data.profile.name} (@${data.profile.username})!`, 'info');
     onClose();
@@ -195,8 +206,20 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
         }
       }}
     >
-      {/* Header Banner */}
-      <DialogTitle sx={{ p: 3, pb: 2 }}>
+      {loading || !data ? (
+        <DialogContent sx={{ minHeight: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 5 }}>
+          <CircularProgress color="secondary" sx={{ mb: 2 }} />
+          <Typography variant="body1" sx={{ color: '#c4b5fd', fontWeight: 700 }}>
+            Loading 360° User Intelligence Data...
+          </Typography>
+          <Typography variant="caption" sx={{ color: '#94A3B8', mt: 0.5 }}>
+            Synchronizing profile, multi-tier downlines, and ledger records from Supabase
+          </Typography>
+        </DialogContent>
+      ) : (
+        <>
+          {/* Header Banner */}
+          <DialogTitle sx={{ p: 3, pb: 2 }}>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.8 }}>
             <Box
@@ -636,6 +659,8 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
           Close
         </Button>
       </DialogActions>
+      </>
+      )}
     </Dialog>
   );
 };
