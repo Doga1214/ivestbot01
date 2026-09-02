@@ -1,76 +1,96 @@
 import React from 'react';
-import { Box, Typography, Grid, Card, CardContent } from '@mui/material';
+import { Box, Container, Typography, Grid, Paper } from '@mui/material';
 import {
-  EventAvailableIcon,
-  AccountBalanceWalletIcon,
-  GroupsIcon,
-  MilitaryTechIcon
+  RocketLaunchIcon,
+  MonetizationOnIcon,
+  ElectricBoltIcon,
+  ShieldOutlinedIcon
 } from '../common/Icons';
 
 export const PlatformFeatures: React.FC = () => {
   const features = [
     {
-      icon: <EventAvailableIcon sx={{ fontSize: 32, color: '#8b5cf6' }} />,
-      title: 'Daily Reservation (35-Day 2X)',
-      desc: 'One smart reservation per 24-hour cycle. Generates 2.8571% daily yield, doubling your principle in exactly 35 days (100% net return).'
+      icon: <RocketLaunchIcon sx={{ fontSize: 24, color: '#a78bfa' }} />,
+      title: 'Curated Reservations',
+      desc: 'Exclusive 24-hour algorithmic liquidity doubling cycles with principal doubling in exactly 35 days.'
     },
     {
-      icon: <AccountBalanceWalletIcon sx={{ fontSize: 32, color: '#3b82f6' }} />,
-      title: 'Instant Wallet & Ledger',
-      desc: 'Accounts start at 0.00 USDT. Instant credit on deposit, immediate deduction on withdrawal, with immutable ledger tracking.'
+      icon: <MonetizationOnIcon sx={{ fontSize: 24, color: '#a78bfa' }} />,
+      title: 'Daily Yield Rewards',
+      desc: 'Continuous real-time profit distribution calculated at 2.8571% per 24-hour reservation cycle.'
     },
     {
-      icon: <GroupsIcon sx={{ fontSize: 32, color: '#10b981' }} />,
-      title: 'Referral Program',
-      desc: 'Build your network. Receive 1.0% on A direct members, 0.5% on B and C members, plus 50–1000 USDT deposit milestone bonuses.'
+      icon: <ElectricBoltIcon sx={{ fontSize: 24, color: '#a78bfa' }} />,
+      title: 'Instant USDT Payouts',
+      desc: 'Direct, low-fee multi-chain withdrawals to TRC20, BEP20, and ERC20 wallet addresses.'
     },
     {
-      icon: <MilitaryTechIcon sx={{ fontSize: 32, color: '#f59e0b' }} />,
-      title: 'User Levels (1–4)',
-      desc: 'Level up from Level 1 to VIP Partner as your wallet balance and active member community expand.'
+      icon: <ShieldOutlinedIcon sx={{ fontSize: 24, color: '#a78bfa' }} />,
+      title: 'Focused on Security',
+      desc: 'Multi-sig vault custody, cold storage asset isolation, and real-time anti-fraud telemetry.'
     }
   ];
 
   return (
-    <Box sx={{ py: 6 }}>
-      <Box sx={{ textAlign: 'center', mb: 5 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1.5 }}>
-          Four Pillars of Ivestbot
-        </Typography>
-        <Typography variant="body1" sx={{ color: '#9CA3AF', maxWidth: 600, mx: 'auto' }}>
-          Explore our streamlined financial modules designed for growth, security, and transparent tracking.
-        </Typography>
-      </Box>
+    <Box sx={{ py: 7, bgcolor: 'rgba(8, 10, 18, 0.6)' }}>
+      <Container maxWidth="lg">
+        {/* Header */}
+        <Box sx={{ textAlign: 'center', mb: 5 }}>
+          <Typography variant="overline" sx={{ color: '#a78bfa', fontWeight: 800, letterSpacing: '0.1em' }}>
+            WHY CHOOSE IVESTBOT
+          </Typography>
+          <Typography variant="h3" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em', mt: 0.5 }}>
+            Everything you need to thrive in Web3
+          </Typography>
+        </Box>
 
-      <Grid container spacing={3}>
-        {features.map((f, idx) => (
-          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={idx}>
-            <Card
-              sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: '0 12px 30px rgba(139, 92, 246, 0.15)',
-                  borderColor: 'rgba(139, 92, 246, 0.3)'
-                }
-              }}
-            >
-              <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 1.5, flex: 1 }}>
-                <Box sx={{ mb: 1 }}>{f.icon}</Box>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+        {/* 4 Feature Cards */}
+        <Grid container spacing={3}>
+          {features.map((f, idx) => (
+            <Grid key={idx} size={{ xs: 12, sm: 6, md: 3 }}>
+              <Paper
+                sx={{
+                  p: 3,
+                  bgcolor: '#111522',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: 4,
+                  height: '100%',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    borderColor: 'rgba(139, 92, 246, 0.4)',
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 12px 30px rgba(139, 92, 246, 0.15)'
+                  }
+                }}
+              >
+                {/* Icon Box */}
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 3,
+                    bgcolor: 'rgba(139, 92, 246, 0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mb: 2
+                  }}
+                >
+                  {f.icon}
+                </Box>
+
+                <Typography variant="h6" sx={{ fontWeight: 800, color: '#ffffff', mb: 1, fontSize: '1.05rem' }}>
                   {f.title}
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#9CA3AF', lineHeight: 1.6 }}>
+
+                <Typography variant="body2" sx={{ color: '#9CA3AF', lineHeight: 1.6, fontSize: '0.88rem' }}>
                   {f.desc}
                 </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
     </Box>
   );
 };
