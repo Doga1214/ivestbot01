@@ -1,37 +1,57 @@
-import React from 'react';
-import { Box, Typography } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Dialog, DialogTitle, DialogContent, IconButton, Typography } from '@mui/material';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
-import { LevelCard } from '../components/profile/LevelCard';
-import { ReferralSection } from '../components/profile/ReferralSection';
-import { ReferralTree } from '../components/profile/ReferralTree';
-import { ReferralEarnings } from '../components/profile/ReferralEarnings';
+import { ProfileWalletIncomeCard } from '../components/profile/ProfileWalletIncomeCard';
+import { ProfileTeamCard } from '../components/profile/ProfileTeamCard';
+import { KycPanel } from '../components/wallet/KycPanel';
+import { CloseIcon } from '../components/common/Icons';
 
 export const Profile: React.FC = () => {
+  const [kycDialogOpen, setKycDialogOpen] = useState<boolean>(false);
+
   return (
-    <Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
-          My Account & Team Overview
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-          Manage your account profile, tier status, referral network, and commission earnings.
-        </Typography>
-      </Box>
+    <Box sx={{ maxWidth: 640, mx: 'auto', pb: 10, px: { xs: 1, sm: 2 } }}>
+      {/* 1. User Identity & Top KYC Card */}
+      <ProfileHeader onOpenKyc={() => setKycDialogOpen(true)} />
 
-      {/* User Information */}
-      <ProfileHeader />
+      {/* 2. Wallet Balance & Daily / Total Income Matrix Card */}
+      <ProfileWalletIncomeCard />
 
-      {/* Level 1-4 Tier Card */}
-      <LevelCard />
+      {/* 3. My Team Stats & Quick Actions Card */}
+      <ProfileTeamCard />
 
-      {/* Referral Link & Member Counts */}
-      <ReferralSection />
-
-      {/* A/B/C Expandable Tree */}
-      <ReferralTree />
-
-      {/* Commission Earnings & Ledger */}
-      <ReferralEarnings />
+      {/* KYC Verification Dialog Modal */}
+      <Dialog
+        open={kycDialogOpen}
+        onClose={() => setKycDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              bgcolor: '#111522',
+              backgroundImage: 'none',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: 3.5,
+              p: 1
+            }
+          }
+        }}
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            Identity & KYC Compliance
+          </Typography>
+          <IconButton onClick={() => setKycDialogOpen(false)} size="small">
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: { xs: 1.5, sm: 2.5 } }}>
+          <KycPanel />
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };
+
+export default Profile;

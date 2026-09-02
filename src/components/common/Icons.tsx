@@ -265,4 +265,28 @@ export const RocketLaunchIcon: React.FC<SvgIconProps> = (props) => (
   <SvgIcon {...props}><path d="M9.19 6.35c-2.04 2.29-3.44 5.58-3.57 5.89l4.14 4.14c.31-.13 3.6-1.53 5.89-3.57C17.5 10.96 19 8.24 19 4c-4.24 0-6.96 1.5-9.81 2.35zM11.17 17l-4.14-4.14c-.06.14-.14.28-.22.42-1.5 2.5-1.56 5.57-1.56 5.57s3.07-.06 5.57-1.56c.14-.08.28-.16.42-.22l-.07-.07z"/></SvgIcon>
 );
 
+export const PhotoCameraIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props}><path d="M12 15c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm0-4.2c.66 0 1.2.54 1.2 1.2s-.54 1.2-1.2 1.2-1.2-.54-1.2-1.2.54-1.2 1.2-1.2zM9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></SvgIcon>
+);
+
+export const InfoOutlinedIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props}><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></SvgIcon>
+);
+
+export const TetherIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props} viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="16" fill="#26A17B"/>
+    <path fill="#FFFFFF" d="M17.9 17.3v-.1c-.1 0-1.1.1-2 .1-.7 0-1.7 0-2.1-.1v.1c0 1.9 2.2 3.4 4.1 3.4 1.9 0 4.1-1.5 4.1-3.4 0-1.5-1.4-2.8-3.4-3.2v-.8h3.9V11h-3.9V9.4h-1.6V11h-3.9v2.3h3.9v.8c-2 .4-3.4 1.7-3.4 3.2 0 1.9 2.2 3.4 4.1 3.4 1.9 0 4.1-1.5 4.1-3.4zM16 19.3c-2.4 0-4.4-.7-4.4-1.6s2-1.6 4.4-1.6 4.4.7 4.4 1.6-2 1.6-4.4 1.6z"/>
+  </SvgIcon>
+);
+
+export const AssignmentIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props}><path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></SvgIcon>
+);
+
+export const ExitToAppIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props}><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></SvgIcon>
+);
+
+
 
