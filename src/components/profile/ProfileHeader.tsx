@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -15,7 +15,10 @@ import {
   VisibilityOffIcon,
   PhotoCameraIcon,
   ExitToAppIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  ContentCopyIcon,
+  HourglassBottomIcon,
+  ShieldOutlinedIcon
 } from '../common/Icons';
 import { useApp } from '../../context/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -25,9 +28,10 @@ interface ProfileHeaderProps {
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onOpenKyc }) => {
-  const { user, kyc, logout, showSnackbar } = useApp();
+  const { user, kyc, logout, updateUserProfile, showSnackbar } = useApp();
   const navigate = useNavigate();
-  const [showUsername, setShowUsername] = useState<boolean>(false);
+  const [showUsername, setShowUsername] = useState<boolean>(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!user) return null;
 
@@ -40,11 +44,49 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onOpenKyc }) => {
   const isKycVerified = user.kycStatus === 'VERIFIED' || kyc?.status === 'VERIFIED';
   const isKycPending = user.kycStatus === 'PENDING' || kyc?.status === 'PENDING';
 
-  // Dynamic user points based on activity/balance
-  const userPoints = 1000 + (user.level * 85);
+  // Copy helper
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    showSnackbar(`${label} copied to clipboard!`, 'success');
+  };
+
+  // Profile Image Upload handler
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      showSnackbar('Image size should be less than 5MB', 'warning');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      updateUserProfile({ avatarUrl: result });
+      showSnackbar('Profile picture updated successfully!', 'success');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Clean numeric or short UUID for display
+  const displayUuid = user.id ? user.id.replace(/-/g, '').slice(0, 8).toUpperCase() : '15239596';
 
   return (
     <Box sx={{ mb: 2.5 }}>
+      {/* Hidden File Input for Avatar Upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
+
       {/* App Top Title Bar */}
       <Box
         sx={{
@@ -84,7 +126,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onOpenKyc }) => {
               WebkitTextFillColor: 'transparent'
             }}
           >
-            Ivestbot
+            NFT Legend
           </Typography>
         </Box>
 
@@ -116,81 +158,102 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onOpenKyc }) => {
         <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
           {/* Avatar and Masked Info Row */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, mb: 2.5 }}>
-            {/* Cyber-Hexagon Avatar Frame with Camera Badge */}
+            {/* User Avatar with Camera Badge */}
             <Box sx={{ position: 'relative', flexShrink: 0 }}>
               <Box
+                onClick={handleAvatarClick}
                 sx={{
-                  width: 76,
-                  height: 76,
-                  borderRadius: 3.5,
-                  background: 'linear-gradient(135deg, #1e3a8a, #4338ca, #6d28d9)',
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #1e3a8a, #4338ca, #8b5cf6)',
                   p: '3px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 8px 24px rgba(59, 130, 246, 0.35)'
+                  boxShadow: '0 8px 24px rgba(139, 92, 246, 0.35)',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s ease',
+                  '&:hover': {
+                    transform: 'scale(1.03)'
+                  }
                 }}
               >
-                <Avatar
-                  sx={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: 3,
-                    bgcolor: '#0B0F19',
-                    fontSize: '1.8rem',
-                    fontWeight: 900,
-                    color: '#60a5fa'
-                  }}
-                >
-                  <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2L3 7V17L12 22L21 17V7L12 2Z" stroke="#3b82f6" strokeWidth="2" strokeLinejoin="round" />
-                    <path d="M8 8V16M8 8L16 16M16 8V16" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </Avatar>
+                {user.avatarUrl ? (
+                  <Avatar
+                    src={user.avatarUrl}
+                    alt={user.name || user.username}
+                    sx={{
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: '50%'
+                    }}
+                  />
+                ) : (
+                  <Avatar
+                    sx={{
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: '50%',
+                      bgcolor: '#0B0F19',
+                      fontSize: '1.8rem',
+                      fontWeight: 900,
+                      color: '#60a5fa'
+                    }}
+                  >
+                    {user.username ? user.username.substring(0, 2).toUpperCase() : 'NL'}
+                  </Avatar>
+                )}
               </Box>
 
               {/* Camera Icon Overlay */}
               <Box
-                onClick={() => showSnackbar('Avatar customized for your Ivestbot account.', 'info')}
+                onClick={handleAvatarClick}
                 sx={{
                   position: 'absolute',
-                  bottom: -2,
-                  right: -2,
-                  width: 26,
-                  height: 26,
+                  bottom: 0,
+                  right: 0,
+                  width: 28,
+                  height: 28,
                   borderRadius: '50%',
-                  bgcolor: '#38bdf8',
+                  bgcolor: '#00E5FF',
                   border: '2px solid #121422',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
                   color: '#000',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.5)'
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: '#38bdf8',
+                    transform: 'scale(1.1)'
+                  }
                 }}
               >
-                <PhotoCameraIcon sx={{ fontSize: 14 }} />
+                <PhotoCameraIcon sx={{ fontSize: 16 }} />
               </Box>
             </Box>
 
-            {/* Username & Badges */}
+            {/* Username, UUID & Badges */}
             <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-              {/* Masked Username with Eye Toggle */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              {/* Username with Eye Toggle & Copy Icon */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                 <Typography
                   variant="h6"
                   sx={{
                     fontWeight: 900,
-                    letterSpacing: showUsername ? 'normal' : '0.2em',
+                    letterSpacing: showUsername ? 'normal' : '0.15em',
                     color: '#ffffff',
                     fontFamily: showUsername ? 'inherit' : 'monospace',
-                    fontSize: showUsername ? '1.05rem' : '1.25rem',
+                    fontSize: { xs: '1.1rem', sm: '1.25rem' },
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'nowrap',
+                    textTransform: 'uppercase'
                   }}
                 >
-                  {showUsername ? `@${user.username}` : '•••••••••••••'}
+                  {showUsername ? user.username : '••••••••'}
                 </Typography>
 
                 <IconButton
@@ -198,37 +261,90 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onOpenKyc }) => {
                   onClick={() => setShowUsername(!showUsername)}
                   sx={{ color: '#9CA3AF', p: 0.5, '&:hover': { color: '#ffffff' } }}
                 >
-                  {showUsername ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                  {showUsername ? <VisibilityIcon sx={{ fontSize: 18 }} /> : <VisibilityOffIcon sx={{ fontSize: 18 }} />}
+                </IconButton>
+
+                <IconButton
+                  size="small"
+                  onClick={() => handleCopy(user.username, 'Username')}
+                  sx={{ color: '#9CA3AF', p: 0.5, '&:hover': { color: '#ffffff' } }}
+                >
+                  <ContentCopyIcon sx={{ fontSize: 16 }} />
                 </IconButton>
               </Box>
 
-              {/* Pills / Badges */}
+              {/* UUID with Copy Icon */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1.5 }}>
+                <Typography variant="body2" sx={{ color: '#9CA3AF', fontWeight: 600, fontSize: '0.85rem' }}>
+                  UUID: {displayUuid}
+                </Typography>
+                <IconButton
+                  size="small"
+                  onClick={() => handleCopy(displayUuid, 'UUID')}
+                  sx={{ color: '#9CA3AF', p: 0.25, '&:hover': { color: '#ffffff' } }}
+                >
+                  <ContentCopyIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+              </Box>
+
+              {/* Badges: Level & KYC Status */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                {/* Level Badge */}
                 <Chip
-                  label={`Level ${user.level || 2}`}
+                  label={`Level ${user.level || 1}`}
                   size="small"
                   sx={{
-                    bgcolor: 'rgba(255, 255, 255, 0.05)',
+                    bgcolor: 'rgba(255, 255, 255, 0.06)',
                     border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#e2e8f0',
+                    color: '#ffffff',
                     fontWeight: 700,
                     fontSize: '0.78rem',
                     height: 26,
-                    borderRadius: 2
+                    borderRadius: 2,
+                    px: 0.5
                   }}
                 />
 
+                {/* KYC Status Badge (Replacing Points Badge as requested) */}
                 <Chip
-                  label={`${userPoints} IVEST pts`}
+                  icon={
+                    isKycVerified ? (
+                      <CheckCircleIcon sx={{ fontSize: '14px !important', color: '#10b981 !important' }} />
+                    ) : isKycPending ? (
+                      <HourglassBottomIcon sx={{ fontSize: '14px !important', color: '#f59e0b !important' }} />
+                    ) : (
+                      <ShieldOutlinedIcon sx={{ fontSize: '14px !important', color: '#9CA3AF !important' }} />
+                    )
+                  }
+                  label={
+                    isKycVerified
+                      ? 'KYC Verified'
+                      : isKycPending
+                      ? 'KYC Pending'
+                      : 'KYC Unverified'
+                  }
                   size="small"
                   sx={{
-                    bgcolor: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#e2e8f0',
+                    bgcolor: isKycVerified
+                      ? 'rgba(16, 185, 129, 0.12)'
+                      : isKycPending
+                      ? 'rgba(245, 158, 11, 0.12)'
+                      : 'rgba(255, 255, 255, 0.06)',
+                    border: isKycVerified
+                      ? '1px solid rgba(16, 185, 129, 0.4)'
+                      : isKycPending
+                      ? '1px solid rgba(245, 158, 11, 0.4)'
+                      : '1px solid rgba(255, 255, 255, 0.15)',
+                    color: isKycVerified
+                      ? '#34d399'
+                      : isKycPending
+                      ? '#fbbf24'
+                      : '#9CA3AF',
                     fontWeight: 700,
                     fontSize: '0.78rem',
                     height: 26,
-                    borderRadius: 2
+                    borderRadius: 2,
+                    px: 0.5
                   }}
                 />
               </Box>
@@ -241,8 +357,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onOpenKyc }) => {
             variant="contained"
             onClick={onOpenKyc}
             sx={{
-              py: 1.4,
-              borderRadius: 3,
+              py: 1.5,
+              borderRadius: 3.5,
               fontWeight: 800,
               fontSize: '0.95rem',
               letterSpacing: '0.02em',
@@ -250,15 +366,19 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onOpenKyc }) => {
                 ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
                 : isKycPending
                 ? 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)'
-                : 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
+                : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
               boxShadow: isKycVerified
                 ? '0 8px 24px rgba(16, 185, 129, 0.3)'
-                : '0 8px 24px rgba(124, 58, 237, 0.35)',
+                : '0 8px 24px rgba(139, 92, 246, 0.35)',
               textTransform: 'none',
+              transition: 'all 0.3s ease',
               '&:hover': {
                 background: isKycVerified
                   ? 'linear-gradient(135deg, #047857 0%, #059669 100%)'
-                  : 'linear-gradient(135deg, #6d28d9 0%, #4338ca 100%)'
+                  : isKycPending
+                  ? 'linear-gradient(135deg, #b45309 0%, #d97706 100%)'
+                  : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%)',
+                boxShadow: '0 10px 28px rgba(139, 92, 246, 0.45)'
               }
             }}
           >
@@ -267,7 +387,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onOpenKyc }) => {
                 <CheckCircleIcon fontSize="small" /> Identity Verified (KYC Completed)
               </Box>
             ) : isKycPending ? (
-              'KYC Under Review'
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <HourglassBottomIcon fontSize="small" /> KYC Under Review
+              </Box>
             ) : (
               'Complete Your KYC'
             )}

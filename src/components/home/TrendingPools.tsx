@@ -7,7 +7,6 @@ import {
   Paper,
   Chip,
   Button,
-  Avatar,
   Table,
   TableBody,
   TableCell,
@@ -18,9 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import {
   VerifiedIcon,
-  TrendingUpIcon,
-  RocketLaunchIcon,
-  AccessTimeIcon
+  TrendingUpIcon
 } from '../common/Icons';
 
 export const TrendingPools: React.FC = () => {
@@ -176,35 +173,42 @@ export const TrendingPools: React.FC = () => {
               {/* Stats & Action */}
               <Box
                 sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  p: 2,
+                  p: { xs: 1.5, sm: 2 },
                   bgcolor: 'rgba(0,0,0,0.4)',
                   borderRadius: 3,
-                  border: '1px solid rgba(255,255,255,0.06)'
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  display: 'flex',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  justifyContent: 'space-between',
+                  alignItems: { xs: 'stretch', sm: 'center' },
+                  gap: 2
                 }}
               >
-                <Box>
-                  <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }}>Min Deposit</Typography>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#ffffff' }}>50 USDT</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }}>Daily Return</Typography>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#34d399' }}>+2.857%</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }}>Cycle Duration</Typography>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#a78bfa' }}>24 Hours</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flex: 1, gap: 1 }}>
+                  <Box>
+                    <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', fontSize: '0.72rem' }}>Min Deposit</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#ffffff', fontSize: { xs: '0.9rem', sm: '1rem' } }}>50 USDT</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', fontSize: '0.72rem' }}>Daily Return</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#34d399', fontSize: { xs: '0.9rem', sm: '1rem' } }}>+2.857%</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', fontSize: '0.72rem' }}>Duration</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#a78bfa', fontSize: { xs: '0.9rem', sm: '1rem' } }}>24 Hours</Typography>
+                  </Box>
                 </Box>
                 <Button
                   variant="contained"
+                  fullWidth={false}
                   onClick={handleAction}
                   sx={{
                     fontWeight: 800,
                     bgcolor: '#8b5cf6',
                     '&:hover': { bgcolor: '#7c3aed' },
-                    px: 2.5
+                    px: 3,
+                    py: 1,
+                    width: { xs: '100%', sm: 'auto' }
                   }}
                 >
                   Reserve Now

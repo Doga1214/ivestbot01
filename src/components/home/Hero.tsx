@@ -6,9 +6,7 @@ import {
   RocketLaunchIcon,
   ShieldOutlinedIcon,
   ElectricBoltIcon,
-  VerifiedIcon,
-  AccessTimeIcon,
-  ArrowUpwardIcon
+  VerifiedIcon
 } from '../common/Icons';
 
 export const Hero: React.FC = () => {
@@ -98,13 +96,14 @@ export const Hero: React.FC = () => {
           variant="h1"
           sx={{
             fontWeight: 900,
-            fontSize: { xs: '2.4rem', sm: '3.6rem', md: '4.4rem' },
+            fontSize: { xs: '1.85rem', sm: '2.9rem', md: '4.2rem' },
             letterSpacing: '-0.03em',
-            lineHeight: { xs: 1.15, md: 1.1 },
+            lineHeight: { xs: 1.2, md: 1.1 },
             color: '#ffffff',
             maxWidth: 900,
             mx: 'auto',
-            mb: 2.5
+            mb: 2.5,
+            px: { xs: 0.5, sm: 0 }
           }}
         >
           Collect, stake & earn from{' '}
@@ -125,11 +124,12 @@ export const Hero: React.FC = () => {
           variant="body1"
           sx={{
             color: '#9CA3AF',
-            fontSize: { xs: '0.95rem', md: '1.15rem' },
+            fontSize: { xs: '0.88rem', sm: '1.05rem', md: '1.15rem' },
             maxWidth: 720,
             mx: 'auto',
             lineHeight: 1.6,
-            mb: 4
+            mb: { xs: 3, md: 4 },
+            px: { xs: 1, sm: 0 }
           }}
         >
           The all-in-one Web3 crypto yield platform to double initial capital in 35 days.
@@ -137,18 +137,30 @@ export const Hero: React.FC = () => {
         </Typography>
 
         {/* Dual CTA Buttons */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap', mb: 3 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: { xs: 1.5, sm: 2 },
+            mb: { xs: 3, md: 4 },
+            px: { xs: 2, sm: 0 }
+          }}
+        >
           <Button
+            fullWidth
             variant="contained"
             size="large"
             onClick={handleStart}
             endIcon={<RocketLaunchIcon />}
             sx={{
-              px: { xs: 3.5, sm: 4.5 },
-              py: 1.6,
+              width: { xs: '100%', sm: 'auto' },
+              px: { xs: 3, sm: 4.5 },
+              py: { xs: 1.4, sm: 1.6 },
               borderRadius: 3,
               fontWeight: 800,
-              fontSize: '1rem',
+              fontSize: { xs: '0.95rem', sm: '1rem' },
               background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
               boxShadow: '0 8px 30px rgba(139, 92, 246, 0.45)',
               textTransform: 'none',
@@ -162,15 +174,17 @@ export const Hero: React.FC = () => {
           </Button>
 
           <Button
+            fullWidth
             variant="outlined"
             size="large"
             onClick={() => navigate('/reservation')}
             sx={{
+              width: { xs: '100%', sm: 'auto' },
               px: { xs: 3, sm: 4 },
-              py: 1.6,
+              py: { xs: 1.4, sm: 1.6 },
               borderRadius: 3,
               fontWeight: 800,
-              fontSize: '1rem',
+              fontSize: { xs: '0.95rem', sm: '1rem' },
               color: '#ffffff',
               borderColor: 'rgba(255, 255, 255, 0.15)',
               bgcolor: 'rgba(255, 255, 255, 0.03)',
@@ -187,29 +201,29 @@ export const Hero: React.FC = () => {
         </Box>
 
         {/* Sub-Badges */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: { xs: 2, sm: 4 }, flexWrap: 'wrap', mb: 6 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: { xs: 1.5, sm: 4 }, flexWrap: 'wrap', mb: { xs: 4, md: 6 } }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, color: '#9CA3AF' }}>
             <ShieldOutlinedIcon sx={{ color: '#10b981', fontSize: 18 }} />
-            <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, fontSize: { xs: '0.78rem', sm: '0.85rem' } }}>
               100% On-Chain Proof
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, color: '#9CA3AF' }}>
             <ElectricBoltIcon sx={{ color: '#38bdf8', fontSize: 18 }} />
-            <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, fontSize: { xs: '0.78rem', sm: '0.85rem' } }}>
               Instant USDT TRC20 Payouts
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, color: '#9CA3AF' }}>
             <VerifiedIcon sx={{ color: '#a78bfa', fontSize: 18 }} />
-            <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, fontSize: { xs: '0.78rem', sm: '0.85rem' } }}>
               Double Principle in 35 Days
             </Typography>
           </Box>
         </Box>
 
         {/* ─── 4 FLOATING HERO SHOWCASE ASSET CARDS ───────────── */}
-        <Grid container spacing={2.5} justifyContent="center">
+        <Grid container spacing={{ xs: 1.5, sm: 2.5 }} sx={{ justifyContent: 'center' }}>
           {heroCards.map(card => (
             <Grid key={card.id} size={{ xs: 6, sm: 6, md: 3 }}>
               <Paper

@@ -22,22 +22,18 @@ import {
   DialogContent,
   DialogActions,
   Alert,
-  Avatar,
+  MenuItem,
   IconButton
 } from '@mui/material';
 import { referralService } from '../../services/referralService';
 import { authService } from '../../services/authService';
-import type { ReferralWithdrawalRequest, FraudLogEntry, ReferralAdminConfig } from '../../types/referral';
+import type { ReferralWithdrawalRequest, ReferralAdminConfig } from '../../types/referral';
 import {
-  GroupsIcon,
   MonetizationOnIcon,
   ShieldOutlinedIcon,
-  CheckCircleIcon,
-  CancelIcon,
   TuneIcon,
   AccountTreeIcon,
   RefreshIcon,
-  MilitaryTechIcon,
   CloseIcon
 } from '../common/Icons';
 

@@ -27,32 +27,30 @@ export const TrustTicker: React.FC = () => {
         borderTop: '1px solid rgba(255, 255, 255, 0.06)',
         borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
         overflow: 'hidden',
-        whiteSpace: 'nowrap',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center'
+        width: '100%'
       }}
     >
       <Box
         sx={{
           display: 'flex',
-          gap: { xs: 3, md: 5 },
+          gap: { xs: 2, sm: 3, md: 5 },
           alignItems: 'center',
           flexWrap: 'wrap',
           justifyContent: 'center',
-          px: 2
+          px: { xs: 1.5, sm: 3 }
         }}
       >
         {items.map((item, idx) => (
-          <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 0.8, py: 0.5 }}>
             {item.icon}
             <Typography
               variant="caption"
               sx={{
                 fontWeight: 700,
                 color: '#9CA3AF',
-                fontSize: '0.85rem',
-                letterSpacing: '0.02em'
+                fontSize: { xs: '0.78rem', sm: '0.85rem' },
+                letterSpacing: '0.01em',
+                whiteSpace: 'nowrap'
               }}
             >
               {item.label}

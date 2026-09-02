@@ -767,44 +767,87 @@ export const Reservation: React.FC = () => {
               No reservation history yet. Click "Reserve" to execute your first yield cycle!
             </Typography>
           ) : (
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ color: '#64748B', fontWeight: 700 }}>Date</TableCell>
-                    <TableCell sx={{ color: '#64748B', fontWeight: 700 }}>Type</TableCell>
-                    <TableCell sx={{ color: '#64748B', fontWeight: 700 }}>Profit</TableCell>
-                    <TableCell sx={{ color: '#64748B', fontWeight: 700 }}>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
+            <>
+              {/* Mobile View (<600px) */}
+              <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                   {transactions
                     .filter(t => t.type === 'DAILY_PROFIT' || t.type === 'RESERVATION')
                     .slice(0, 15)
                     .map(tx => (
-                      <TableRow key={tx.id}>
-                        <TableCell sx={{ color: '#94A3B8', fontSize: '0.8rem' }}>
-                          {formatDateTime(tx.createdAt)}
-                        </TableCell>
-                        <TableCell>
+                      <Box
+                        key={tx.id}
+                        sx={{
+                          p: 1.8,
+                          borderRadius: 2.5,
+                          bgcolor: 'rgba(255, 255, 255, 0.02)',
+                          border: '1px solid rgba(255, 255, 255, 0.06)'
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                           <Chip
                             label={tx.type === 'DAILY_PROFIT' ? 'DAILY YIELD' : 'RESERVATION'}
                             size="small"
                             color={tx.type === 'DAILY_PROFIT' ? 'success' : 'primary'}
-                            sx={{ fontWeight: 700, fontSize: '0.68rem' }}
+                            sx={{ fontWeight: 800, fontSize: '0.68rem' }}
                           />
-                        </TableCell>
-                        <TableCell sx={{ color: '#10b981', fontWeight: 800, fontSize: '0.85rem' }}>
-                          +{tx.amount.toFixed(2)} USDT
-                        </TableCell>
-                        <TableCell>
-                          <Chip label="COMPLETED" size="small" variant="outlined" color="success" sx={{ fontSize: '0.65rem', fontWeight: 800 }} />
-                        </TableCell>
-                      </TableRow>
+                          <Typography sx={{ color: '#10b981', fontWeight: 900, fontSize: '0.95rem' }}>
+                            +{tx.amount.toFixed(2)} USDT
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '0.75rem' }}>
+                            {formatDateTime(tx.createdAt)}
+                          </Typography>
+                          <Chip label="COMPLETED" size="small" variant="outlined" color="success" sx={{ fontSize: '0.62rem', fontWeight: 800, height: 20 }} />
+                        </Box>
+                      </Box>
                     ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                </Box>
+              </Box>
+
+              {/* Desktop View (>=600px) */}
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ color: '#64748B', fontWeight: 700 }}>Date</TableCell>
+                        <TableCell sx={{ color: '#64748B', fontWeight: 700 }}>Type</TableCell>
+                        <TableCell sx={{ color: '#64748B', fontWeight: 700 }}>Profit</TableCell>
+                        <TableCell sx={{ color: '#64748B', fontWeight: 700 }}>Status</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {transactions
+                        .filter(t => t.type === 'DAILY_PROFIT' || t.type === 'RESERVATION')
+                        .slice(0, 15)
+                        .map(tx => (
+                          <TableRow key={tx.id}>
+                            <TableCell sx={{ color: '#94A3B8', fontSize: '0.8rem' }}>
+                              {formatDateTime(tx.createdAt)}
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={tx.type === 'DAILY_PROFIT' ? 'DAILY YIELD' : 'RESERVATION'}
+                                size="small"
+                                color={tx.type === 'DAILY_PROFIT' ? 'success' : 'primary'}
+                                sx={{ fontWeight: 700, fontSize: '0.68rem' }}
+                              />
+                            </TableCell>
+                            <TableCell sx={{ color: '#10b981', fontWeight: 800, fontSize: '0.85rem' }}>
+                              +{tx.amount.toFixed(2)} USDT
+                            </TableCell>
+                            <TableCell>
+                              <Chip label="COMPLETED" size="small" variant="outlined" color="success" sx={{ fontSize: '0.65rem', fontWeight: 800 }} />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            </>
           )}
         </Box>
       )}

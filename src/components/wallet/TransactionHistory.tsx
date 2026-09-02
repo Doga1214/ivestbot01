@@ -13,7 +13,9 @@ import {
   Chip,
   Box,
   Tabs,
-  Tab
+  Tab,
+  Stack,
+  Divider
 } from '@mui/material';
 import { ReceiptLongIcon } from '../common/Icons';
 import { useApp } from '../../context/AppContext';
@@ -76,11 +78,11 @@ export const TransactionHistory: React.FC = () => {
 
   return (
     <Card>
-      <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+      <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <ReceiptLongIcon sx={{ color: '#8b5cf6' }} />
-            <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, fontSize: { xs: '1.05rem', sm: '1.25rem' } }}>
               Wallet Ledger Transactions
             </Typography>
           </Box>
@@ -90,12 +92,13 @@ export const TransactionHistory: React.FC = () => {
             onChange={(_e, val) => setFilterType(val)}
             variant="scrollable"
             scrollButtons="auto"
+            allowScrollButtonsMobile
             sx={{
               minHeight: 36,
-              '& .MuiTab-root': { minHeight: 36, py: 0.5, px: 1.5, fontSize: '0.8rem', fontWeight: 600 }
+              '& .MuiTab-root': { minHeight: 36, py: 0.5, px: 1.5, fontSize: '0.78rem', fontWeight: 600 }
             }}
           >
-            <Tab label="All Records" value="ALL" />
+            <Tab label="All" value="ALL" />
             <Tab label="Pending" value="PENDING" />
             <Tab label="Deposits" value="DEPOSIT" />
             <Tab label="Withdrawals" value="WITHDRAWAL" />
@@ -109,20 +112,10 @@ export const TransactionHistory: React.FC = () => {
             No transactions found for this filter.
           </Typography>
         ) : (
-          <TableContainer component={Paper} sx={{ backgroundColor: 'transparent', boxShadow: 'none' }}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ color: '#9CA3AF', fontWeight: 600 }}>Date & Time</TableCell>
-                  <TableCell sx={{ color: '#9CA3AF', fontWeight: 600 }}>Type</TableCell>
-                  <TableCell sx={{ color: '#9CA3AF', fontWeight: 600 }}>Description</TableCell>
-                  <TableCell sx={{ color: '#9CA3AF', fontWeight: 600 }}>Amount</TableCell>
-                  <TableCell sx={{ color: '#9CA3AF', fontWeight: 600 }}>Status</TableCell>
-                  <TableCell sx={{ color: '#9CA3AF', fontWeight: 600 }}>Reference ID</TableCell>
-                  <TableCell sx={{ color: '#9CA3AF', fontWeight: 600, textAlign: 'right' }}>Action</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
+          <>
+            {/* 1. Mobile Stacked Cards View (<600px) */}
+            <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+              <Stack spacing={1.5}>
                 {filteredTransactions.map((tx) => {
                   const isPositive =
                     tx.type === 'DEPOSIT' ||
@@ -132,43 +125,130 @@ export const TransactionHistory: React.FC = () => {
                     tx.type === 'RESERVATION_RETURN';
 
                   return (
-                    <TableRow key={tx.id}>
-                      <TableCell sx={{ color: '#9CA3AF', fontSize: '0.85rem' }}>{formatDate(tx.createdAt)}</TableCell>
-                      <TableCell>{getTypeChip(tx.type)}</TableCell>
-                      <TableCell sx={{ color: '#e2e8f0', fontSize: '0.85rem' }}>{tx.description}</TableCell>
-                      <TableCell
-                        sx={{
-                          fontWeight: 800,
-                          color: isPositive ? '#34d399' : '#f87171'
-                        }}
-                      >
-                        {isPositive ? '+' : '-'}
-                        {tx.amount.toFixed(2)} USDT
-                      </TableCell>
-                      <TableCell>{getStatusChip(tx.status)}</TableCell>
-                      <TableCell sx={{ color: '#6B7280', fontSize: '0.75rem', fontFamily: 'monospace' }}>
-                        {tx.referenceId}
-                      </TableCell>
-                      <TableCell sx={{ textAlign: 'right' }}>
-                        {tx.type === 'WITHDRAWAL' && tx.status === 'PENDING' ? (
+                    <Paper
+                      key={tx.id}
+                      sx={{
+                        p: 1.8,
+                        borderRadius: 2.5,
+                        bgcolor: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid rgba(255, 255, 255, 0.07)'
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                          {getTypeChip(tx.type)}
+                          {getStatusChip(tx.status)}
+                        </Box>
+                        <Typography
+                          variant="subtitle1"
+                          sx={{
+                            fontWeight: 900,
+                            color: isPositive ? '#34d399' : '#f87171',
+                            fontSize: '1rem'
+                          }}
+                        >
+                          {isPositive ? '+' : '-'}
+                          {tx.amount.toFixed(2)} USDT
+                        </Typography>
+                      </Box>
+
+                      <Typography variant="body2" sx={{ color: '#e2e8f0', fontSize: '0.85rem', mb: 0.8 }}>
+                        {tx.description}
+                      </Typography>
+
+                      <Divider sx={{ my: 1, borderColor: 'rgba(255, 255, 255, 0.05)' }} />
+
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.75rem' }}>
+                          {formatDate(tx.createdAt)}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.7rem', fontFamily: 'monospace' }}>
+                          {tx.referenceId}
+                        </Typography>
+                      </Box>
+
+                      {tx.type === 'WITHDRAWAL' && tx.status === 'PENDING' && (
+                        <Box sx={{ mt: 1.5, textAlign: 'right' }}>
                           <Chip
                             label="Cancel & Refund"
                             color="error"
                             variant="outlined"
                             size="small"
                             onClick={() => cancelWithdrawal(tx.id)}
-                            sx={{ fontWeight: 800, cursor: 'pointer' }}
+                            sx={{ fontWeight: 800, cursor: 'pointer', width: '100%' }}
                           />
-                        ) : (
-                          <span style={{ color: '#6B7280', fontSize: '0.75rem' }}>—</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
+                        </Box>
+                      )}
+                    </Paper>
                   );
                 })}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              </Stack>
+            </Box>
+
+            {/* 2. Desktop / Tablet Full Table View (>=600px) */}
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+              <TableContainer component={Paper} sx={{ backgroundColor: 'transparent', boxShadow: 'none' }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ color: '#9CA3AF', fontWeight: 600 }}>Date & Time</TableCell>
+                      <TableCell sx={{ color: '#9CA3AF', fontWeight: 600 }}>Type</TableCell>
+                      <TableCell sx={{ color: '#9CA3AF', fontWeight: 600 }}>Description</TableCell>
+                      <TableCell sx={{ color: '#9CA3AF', fontWeight: 600 }}>Amount</TableCell>
+                      <TableCell sx={{ color: '#9CA3AF', fontWeight: 600 }}>Status</TableCell>
+                      <TableCell sx={{ color: '#9CA3AF', fontWeight: 600 }}>Reference ID</TableCell>
+                      <TableCell sx={{ color: '#9CA3AF', fontWeight: 600, textAlign: 'right' }}>Action</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {filteredTransactions.map((tx) => {
+                      const isPositive =
+                        tx.type === 'DEPOSIT' ||
+                        tx.type === 'DAILY_PROFIT' ||
+                        tx.type === 'REFERRAL_BONUS' ||
+                        tx.type === 'WELCOME_BONUS' ||
+                        tx.type === 'RESERVATION_RETURN';
+
+                      return (
+                        <TableRow key={tx.id}>
+                          <TableCell sx={{ color: '#9CA3AF', fontSize: '0.85rem' }}>{formatDate(tx.createdAt)}</TableCell>
+                          <TableCell>{getTypeChip(tx.type)}</TableCell>
+                          <TableCell sx={{ color: '#e2e8f0', fontSize: '0.85rem' }}>{tx.description}</TableCell>
+                          <TableCell
+                            sx={{
+                              fontWeight: 800,
+                              color: isPositive ? '#34d399' : '#f87171'
+                            }}
+                          >
+                            {isPositive ? '+' : '-'}
+                            {tx.amount.toFixed(2)} USDT
+                          </TableCell>
+                          <TableCell>{getStatusChip(tx.status)}</TableCell>
+                          <TableCell sx={{ color: '#6B7280', fontSize: '0.75rem', fontFamily: 'monospace' }}>
+                            {tx.referenceId}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'right' }}>
+                            {tx.type === 'WITHDRAWAL' && tx.status === 'PENDING' ? (
+                              <Chip
+                                label="Cancel & Refund"
+                                color="error"
+                                variant="outlined"
+                                size="small"
+                                onClick={() => cancelWithdrawal(tx.id)}
+                                sx={{ fontWeight: 800, cursor: 'pointer' }}
+                              />
+                            ) : (
+                              <span style={{ color: '#6B7280', fontSize: '0.75rem' }}>—</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+          </>
         )}
       </CardContent>
     </Card>

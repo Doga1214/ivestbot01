@@ -88,8 +88,25 @@ const DEFAULT_WALLET: WalletState = {
 const DEFAULT_TRANSACTIONS: WalletTransaction[] = [];
 
 export const walletService = {
-  getWallet(): WalletState {
+  getWallet(userId?: string): WalletState {
     try {
+      const targetId = userId || authService.getCurrentUser()?.id;
+      if (targetId) {
+        const key = `ivestbot_wallet_${targetId}`;
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          return {
+            ...DEFAULT_WALLET,
+            ...parsed,
+            restrictions: {
+              ...DEFAULT_RESTRICTIONS,
+              ...(parsed.restrictions || {})
+            }
+          };
+        }
+      }
+
       const stored = localStorage.getItem(WALLET_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
@@ -108,12 +125,16 @@ export const walletService = {
     return DEFAULT_WALLET;
   },
 
-  saveWallet(wallet: WalletState): void {
+  saveWallet(wallet: WalletState, userId?: string): void {
     const data = {
       ...wallet,
       updatedAt: new Date().toISOString()
     };
     localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(data));
+    const targetId = userId || authService.getCurrentUser()?.id;
+    if (targetId) {
+      localStorage.setItem(`ivestbot_wallet_${targetId}`, JSON.stringify(data));
+    }
   },
 
   getWalletForUser(userId: string): WalletState {
@@ -141,7 +162,7 @@ export const walletService = {
       try {
         const currentUser = JSON.parse(currentStored);
         if (currentUser.id === userId) {
-          return this.getWallet();
+          return this.getWallet(userId);
         }
       } catch {
         // ignore
@@ -163,28 +184,35 @@ export const walletService = {
       try {
         const currentUser = JSON.parse(currentStored);
         if (currentUser.id === userId) {
-          this.saveWallet(data);
+          localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(data));
         }
       } catch {
         // ignore
       }
     }
 
+    // Dispatch global event for instant React context updates
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('ivestbot_wallet_updated', { detail: { userId, wallet: data } }));
+    }
+
     // Sync to Supabase in background
-    supabase
-      .from('wallets')
-      .upsert(
-        {
-          user_id: userId,
-          total_balance: data.totalBalance,
-          available_balance: data.availableBalance,
-          pending_balance: data.pendingBalance,
-          currency: data.currency || 'USDT',
-          updated_at: new Date().toISOString()
-        },
-        { onConflict: 'user_id' }
-      )
-      .then(() => {}, () => {});
+    if (isValidUuid(userId)) {
+      supabase
+        .from('wallets')
+        .upsert(
+          {
+            user_id: userId,
+            total_balance: data.totalBalance,
+            available_balance: data.availableBalance,
+            pending_balance: data.pendingBalance,
+            currency: data.currency || 'USDT',
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'user_id' }
+        )
+        .then(() => {}, () => {});
+    }
   },
 
   /**

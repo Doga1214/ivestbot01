@@ -64,23 +64,23 @@ export const Header: React.FC = () => {
       }}
     >
       <Container maxWidth="lg">
-        <Toolbar disableGutters sx={{ minHeight: 70, justifyContent: 'space-between' }}>
+        <Toolbar disableGutters sx={{ minHeight: { xs: 58, sm: 64, md: 70 }, justifyContent: 'space-between', px: { xs: 1, sm: 0 } }}>
           {/* Logo Brand */}
           <Box
             onClick={() => navigate('/')}
             sx={{
               display: 'flex',
               alignItems: 'center',
-              gap: 1.2,
+              gap: { xs: 1, sm: 1.2 },
               cursor: 'pointer',
               userSelect: 'none'
             }}
           >
             <Box
               sx={{
-                width: 38,
-                height: 38,
-                borderRadius: '10px',
+                width: { xs: 32, sm: 38 },
+                height: { xs: 32, sm: 38 },
+                borderRadius: '9px',
                 background: 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
                 display: 'flex',
                 alignItems: 'center',
@@ -88,12 +88,13 @@ export const Header: React.FC = () => {
                 boxShadow: '0 4px 15px rgba(139, 92, 246, 0.4)'
               }}
             >
-              <Typography sx={{ fontWeight: 900, fontSize: '1.2rem', color: '#fff' }}>I</Typography>
+              <Typography sx={{ fontWeight: 900, fontSize: { xs: '1.05rem', sm: '1.2rem' }, color: '#fff' }}>I</Typography>
             </Box>
             <Typography
               variant="h6"
               sx={{
                 fontWeight: 900,
+                fontSize: { xs: '1.1rem', sm: '1.25rem' },
                 letterSpacing: '-0.02em',
                 background: 'linear-gradient(135deg, #ffffff 0%, #a78bfa 100%)',
                 WebkitBackgroundClip: 'text',
@@ -240,23 +241,25 @@ export const Header: React.FC = () => {
                 </Menu>
               </>
             ) : (
-              <>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.8, sm: 1.5 } }}>
                 <Button
                   variant="text"
+                  size="small"
                   onClick={openLoginModal}
-                  sx={{ fontWeight: 700, color: '#ffffff' }}
+                  sx={{ fontWeight: 700, color: '#ffffff', px: { xs: 1.2, sm: 2 }, fontSize: { xs: '0.82rem', sm: '0.9rem' } }}
                 >
                   Login
                 </Button>
                 <Button
                   variant="contained"
                   color="primary"
+                  size="small"
                   onClick={() => openRegisterModal()}
-                  sx={{ fontWeight: 700, px: 2.5 }}
+                  sx={{ fontWeight: 700, px: { xs: 1.6, sm: 2.5 }, fontSize: { xs: '0.82rem', sm: '0.9rem' } }}
                 >
                   Register
                 </Button>
-              </>
+              </Box>
             )}
           </Box>
         </Toolbar>

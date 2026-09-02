@@ -17,33 +17,44 @@ import { useApp } from '../../context/AppContext';
 export const ProfileWalletIncomeCard: React.FC = () => {
   const { wallet, referralSummary, transactions } = useApp();
 
-  const currentBalance = wallet ? wallet.totalBalance : 1231.68;
+  const currentBalance = wallet ? wallet.totalBalance : 0.0;
 
-  // Real or dynamically computed earnings breakdown
-  const reservationEarnings = transactions
-    .filter(t => t.type === 'PROFIT')
+  // Real dynamically computed earnings breakdown
+  const reserveTotal = transactions
+    .filter(t => t.type === 'DAILY_PROFIT')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const teamEarnings = referralSummary.totalEarnings || 19.43;
-  const activityEarnings = transactions
-    .filter(t => t.type === 'WELCOME_BONUS' || t.type === 'DEPOSIT')
-    .reduce((sum, t) => sum + (t.type === 'WELCOME_BONUS' ? t.amount : 0), 0) || 118.01;
-  const stakeEarnings = 21.66; // Staking pool returns
-  const reserveTotal = reservationEarnings > 0 ? reservationEarnings : 1484.42;
+  const teamTotal = referralSummary?.totalEarnings || 0.0;
+  const activityTotal = transactions
+    .filter(t => t.type === 'WELCOME_BONUS' || t.type === 'ADMIN_CREDIT')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const stakeTotal = 0.0;
+  const premiumTotal = 0.0;
+  const referralTotal = referralSummary?.rewardBalanceUSDT || 0.0;
 
   // Daily incomes
-  const dailyReserve = Number(((wallet.totalBalance || 1000) * 0.028571).toFixed(2));
-  const dailyTeam = referralSummary.todayEarnings || 0.00;
-  const dailyActivity = 0.00;
-  const dailyStake = 0.00;
-  const dailyComprehensive = Number((dailyReserve + dailyTeam + dailyActivity + dailyStake).toFixed(2));
-  const totalComprehensive = Number((reserveTotal + teamEarnings + activityEarnings + stakeEarnings).toFixed(2));
+  const dailyReserve = currentBalance > 0 ? Number((currentBalance * 0.028571).toFixed(2)) : 0.0;
+  const dailyTeam = referralSummary?.todayEarnings || 0.0;
+  const dailyActivity = 0.0;
+  const dailyStake = 0.0;
+  const dailyPremium = 0.0;
+  const dailyReferral = 0.0;
 
+  const dailyComprehensive = Number(
+    (dailyReserve + dailyTeam + dailyActivity + dailyStake + dailyPremium + dailyReferral).toFixed(2)
+  );
+  const totalComprehensive = Number(
+    (reserveTotal + teamTotal + activityTotal + stakeTotal + premiumTotal + referralTotal).toFixed(2)
+  );
+
+  // Exact 7 rows matching the user's screenshot
   const incomeRows = [
     { label: 'Comprehensive', daily: dailyComprehensive, total: totalComprehensive },
-    { label: 'Activity', daily: dailyActivity, total: activityEarnings },
-    { label: 'Team', daily: dailyTeam, total: teamEarnings },
-    { label: 'Stake', daily: dailyStake, total: stakeEarnings },
+    { label: 'Activity', daily: dailyActivity, total: activityTotal },
+    { label: 'Team', daily: dailyTeam, total: teamTotal },
+    { label: 'Stake', daily: dailyStake, total: stakeTotal },
+    { label: 'Premium', daily: dailyPremium, total: premiumTotal },
+    { label: 'Referral', daily: dailyReferral, total: referralTotal },
     { label: 'Reserve', daily: dailyReserve, total: reserveTotal }
   ];
 
@@ -91,11 +102,11 @@ export const ProfileWalletIncomeCard: React.FC = () => {
         <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.08)', mb: 2.5 }} />
 
         {/* 2-Column Table Headers */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: { xs: 4, sm: 8 }, mb: 2, pr: 1 }}>
-          <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, fontSize: '0.85rem' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: { xs: 5, sm: 8 }, mb: 2, pr: 0.5 }}>
+          <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 700, fontSize: '0.85rem' }}>
             Daily Income
           </Typography>
-          <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, fontSize: '0.85rem' }}>
+          <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 700, fontSize: '0.85rem' }}>
             Total Income
           </Typography>
         </Box>
@@ -124,9 +135,9 @@ export const ProfileWalletIncomeCard: React.FC = () => {
               </Typography>
 
               {/* 2 Value Columns */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 3, sm: 6 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 4, sm: 6 } }}>
                 {/* Daily Income */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, width: { xs: 80, sm: 100 }, justifyContent: 'flex-start' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, width: { xs: 85, sm: 105 }, justifyContent: 'flex-start' }}>
                   <TetherIcon sx={{ fontSize: 16 }} />
                   <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#ffffff', fontSize: '0.98rem' }}>
                     {row.daily.toFixed(2)}
@@ -134,7 +145,7 @@ export const ProfileWalletIncomeCard: React.FC = () => {
                 </Box>
 
                 {/* Total Income */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, width: { xs: 100, sm: 120 }, justifyContent: 'flex-start' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, width: { xs: 85, sm: 105 }, justifyContent: 'flex-start' }}>
                   <TetherIcon sx={{ fontSize: 16 }} />
                   <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#ffffff', fontSize: '0.98rem' }}>
                     {row.total.toFixed(2)}

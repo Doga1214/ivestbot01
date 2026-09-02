@@ -98,7 +98,10 @@ export const RegisterModal: React.FC = () => {
       slotProps={{
         paper: {
           sx: {
-            p: 1,
+            p: { xs: 0.5, sm: 1 },
+            m: { xs: 1.5, sm: 2 },
+            width: { xs: 'calc(100% - 24px)', sm: 'auto' },
+            borderRadius: 3.5,
             background: '#111522',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             boxShadow: '0 20px 40px rgba(0,0,0,0.6)'

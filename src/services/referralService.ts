@@ -586,6 +586,7 @@ export const referralService = {
       amount: params.amountUSDT,
       currency: 'USDT',
       status: 'PENDING',
+      referenceId: `REF-WTH-${Date.now()}`,
       txHash: `REF-WTH-${Date.now()}`,
       description: `Referral Reward Withdrawal to ${params.network}: ${params.walletAddress.substring(0, 8)}...`
     });
@@ -619,6 +620,7 @@ export const referralService = {
       amount: amountUSDT,
       currency: 'USDT',
       status: 'COMPLETED',
+      referenceId: `REF-CLAIM-${Date.now()}`,
       description: `Instant Transfer from Referral Reward Balance to Main Available Wallet`
     });
   },

@@ -10,6 +10,7 @@ export interface UserProfile {
   level: number;
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'BLOCKED';
   kycStatus: 'NOT_SUBMITTED' | 'PENDING' | 'VERIFIED' | 'REJECTED';
+  avatarUrl?: string;
   createdAt: string;
 }
 
@@ -52,6 +53,23 @@ export const authService = {
 
   saveAllUsers(users: UserProfile[]): void {
     localStorage.setItem(ALL_USERS_KEY, JSON.stringify(users));
+  },
+
+  updateUser(userId: string, data: Partial<UserProfile>): UserProfile | null {
+    const all = this.getAllUsers();
+    const index = all.findIndex(u => u.id === userId);
+    let updated: UserProfile | null = null;
+    if (index >= 0) {
+      all[index] = { ...all[index], ...data };
+      updated = all[index];
+      this.saveAllUsers(all);
+    }
+    const current = this.getCurrentUser();
+    if (current && current.id === userId) {
+      updated = { ...current, ...data };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    }
+    return updated;
   },
 
   /**

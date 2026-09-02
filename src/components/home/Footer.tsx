@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Container, Typography, Grid, Link, IconButton } from '@mui/material';
+import { Box, Container, Typography, Grid, Link } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
 export const Footer: React.FC = () => {

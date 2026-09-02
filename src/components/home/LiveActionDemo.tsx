@@ -2,8 +2,7 @@ import React from 'react';
 import { Box, Container, Typography, Paper, Chip } from '@mui/material';
 import {
   ElectricBoltIcon,
-  PlayArrowIcon,
-  VerifiedIcon
+  PlayArrowIcon
 } from '../common/Icons';
 
 export const LiveActionDemo: React.FC = () => {
@@ -74,7 +73,7 @@ export const LiveActionDemo: React.FC = () => {
           </Typography>
 
           {/* Sub Ticker Pill */}
-          <Box sx={{ position: 'absolute', bottom: 16 }}>
+          <Box sx={{ position: { xs: 'relative', sm: 'absolute' }, mt: { xs: 2.5, sm: 0 }, bottom: { sm: 16 }, maxWidth: '92%' }}>
             <Chip
               icon={<ElectricBoltIcon style={{ color: '#38bdf8', fontSize: 14 }} />}
               label="Real-time 20-second order processing protocol"
@@ -83,7 +82,8 @@ export const LiveActionDemo: React.FC = () => {
                 bgcolor: 'rgba(0,0,0,0.6)',
                 border: '1px solid rgba(255,255,255,0.08)',
                 color: '#9CA3AF',
-                fontSize: '0.75rem'
+                fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                maxWidth: '100%'
               }}
             />
           </Box>

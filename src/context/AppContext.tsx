@@ -20,6 +20,7 @@ interface AppContextType {
   login: (usernameOrEmail: string, password?: string) => Promise<void>;
   register: (data: { name: string; username: string; email: string; password?: string; referralCode?: string }) => Promise<void>;
   logout: () => void;
+  updateUserProfile: (data: Partial<UserProfile>) => void;
 
   // Modals
   isLoginModalOpen: boolean;
@@ -88,7 +89,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [initialReferralCode, setInitialReferralCode] = useState('');
   const [isAnnouncementOpen, setIsAnnouncementOpen] = useState(false);
 
-  const [wallet, setWallet] = useState<WalletState>(() => walletService.getWallet());
+  const [wallet, setWallet] = useState<WalletState>(() => walletService.getWallet(authService.getCurrentUser()?.id));
   const [transactions, setTransactions] = useState<WalletTransaction[]>(() => walletService.getTransactions());
   const [kyc, setKyc] = useState<KycSubmission>(() => walletService.getKycStatus());
 
@@ -116,10 +117,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const refreshWallet = useCallback(() => {
-    setWallet(walletService.getWallet());
-    setTransactions(walletService.getTransactions());
+    const targetId = user?.id || authService.getCurrentUser()?.id;
+    if (targetId) {
+      const local = walletService.getWallet(targetId);
+      setWallet(local);
+      walletService.syncWalletFromSupabase(targetId).then(w => {
+        if (w) setWallet(w);
+      });
+      walletService.syncTransactionsFromSupabase(targetId).then(txs => {
+        if (txs) setTransactions(txs);
+      });
+    } else {
+      setWallet(walletService.getWallet());
+      setTransactions(walletService.getTransactions());
+    }
     setSyncTick(t => t + 1);
-  }, []);
+  }, [user?.id]);
 
   // Background Fast Sync: Auto-sync wallet, transactions & all users from database in real time
   useEffect(() => {
@@ -127,11 +140,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         await authService.syncAllUsersFromSupabase();
 
-        if (user?.id) {
-          await walletService.syncWalletFromSupabase(user.id);
-          await walletService.syncTransactionsFromSupabase(user.id);
-          setWallet(walletService.getWallet());
-          setTransactions(walletService.getTransactions());
+        const targetId = user?.id || authService.getCurrentUser()?.id;
+        if (targetId) {
+          const synced = await walletService.syncWalletFromSupabase(targetId);
+          const txs = await walletService.syncTransactionsFromSupabase(targetId);
+          if (synced) {
+            setWallet(synced);
+          } else {
+            setWallet(walletService.getWallet(targetId));
+          }
+          if (txs) {
+            setTransactions(txs);
+          }
         }
         setSyncTick(t => t + 1);
       } catch {
@@ -141,6 +161,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Initial sync
     syncUserData();
+
+    // Listen for custom wallet update events
+    const handleWalletUpdated = (e: any) => {
+      const targetId = user?.id || authService.getCurrentUser()?.id;
+      if (targetId && (e.detail?.userId === targetId || !e.detail?.userId)) {
+        if (e.detail?.wallet) {
+          setWallet(e.detail.wallet);
+        } else {
+          setWallet(walletService.getWallet(targetId));
+        }
+      }
+    };
+    window.addEventListener('ivestbot_wallet_updated', handleWalletUpdated);
+    window.addEventListener('storage', handleWalletUpdated);
 
     // User-scoped Supabase Realtime Channel
     let userChannel: any = null;
@@ -164,12 +198,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .subscribe();
     }
 
-    // Polling resilience fallback (every 3s)
-    const interval = setInterval(syncUserData, 3000);
+    // Polling resilience fallback (every 2s)
+    const interval = setInterval(syncUserData, 2000);
 
     return () => {
       if (userChannel) supabase.removeChannel(userChannel);
       clearInterval(interval);
+      window.removeEventListener('ivestbot_wallet_updated', handleWalletUpdated);
+      window.removeEventListener('storage', handleWalletUpdated);
     };
   }, [user?.id]);
 
@@ -227,6 +263,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     authService.logout();
     setUser(null);
     showSnackbar('Logged out successfully.', 'info');
+  };
+
+  const updateUserProfile = (data: Partial<UserProfile>) => {
+    if (!user) return;
+    const updated = authService.updateUser(user.id, data);
+    if (updated) {
+      setUser(updated);
+      showSnackbar('Profile updated successfully.', 'success');
+    }
   };
 
   // Deposit Submission (Pending Admin Verification)
@@ -481,6 +526,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         login,
         register,
         logout,
+        updateUserProfile,
         isLoginModalOpen,
         isRegisterModalOpen,
         openLoginModal: () => setIsLoginModalOpen(true),

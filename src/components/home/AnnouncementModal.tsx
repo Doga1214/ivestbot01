@@ -131,19 +131,19 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ open: exte
           </Typography>
 
           <Stack spacing={1} sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)', p: 1.5, borderRadius: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' }, gap: 0.3 }}>
               <span style={{ color: '#9CA3AF' }}>50 USDT Deposit:</span>
               <strong style={{ color: '#34d399' }}>Sponsor: +5 USDT &nbsp;|&nbsp; User: +1 USDT</strong>
             </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' }, gap: 0.3 }}>
               <span style={{ color: '#9CA3AF' }}>100 USDT Deposit:</span>
               <strong style={{ color: '#34d399' }}>Sponsor: +10 USDT &nbsp;|&nbsp; User: +2 USDT</strong>
             </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' }, gap: 0.3 }}>
               <span style={{ color: '#9CA3AF' }}>500 USDT Deposit:</span>
               <strong style={{ color: '#34d399' }}>Sponsor: +50 USDT &nbsp;|&nbsp; User: +10 USDT</strong>
             </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' }, gap: 0.3 }}>
               <span style={{ color: '#9CA3AF' }}>1,000 USDT Deposit:</span>
               <strong style={{ color: '#34d399' }}>Sponsor: +100 USDT &nbsp;|&nbsp; User: +20 USDT</strong>
             </Box>

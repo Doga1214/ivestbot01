@@ -41,14 +41,17 @@ export const Wallet: React.FC = () => {
         <Tabs
           value={activeTab}
           onChange={(_e, val) => setActiveTab(val)}
-          variant="fullWidth"
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
           sx={{
-            minHeight: 52,
+            minHeight: { xs: 46, sm: 52 },
             '& .MuiTab-root': {
-              minHeight: 52,
+              minHeight: { xs: 46, sm: 52 },
               fontWeight: 700,
-              fontSize: '0.9rem',
+              fontSize: { xs: '0.82rem', sm: '0.9rem' },
               color: '#9CA3AF',
+              px: { xs: 1.5, sm: 2.5 },
               '&.Mui-selected': {
                 color: '#a78bfa'
               }
