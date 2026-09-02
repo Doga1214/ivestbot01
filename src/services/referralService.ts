@@ -88,7 +88,7 @@ export const referralService = {
 
     const sys = WALLET_CONFIG.referralSystem;
     return {
-      minWithdrawalUSDT: sys?.minWithdrawalUSDT || 10,
+      minWithdrawalUSDT: sys?.minWithdrawalUSDT || 100,
       minAccountAgeDays: sys?.minAccountAgeDays || 0,
       requireKycForWithdrawal: sys?.requireKycForWithdrawal || false,
       baseRewardUSDT: sys?.baseRewardUSDT || 5,
