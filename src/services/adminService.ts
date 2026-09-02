@@ -92,12 +92,15 @@ export const adminService = {
       const { data: deposits } = await supabase.from('deposits').select('*').eq('status', 'PENDING');
       const { data: txs } = await supabase.from('wallet_transactions').select('id, user_id');
 
+      const deleted = authService.getDeletedUserIds();
+
       if (profiles && !pErr) {
+        const cleanProfiles = profiles.filter(p => !deleted.has(p.id));
         const walletMap = new Map((wallets || []).map(w => [w.user_id, w]));
         const depList = deposits || [];
         const txList = txs || [];
 
-        return profiles.map(p => {
+        return cleanProfiles.map(p => {
           const w = walletMap.get(p.id);
           const userDeps = depList.filter(d => d.user_id === p.id);
           const depSum = userDeps.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
@@ -108,7 +111,7 @@ export const adminService = {
             availableBalance: parseFloat(w?.available_balance) || 0,
             pendingBalance: parseFloat(w?.pending_balance) || 0,
             currency: w?.currency || 'USDT',
-            status: 'ACTIVE',
+            status: (p.status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE') as WalletStatus,
             restrictions: { canDeposit: true, canWithdraw: true, canReserve: true, canTrade: true },
             updatedAt: w?.updated_at
           };

@@ -21,6 +21,7 @@ export function isValidUuid(id?: string | null): boolean {
 
 const STORAGE_KEY = 'ivestbot_auth_user';
 const ALL_USERS_KEY = 'ivestbot_all_users_list';
+const DELETED_USERS_KEY = 'ivestbot_deleted_user_ids';
 
 function generateUniqueReferralCode(existingUsers: UserProfile[]): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -39,11 +40,29 @@ function generateUniqueReferralCode(existingUsers: UserProfile[]): string {
 }
 
 export const authService = {
+  getDeletedUserIds(): Set<string> {
+    try {
+      const stored = localStorage.getItem(DELETED_USERS_KEY);
+      if (stored) {
+        return new Set(JSON.parse(stored));
+      }
+    } catch {
+      // ignore
+    }
+    return new Set<string>();
+  },
+
+  saveDeletedUserIds(ids: Set<string>): void {
+    localStorage.setItem(DELETED_USERS_KEY, JSON.stringify(Array.from(ids)));
+  },
+
   getAllUsers(): UserProfile[] {
     try {
       const stored = localStorage.getItem(ALL_USERS_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed: UserProfile[] = JSON.parse(stored);
+        const deleted = this.getDeletedUserIds();
+        return parsed.filter(u => !deleted.has(u.id));
       }
     } catch {
       // ignore
@@ -52,7 +71,9 @@ export const authService = {
   },
 
   saveAllUsers(users: UserProfile[]): void {
-    localStorage.setItem(ALL_USERS_KEY, JSON.stringify(users));
+    const deleted = this.getDeletedUserIds();
+    const cleanList = users.filter(u => !deleted.has(u.id));
+    localStorage.setItem(ALL_USERS_KEY, JSON.stringify(cleanList));
   },
 
   updateUser(userId: string, data: Partial<UserProfile>): UserProfile | null {
@@ -74,12 +95,11 @@ export const authService = {
 
   /**
    * Synchronizes all user profiles directly from Supabase (Single Source of Truth).
-   * Also safely migrates any legacy local browser accounts into Supabase profiles automatically.
    */
   async syncAllUsersFromSupabase(): Promise<UserProfile[]> {
     try {
-      // 1. Fetch remote users from Supabase
-      const { data: initialRemote, error } = await supabase
+      // 1. Fetch remote users directly from Supabase profiles table
+      const { data: remoteProfiles, error } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
@@ -88,54 +108,23 @@ export const authService = {
         console.warn('Supabase sync users fetch error:', error.message);
       }
 
-      const localUsers = this.getAllUsers();
+      const deleted = this.getDeletedUserIds();
 
-      // 2. Safe Auto-Recovery Migration:
-      // If local storage in the active browser has legacy accounts not yet stored in Supabase,
-      // upload them safely to Supabase public.profiles and create their wallets.
-      if (localUsers.length > 0 && initialRemote) {
-        const remoteUsernames = new Set(initialRemote.map(d => (d.username || '').toLowerCase()));
-        const remoteEmails = new Set(initialRemote.map(d => (d.email || '').toLowerCase()));
-
-        for (const u of localUsers) {
-          const uName = (u.username || '').toLowerCase().trim();
-          const uEmail = (u.email || '').toLowerCase().trim();
-          if (uName && !remoteUsernames.has(uName) && (!uEmail || !remoteEmails.has(uEmail))) {
-            try {
-              await supabase.rpc('resolve_or_create_profile', {
-                p_name: u.name || uName,
-                p_username: uName,
-                p_email: uEmail || `${uName}@ivestbot.io`,
-                p_password: null,
-                p_referral_code: u.referralCode || undefined,
-                p_referred_by: u.referredBy || undefined
-              });
-            } catch {
-              // ignore
-            }
-          }
-        }
-      }
-
-      // 3. Re-fetch all profiles from Supabase as authoritative source of truth
-      const { data: finalRemote } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (finalRemote && finalRemote.length > 0) {
-        const remoteUsers: UserProfile[] = finalRemote.map(d => ({
-          id: d.id,
-          name: d.name || 'User',
-          username: d.username || 'user',
-          email: d.email || '',
-          referralCode: d.referral_code || 'IVEST100',
-          referredBy: d.referred_by_code || undefined,
-          level: d.level || 1,
-          status: (d.status || 'INACTIVE') as any,
-          kycStatus: d.kyc_status || 'NOT_SUBMITTED',
-          createdAt: d.created_at || new Date().toISOString()
-        }));
+      if (remoteProfiles && remoteProfiles.length >= 0) {
+        const remoteUsers: UserProfile[] = remoteProfiles
+          .filter(d => !deleted.has(d.id))
+          .map(d => ({
+            id: d.id,
+            name: d.name || 'User',
+            username: d.username || 'user',
+            email: d.email || '',
+            referralCode: d.referral_code || 'IVEST100',
+            referredBy: d.referred_by_code || undefined,
+            level: d.level || 1,
+            status: (d.status || 'INACTIVE') as any,
+            kycStatus: d.kyc_status || 'NOT_SUBMITTED',
+            createdAt: d.created_at || new Date().toISOString()
+          }));
 
         this.saveAllUsers(remoteUsers);
         return remoteUsers;
@@ -408,27 +397,30 @@ export const authService = {
   },
 
   async deleteUser(userId: string): Promise<boolean> {
-    if (!isValidUuid(userId)) {
-      return false;
-    }
+    const deletedIds = this.getDeletedUserIds();
+    deletedIds.add(userId);
+    this.saveDeletedUserIds(deletedIds);
 
-    try {
-      const { data, error } = await supabase.rpc('admin_delete_user', {
-        p_user_id: userId
-      });
+    if (isValidUuid(userId)) {
+      try {
+        const { data, error } = await supabase.rpc('admin_delete_user', {
+          p_user_id: userId
+        });
 
-      if (error || !data?.success) {
-        // Fallback direct delete
-        await supabase.from('deposits').delete().eq('user_id', userId);
-        await supabase.from('withdrawals').delete().eq('user_id', userId);
-        await supabase.from('wallet_transactions').delete().eq('user_id', userId);
-        await supabase.from('wallets').delete().eq('user_id', userId);
-        await supabase.from('kyc_records').delete().eq('user_id', userId);
-        await supabase.from('reservations').delete().eq('user_id', userId);
-        await supabase.from('profiles').delete().eq('id', userId);
+        if (error || !data?.success) {
+          // Fallback explicit cascading deletes in order of foreign key dependency
+          await supabase.from('deposits').delete().eq('user_id', userId);
+          await supabase.from('withdrawals').delete().eq('user_id', userId);
+          await supabase.from('wallet_transactions').delete().eq('user_id', userId);
+          await supabase.from('wallets').delete().eq('user_id', userId);
+          await supabase.from('kyc_records').delete().eq('user_id', userId);
+          await supabase.from('reservations').delete().eq('user_id', userId);
+          await supabase.from('crypto_trades').delete().eq('user_id', userId);
+          await supabase.from('profiles').delete().eq('id', userId);
+        }
+      } catch (err) {
+        console.error('[Delete User Supabase Error]', err);
       }
-    } catch {
-      // ignore
     }
 
     const all = this.getAllUsers();
@@ -436,6 +428,7 @@ export const authService = {
     this.saveAllUsers(filtered);
 
     localStorage.removeItem(`ivestbot_wallet_${userId}`);
+    localStorage.removeItem(`ivestbot_ref_balance_${userId}`);
 
     const current = this.getCurrentUser();
     if (current && current.id === userId) {
