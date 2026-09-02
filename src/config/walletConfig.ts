@@ -21,9 +21,59 @@ export const WALLET_CONFIG = {
   processingDurationSeconds: 20, // 20-second processing period
   reservationLockHours: 24, // 24-hour cycle (1 reservation per 24 hours)
 
+  // Multi-network withdrawal options and limits
+  minWithdrawalUSDT: 100,
+  maxWithdrawalUSDT: 50000,
+  withdrawalNetworks: [
+    {
+      id: 'TRC20',
+      name: 'Tron (TRC20)',
+      fee: 1.0,
+      minWithdrawal: 100,
+      currency: 'USDT',
+      badgeColor: '#EF4444',
+      explorerTxUrl: 'https://tronscan.org/#/transaction/',
+      addressPattern: '^T[1-9A-HJ-NP-za-km-z]{33}$',
+      hint: 'Address must start with "T" (34 characters)'
+    },
+    {
+      id: 'BEP20',
+      name: 'BNB Smart Chain (BEP20)',
+      fee: 0.8,
+      minWithdrawal: 100,
+      currency: 'USDT',
+      badgeColor: '#F59E0B',
+      explorerTxUrl: 'https://bscscan.com/tx/',
+      addressPattern: '^0x[a-fA-F0-9]{40}$',
+      hint: 'Address must start with "0x" (42 characters)'
+    },
+    {
+      id: 'ERC20',
+      name: 'Ethereum (ERC20)',
+      fee: 4.5,
+      minWithdrawal: 100,
+      currency: 'USDT',
+      badgeColor: '#6366F1',
+      explorerTxUrl: 'https://etherscan.io/tx/',
+      addressPattern: '^0x[a-fA-F0-9]{40}$',
+      hint: 'Address must start with "0x" (42 characters)'
+    },
+    {
+      id: 'POLYGON',
+      name: 'Polygon (POS)',
+      fee: 0.5,
+      minWithdrawal: 100,
+      currency: 'USDT',
+      badgeColor: '#8B5CF6',
+      explorerTxUrl: 'https://polygonscan.com/tx/',
+      addressPattern: '^0x[a-fA-F0-9]{40}$',
+      hint: 'Address must start with "0x" (42 characters)'
+    }
+  ],
+
   // Multi-Tier Referral System Configuration (All values in USDT)
   referralSystem: {
-    minWithdrawalUSDT: 10,
+    minWithdrawalUSDT: 100,
     minAccountAgeDays: 0,
     requireKycForWithdrawal: false,
     baseRewardUSDT: 5, // 5 USDT per qualified referral

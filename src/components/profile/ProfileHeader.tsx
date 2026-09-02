@@ -126,7 +126,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onOpenKyc }) => {
               WebkitTextFillColor: 'transparent'
             }}
           >
-            NFT Legend
+            Ivestbot
           </Typography>
         </Box>
 

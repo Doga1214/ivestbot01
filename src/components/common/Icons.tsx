@@ -316,5 +316,10 @@ export const AccountBoxIcon: React.FC<SvgIconProps> = (props) => (
   <SvgIcon {...props}><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></SvgIcon>
 );
 
+export const OpenInNewIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props}><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></SvgIcon>
+);
 
-
+export const BookmarkAddIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props}><path d="M21 7h-2v2h-2V7h-2V5h2V3h2v2h2v2zm-4 14l-5-2.18L7 21V5c0-1.1.9-2 2-2h4.5c-.32.6-.5 1.28-.5 2H9v13.5l4-1.74 4 1.74V11.5c.72 0 1.4-.18 2-.5V21z"/></SvgIcon>
+);

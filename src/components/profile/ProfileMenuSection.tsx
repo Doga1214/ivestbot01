@@ -297,7 +297,7 @@ export const ProfileMenuSection: React.FC = () => {
       >
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
           <Typography variant="h6" sx={{ fontWeight: 900 }}>
-            How NFT Legend Works
+            How Ivestbot Works
           </Typography>
           <IconButton onClick={() => setLearnOpen(false)} size="small">
             <CloseIcon />

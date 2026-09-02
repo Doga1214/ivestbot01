@@ -247,13 +247,13 @@ export const Reservation: React.FC = () => {
           mb: 3
         }}
       >
-        {/* Card 1: Today's Earnings */}
+        {/* Card 1: Today's Earnings (Daily Reserve Profit) */}
         <Box
           sx={{
             p: 2,
             borderRadius: 3.5,
             background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
-            border: '1px solid rgba(255, 255, 255, 0.07)',
+            border: '1px solid rgba(6, 182, 212, 0.25)',
             position: 'relative',
             overflow: 'hidden',
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
@@ -267,29 +267,32 @@ export const Reservation: React.FC = () => {
               width: 70,
               height: 70,
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.22) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%)',
               pointerEvents: 'none'
             }}
           />
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#06b6d4' }} />
-            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
+            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, fontSize: '0.78rem' }}>
               Today's Earnings
             </Typography>
           </Box>
-          <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
+          <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em', mb: 0.3 }}>
             <span style={{ color: '#06b6d4', marginRight: 4, fontWeight: 700 }}>₮</span>
-            {todayEarnings.toFixed(2)}
+            {todayEarnings > 0 ? todayEarnings.toFixed(2) : `${expectedMinIncome.toFixed(2)} ~ ${expectedMaxIncome.toFixed(2)}`}
+          </Typography>
+          <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.7rem', display: 'block' }}>
+            {todayEarnings > 0 ? 'Profit Earned Today' : 'Today Est. Reserve Profit'}
           </Typography>
         </Box>
 
-        {/* Card 2: Cumulative Income */}
+        {/* Card 2: Team Benefits (Team Commission) */}
         <Box
           sx={{
             p: 2,
             borderRadius: 3.5,
             background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
-            border: '1px solid rgba(255, 255, 255, 0.07)',
+            border: '1px solid rgba(139, 92, 246, 0.25)',
             position: 'relative',
             overflow: 'hidden',
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
@@ -303,59 +306,65 @@ export const Reservation: React.FC = () => {
               width: 70,
               height: 70,
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, transparent 70%)',
-              pointerEvents: 'none'
-            }}
-          />
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#10b981' }} />
-            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
-              Cumulative Income
-            </Typography>
-          </Box>
-          <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
-            <span style={{ color: '#10b981', marginRight: 4, fontWeight: 700 }}>₮</span>
-            {cumulativeIncome.toFixed(2)}
-          </Typography>
-        </Box>
-
-        {/* Card 3: Team Benefits */}
-        <Box
-          sx={{
-            p: 2,
-            borderRadius: 3.5,
-            background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
-            border: '1px solid rgba(255, 255, 255, 0.07)',
-            position: 'relative',
-            overflow: 'hidden',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
-          }}
-        >
-          <Box
-            sx={{
-              position: 'absolute',
-              top: -15,
-              right: -15,
-              width: 70,
-              height: 70,
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(139, 92, 246, 0.22) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, transparent 70%)',
               pointerEvents: 'none'
             }}
           />
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#8b5cf6' }} />
-            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
+            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, fontSize: '0.78rem' }}>
               Team Benefits
             </Typography>
           </Box>
-          <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
+          <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em', mb: 0.3 }}>
             <span style={{ color: '#8b5cf6', marginRight: 4, fontWeight: 700 }}>₮</span>
             {teamBenefits.toFixed(2)}
           </Typography>
+          <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.7rem', display: 'block' }}>
+            Team Referral Commissions
+          </Typography>
         </Box>
 
-        {/* Card 4: Wallet Balance */}
+        {/* Card 3: Reservation Balance (Main Balance for Reservation) */}
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 3.5,
+            background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+          }}
+        >
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -15,
+              right: -15,
+              width: 70,
+              height: 70,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%)',
+              pointerEvents: 'none'
+            }}
+          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#10b981' }} />
+            <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 700, fontSize: '0.78rem' }}>
+              Reservation Balance
+            </Typography>
+          </Box>
+          <Typography variant="h6" sx={{ fontWeight: 900, color: '#34d399', letterSpacing: '-0.02em', mb: 0.3 }}>
+            <span style={{ color: '#10b981', marginRight: 4, fontWeight: 700 }}>₮</span>
+            {reservableBalance.toFixed(2)}
+          </Typography>
+          <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.7rem', display: 'block' }}>
+            Main Balance for Reservation
+          </Typography>
+        </Box>
+
+        {/* Card 4: Cumulative Income */}
         <Box
           sx={{
             p: 2,
@@ -382,16 +391,19 @@ export const Reservation: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3b82f6' }} />
             <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
-              Wallet Balance
+              Cumulative Income
             </Typography>
           </Box>
-          <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
+          <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em', mb: 0.3 }}>
             <span style={{ color: '#3b82f6', marginRight: 4, fontWeight: 700 }}>₮</span>
-            {wallet.availableBalance.toFixed(2)}
+            {cumulativeIncome.toFixed(2)}
+          </Typography>
+          <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.7rem', display: 'block' }}>
+            Total Earned All-Time
           </Typography>
         </Box>
 
-        {/* Card 5: Reservable Balance */}
+        {/* Card 5: Expected Daily Yield */}
         <Box
           sx={{
             p: 2,
@@ -418,12 +430,14 @@ export const Reservation: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#f59e0b' }} />
             <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>
-              Reservable Balance
+              Daily Rate Yield
             </Typography>
           </Box>
-          <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
-            <span style={{ color: '#f59e0b', marginRight: 4, fontWeight: 700 }}>₮</span>
-            {reservableBalance.toFixed(2)}
+          <Typography variant="h6" sx={{ fontWeight: 900, color: '#fbbf24', letterSpacing: '-0.02em', mb: 0.3 }}>
+            {rateRange.label}
+          </Typography>
+          <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.7rem', display: 'block' }}>
+            Level {userLevel} Daily Profit
           </Typography>
         </Box>
 
@@ -457,9 +471,12 @@ export const Reservation: React.FC = () => {
               Reservation Range
             </Typography>
           </Box>
-          <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
+          <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em', mb: 0.3 }}>
             <span style={{ color: '#ec4899', marginRight: 4, fontWeight: 700 }}>₮</span>
             {rangeLimits.label}
+          </Typography>
+          <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.7rem', display: 'block' }}>
+            Level {userLevel} Allowed Range
           </Typography>
         </Box>
       </Box>
@@ -581,26 +598,26 @@ export const Reservation: React.FC = () => {
                 RESERVATION RANGE
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.01em' }}>
-                <span style={{ color: '#06b6d4', marginRight: 3 }}>₮</span>
+                <span style={{ color: '#ec4899', marginRight: 3 }}>₮</span>
                 {rangeLimits.label}
               </Typography>
             </Box>
 
             <Box>
               <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 800, letterSpacing: '0.04em', display: 'block', mb: 0.5 }}>
-                RESERVABLE BALANCE
+                RESERVATION BALANCE (MAIN)
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.01em' }}>
-                <span style={{ color: '#06b6d4', marginRight: 3 }}>₮</span>
+              <Typography variant="h6" sx={{ fontWeight: 900, color: '#34d399', letterSpacing: '-0.01em' }}>
+                <span style={{ color: '#34d399', marginRight: 3 }}>₮</span>
                 {reservableBalance.toFixed(2)}
               </Typography>
             </Box>
 
             <Box>
               <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 800, letterSpacing: '0.04em', display: 'block', mb: 0.5 }}>
-                EXPECTED INCOME
+                TODAY'S ESTIMATED PROFIT
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.01em' }}>
+              <Typography variant="h6" sx={{ fontWeight: 900, color: '#06b6d4', letterSpacing: '-0.01em' }}>
                 <span style={{ color: '#06b6d4', marginRight: 3 }}>₮</span>
                 {expectedMinIncome.toFixed(2)} ~ {expectedMaxIncome.toFixed(2)}
               </Typography>
@@ -608,7 +625,7 @@ export const Reservation: React.FC = () => {
 
             <Box>
               <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 800, letterSpacing: '0.04em', display: 'block', mb: 0.5 }}>
-                DAILY RATE
+                DAILY RATE YIELD
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 900, color: '#10b981', letterSpacing: '-0.01em' }}>
                 {rateRange.label}
