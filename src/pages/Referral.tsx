@@ -38,11 +38,9 @@ import {
   CloseIcon,
   CheckCircleIcon,
   PendingActionsIcon,
-  ArrowUpwardIcon,
   AccountTreeIcon,
   EmojiEventsIcon,
   ReceiptLongIcon,
-  ShieldOutlinedIcon,
   AutoAwesomeIcon
 } from '../components/common/Icons';
 
@@ -52,12 +50,6 @@ export const Referral: React.FC = () => {
 
   // QR & Share Dialog state
   const [qrOpen, setQrOpen] = useState<boolean>(false);
-
-  // Withdrawal form state
-  const [withdrawAmount, setWithdrawAmount] = useState<string>('');
-  const [walletAddress, setWalletAddress] = useState<string>('');
-  const [network, setNetwork] = useState<'TRC20' | 'BEP20' | 'ERC20'>('TRC20');
-  const [isSubmittingWithdrawal, setIsSubmittingWithdrawal] = useState<boolean>(false);
 
   // Filters for downline list
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
@@ -77,11 +69,6 @@ export const Referral: React.FC = () => {
 
   const rewardTiers = useMemo(() => referralService.getRewardTiers(), []);
   const leaderboard = useMemo(() => referralService.getLeaderboard(), [tick]);
-  const withdrawalHistory = useMemo(
-    () => referralService.getWithdrawals(user?.id),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user?.id, tick]
-  );
   const adminConfig = useMemo(() => referralService.getAdminConfig(), [tick]);
 
   const handleCopy = (text: string, label: string) => {
@@ -115,48 +102,6 @@ export const Referral: React.FC = () => {
         break;
     }
     if (url) window.open(url, '_blank');
-  };
-
-  // Submit Crypto USDT Withdrawal
-  const handleWithdrawalSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const amt = parseFloat(withdrawAmount);
-    if (!user) return;
-
-    if (isNaN(amt) || amt < adminConfig.minWithdrawalUSDT) {
-      showSnackbar(`Minimum withdrawal is ${adminConfig.minWithdrawalUSDT} USDT.`, 'error');
-      return;
-    }
-
-    if (amt > summary.rewardBalanceUSDT) {
-      showSnackbar(`Insufficient reward balance. Available: ${summary.rewardBalanceUSDT.toFixed(2)} USDT.`, 'error');
-      return;
-    }
-
-    if (!walletAddress || walletAddress.trim().length < 12) {
-      showSnackbar('Please enter a valid destination USDT wallet address.', 'error');
-      return;
-    }
-
-    try {
-      setIsSubmittingWithdrawal(true);
-      await referralService.requestWithdrawal({
-        userId: user.id,
-        userName: user.username,
-        userEmail: user.email,
-        amountUSDT: amt,
-        walletAddress: walletAddress.trim(),
-        network
-      });
-      showSnackbar(`Withdrawal request for ${amt} USDT submitted! Processing to ${network} address.`, 'success');
-      setWithdrawAmount('');
-      setWalletAddress('');
-      refreshData();
-    } catch (err: any) {
-      showSnackbar(err.message || 'Failed to submit withdrawal request.', 'error');
-    } finally {
-      setIsSubmittingWithdrawal(false);
-    }
   };
 
   // Filtered Downlines
@@ -301,7 +246,6 @@ export const Referral: React.FC = () => {
           <Tab icon={<ShareOutlinedIcon />} iconPosition="start" label="Invite & Share" />
           <Tab icon={<MilitaryTechIcon />} iconPosition="start" label="Tier Progression" />
           <Tab icon={<AccountTreeIcon />} iconPosition="start" label={`My Downline (${summary.totalMembersCount})`} />
-          <Tab icon={<ArrowUpwardIcon />} iconPosition="start" label="Withdraw USDT" />
           <Tab icon={<EmojiEventsIcon />} iconPosition="start" label="Leaderboard" />
           <Tab icon={<ReceiptLongIcon />} iconPosition="start" label="Commission Ledger" />
         </Tabs>
@@ -864,182 +808,8 @@ export const Referral: React.FC = () => {
         </Card>
       )}
 
-      {/* ─── TAB 3: WITHDRAW USDT TO CRYPTO ADDRESS ─────────────── */}
+      {/* ─── TAB 3: LEADERBOARD ─────────────────────────────────── */}
       {activeTab === 3 && (
-        <Grid container spacing={3}>
-          {/* Withdrawal Form */}
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Card>
-              <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
-                <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
-                  Request USDT Crypto Withdrawal
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#9CA3AF', mb: 3 }}>
-                  Withdraw your referral reward balance directly to your personal crypto wallet address (TRC20, BEP20, ERC20).
-                </Typography>
-
-                <Box component="form" onSubmit={handleWithdrawalSubmit}>
-                  {/* Amount Field */}
-                  <Box sx={{ mb: 2.5 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#9CA3AF' }}>
-                        WITHDRAWAL AMOUNT (USDT)
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 700 }}>
-                        Available: {summary.rewardBalanceUSDT.toFixed(2)} USDT
-                      </Typography>
-                    </Box>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      placeholder="e.g. 50"
-                      value={withdrawAmount}
-                      onChange={e => setWithdrawAmount(e.target.value)}
-                      slotProps={{
-                        input: {
-                          endAdornment: (
-                            <Button
-                              size="small"
-                              onClick={() => setWithdrawAmount(summary.rewardBalanceUSDT.toString())}
-                              sx={{ fontWeight: 800, color: '#a78bfa' }}
-                            >
-                              MAX
-                            </Button>
-                          )
-                        }
-                      }}
-                    />
-                    <Typography variant="caption" sx={{ color: '#9CA3AF', mt: 0.5, display: 'block' }}>
-                      Minimum withdrawal threshold: <strong>{adminConfig.minWithdrawalUSDT} USDT</strong>
-                    </Typography>
-                  </Box>
-
-                  {/* Network Selection */}
-                  <Box sx={{ mb: 2.5 }}>
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#9CA3AF', display: 'block', mb: 0.5 }}>
-                      DESTINATION NETWORK
-                    </Typography>
-                    <TextField
-                      select
-                      fullWidth
-                      value={network}
-                      onChange={e => setNetwork(e.target.value as any)}
-                    >
-                      <MenuItem value="TRC20">TRON Network (TRC20) — Recommended / Low Fee</MenuItem>
-                      <MenuItem value="BEP20">Binance Smart Chain (BEP20 / BSC)</MenuItem>
-                      <MenuItem value="ERC20">Ethereum Network (ERC20)</MenuItem>
-                    </TextField>
-                  </Box>
-
-                  {/* Wallet Address */}
-                  <Box sx={{ mb: 3 }}>
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#9CA3AF', display: 'block', mb: 0.5 }}>
-                      YOUR {network} WALLET ADDRESS
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      placeholder={`Enter your ${network} USDT wallet address`}
-                      value={walletAddress}
-                      onChange={e => setWalletAddress(e.target.value)}
-                    />
-                  </Box>
-
-                  <Button
-                    fullWidth
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                    disabled={isSubmittingWithdrawal || summary.rewardBalanceUSDT < adminConfig.minWithdrawalUSDT}
-                    sx={{
-                      py: 1.5,
-                      fontWeight: 800,
-                      background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
-                      fontSize: '1rem'
-                    }}
-                  >
-                    {isSubmittingWithdrawal ? 'Submitting Request...' : `Withdraw to ${network} Address`}
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Withdrawal History & Guidelines */}
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {/* Guidelines Box */}
-              <Paper sx={{ p: 2.5, bgcolor: '#111522', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 3 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <ShieldOutlinedIcon style={{ color: '#34d399' }} /> Payout & Security Rules
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 1 }}>
-                  • Payouts are executed via automated smart ledger contracts in <strong>3–12 hours</strong>.
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 1 }}>
-                  • Verify your USDT address matches the selected network ({network}).
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }}>
-                  • No network deduction fees for TRC20 and BEP20 transfers.
-                </Typography>
-              </Paper>
-
-              {/* Past Withdrawal Requests */}
-              <Card>
-                <CardContent sx={{ p: 2.5 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2 }}>
-                    Recent Referral Payout Requests
-                  </Typography>
-
-                  {withdrawalHistory.length === 0 ? (
-                    <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-                      No withdrawal requests yet.
-                    </Typography>
-                  ) : (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                      {withdrawalHistory.map(w => (
-                        <Paper
-                          key={w.id}
-                          sx={{
-                            p: 1.5,
-                            bgcolor: 'rgba(0,0,0,0.4)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            borderRadius: 2,
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
-                          }}
-                        >
-                          <Box>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                              {w.amountUSDT} USDT ({w.network})
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: '#9CA3AF', fontFamily: 'monospace' }}>
-                              To: {w.walletAddress.substring(0, 10)}...{w.walletAddress.substring(w.walletAddress.length - 6)}
-                            </Typography>
-                          </Box>
-                          <Chip
-                            label={w.status}
-                            size="small"
-                            sx={{
-                              fontWeight: 800,
-                              fontSize: '0.7rem',
-                              bgcolor: w.status === 'APPROVED' ? 'rgba(16, 185, 129, 0.2)' : w.status === 'REJECTED' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                              color: w.status === 'APPROVED' ? '#34d399' : w.status === 'REJECTED' ? '#f87171' : '#fbbf24'
-                            }}
-                          />
-                        </Paper>
-                      ))}
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-            </Box>
-          </Grid>
-        </Grid>
-      )}
-
-      {/* ─── TAB 4: LEADERBOARD ─────────────────────────────────── */}
-      {activeTab === 4 && (
         <Card>
           <CardContent sx={{ p: { xs: 2, md: 3.5 } }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -1134,8 +904,8 @@ export const Referral: React.FC = () => {
         </Card>
       )}
 
-      {/* ─── TAB 5: COMMISSION LEDGER ───────────────────────────── */}
-      {activeTab === 5 && (
+      {/* ─── TAB 4: COMMISSION LEDGER ───────────────────────────── */}
+      {activeTab === 4 && (
         <Card>
           <CardContent sx={{ p: { xs: 2, md: 3 } }}>
             <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
