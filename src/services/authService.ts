@@ -397,42 +397,97 @@ export const authService = {
   },
 
   async deleteUser(userId: string): Promise<boolean> {
-    const deletedIds = this.getDeletedUserIds();
-    deletedIds.add(userId);
-    this.saveDeletedUserIds(deletedIds);
+    if (!userId) return false;
 
-    if (isValidUuid(userId)) {
+    // 1. Resolve canonical Supabase UUID if non-UUID identifier or email/username was provided
+    let canonicalId = userId;
+    if (!isValidUuid(canonicalId)) {
       try {
-        const { data, error } = await supabase.rpc('admin_delete_user', {
-          p_user_id: userId
-        });
-
-        if (error || !data?.success) {
-          // Fallback explicit cascading deletes in order of foreign key dependency
-          await supabase.from('deposits').delete().eq('user_id', userId);
-          await supabase.from('withdrawals').delete().eq('user_id', userId);
-          await supabase.from('wallet_transactions').delete().eq('user_id', userId);
-          await supabase.from('wallets').delete().eq('user_id', userId);
-          await supabase.from('kyc_records').delete().eq('user_id', userId);
-          await supabase.from('reservations').delete().eq('user_id', userId);
-          await supabase.from('crypto_trades').delete().eq('user_id', userId);
-          await supabase.from('profiles').delete().eq('id', userId);
+        const { data: matched } = await supabase
+          .from('profiles')
+          .select('id')
+          .or(`email.eq.${userId},username.eq.${userId}`)
+          .maybeSingle();
+        if (matched?.id) {
+          canonicalId = matched.id;
         }
       } catch (err) {
-        console.error('[Delete User Supabase Error]', err);
+        console.warn('Could not resolve canonical UUID for deletion:', err);
       }
     }
 
+    // 2. Add to deleted IDs set immediately to block in-flight renders and syncs
+    const deletedIds = this.getDeletedUserIds();
+    deletedIds.add(userId);
+    if (canonicalId && canonicalId !== userId) {
+      deletedIds.add(canonicalId);
+    }
+    this.saveDeletedUserIds(deletedIds);
+
+    // 3. Call PostgreSQL SECURITY DEFINER RPC functions
+    try {
+      if (isValidUuid(canonicalId)) {
+        await supabase.rpc('admin_delete_user', { p_user_id: canonicalId });
+      }
+      await supabase.rpc('admin_delete_user_by_identifier', { p_identifier: userId });
+    } catch (err) {
+      console.warn('[RPC Delete User Note]:', err);
+    }
+
+    // 4. Guaranteed Direct Cascading Deletes in Supabase Database
+    try {
+      const idsToDelete = Array.from(new Set([userId, canonicalId].filter(Boolean)));
+
+      for (const id of idsToDelete) {
+        await supabase.from('wallet_transactions').delete().eq('user_id', id);
+        await supabase.from('deposits').delete().eq('user_id', id);
+        await supabase.from('withdrawals').delete().eq('user_id', id);
+        await supabase.from('kyc_records').delete().eq('user_id', id);
+        await supabase.from('reservations').delete().eq('user_id', id);
+        await supabase.from('crypto_trades').delete().eq('user_id', id);
+        await supabase.from('wallets').delete().eq('user_id', id);
+        
+        // Delete from profiles
+        await supabase.from('profiles').delete().eq('id', id);
+      }
+
+      // Also delete by email or username if matching
+      if (!isValidUuid(userId)) {
+        await supabase.from('profiles').delete().or(`email.eq.${userId},username.eq.${userId}`);
+      }
+    } catch (err) {
+      console.error('[Direct DB Delete Error]:', err);
+    }
+
+    // 5. Clean up all localStorage artifacts for this user
     const all = this.getAllUsers();
-    const filtered = all.filter(u => u.id !== userId);
+    const filtered = all.filter(u => u.id !== userId && u.id !== canonicalId);
     this.saveAllUsers(filtered);
 
     localStorage.removeItem(`ivestbot_wallet_${userId}`);
+    localStorage.removeItem(`ivestbot_wallet_${canonicalId}`);
     localStorage.removeItem(`ivestbot_ref_balance_${userId}`);
+    localStorage.removeItem(`ivestbot_ref_balance_${canonicalId}`);
+    localStorage.removeItem(`ivestbot_transactions_${userId}`);
+    localStorage.removeItem(`ivestbot_transactions_${canonicalId}`);
+    localStorage.removeItem(`ivestbot_deposits_${userId}`);
+    localStorage.removeItem(`ivestbot_deposits_${canonicalId}`);
+    localStorage.removeItem(`ivestbot_withdrawals_${userId}`);
+    localStorage.removeItem(`ivestbot_withdrawals_${canonicalId}`);
+    localStorage.removeItem(`ivestbot_kyc_${userId}`);
+    localStorage.removeItem(`ivestbot_kyc_${canonicalId}`);
 
+    // 6. If currently logged-in user is the deleted user, log out immediately
     const current = this.getCurrentUser();
-    if (current && current.id === userId) {
+    if (current && (current.id === userId || current.id === canonicalId)) {
       this.logout();
+    }
+
+    // 7. Dispatch instant event across all windows / components
+    try {
+      window.dispatchEvent(new CustomEvent('ivestbot_user_deleted', { detail: { userId, canonicalId } }));
+    } catch {
+      // ignore
     }
 
     return true;

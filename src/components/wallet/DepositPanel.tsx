@@ -111,18 +111,18 @@ export const DepositPanel: React.FC = () => {
           </Box>
           <Box>
             <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-              Deposit Milestone Bonus Event (50 USDT – 1,000 USDT)
+              Deposit Milestone Referral Reward (50 USDT – 1,000 USDT)
             </Typography>
             <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-              Every 50 USDT deposited awards <strong>+1 USDT</strong> Welcome Bonus to you & <strong>+5 USDT</strong> to your sponsor!
+              Every 50 USDT deposited awards <strong>+5 USDT</strong> direct referral reward credited to your sponsor's active balance!
             </Typography>
           </Box>
         </Box>
 
-        {numAmount >= 50 && (
+        {numAmount >= 50 && estimatedSponsorBonus > 0 && (
           <Chip
-            label={`Earn +${estimatedUserBonus} USDT Bonus on this deposit!`}
-            color="success"
+            label={`Sponsor Referral Reward: +${estimatedSponsorBonus} USDT`}
+            color="primary"
             sx={{ fontWeight: 800, flexShrink: 0 }}
           />
         )}

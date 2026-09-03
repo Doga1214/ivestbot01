@@ -215,7 +215,7 @@ export const referralService = {
 
   // ─── MAIN REFERRAL SUMMARY & RECORDS ──────────────────────────────
   getReferralSummary(referralCode: string = 'IVEST100'): ReferralSummary {
-    const origin = typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'http://localhost:5173';
+    const origin = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : 'http://localhost:5173';
     const allUsers = authService.getAllUsers();
     const allTransactions = walletService.getTransactions();
     
@@ -825,7 +825,7 @@ export const referralService = {
     const units = Math.floor(Math.min(depositAmount, WALLET_CONFIG.depositBonusRatio.maxDeposit) / WALLET_CONFIG.depositBonusRatio.unitDeposit);
     return {
       sponsorBonus: units * WALLET_CONFIG.depositBonusRatio.sponsorBonusPerUnit,
-      newUserBonus: units * WALLET_CONFIG.depositBonusRatio.newUserBonusPerUnit
+      newUserBonus: 0
     };
   }
 };

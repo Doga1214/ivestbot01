@@ -118,10 +118,10 @@ export const ReservationCard: React.FC = () => {
           </Typography>
           <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
             <Typography variant="caption" sx={{ color: '#c4b5fd', fontWeight: 700, display: 'block' }}>
-              🎁 Milestone Bonus Active:
+              🎁 Milestone Referral Rewards Active:
             </Typography>
             <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-              Deposits from 50 USDT to 1,000 USDT receive instant milestone welcome credits!
+              Deposits from 50 USDT to 1,000 USDT award instant direct referral rewards to your sponsor's active balance!
             </Typography>
           </Box>
         </DialogContent>
@@ -233,7 +233,7 @@ export const ReservationCard: React.FC = () => {
               </Typography>
 
               <Grid container spacing={2}>
-                <Grid size={{ xs: 6, sm: 3 }}>
+                <Grid item xs={6} sm={3}>
                   <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.3)' }}>
                     <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Active Mining Duration</Typography>
                     <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#a78bfa' }}>
@@ -241,7 +241,7 @@ export const ReservationCard: React.FC = () => {
                     </Typography>
                   </Box>
                 </Grid>
-                <Grid size={{ xs: 6, sm: 3 }}>
+                <Grid item xs={6} sm={3}>
                   <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.3)' }}>
                     <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Calculated Yield Rate</Typography>
                     <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#60a5fa' }}>
@@ -249,7 +249,7 @@ export const ReservationCard: React.FC = () => {
                     </Typography>
                   </Box>
                 </Grid>
-                <Grid size={{ xs: 6, sm: 3 }}>
+                <Grid item xs={6} sm={3}>
                   <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.3)' }}>
                     <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Assigned Principal</Typography>
                     <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#ffffff' }}>
@@ -257,7 +257,7 @@ export const ReservationCard: React.FC = () => {
                     </Typography>
                   </Box>
                 </Grid>
-                <Grid size={{ xs: 6, sm: 3 }}>
+                <Grid item xs={6} sm={3}>
                   <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                     <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 700 }}>Harvest Profit</Typography>
                     <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#34d399' }}>
@@ -301,7 +301,7 @@ export const ReservationCard: React.FC = () => {
 
           <Grid container spacing={4}>
             {/* Left Action Column */}
-            <Grid size={{ xs: 12, md: 7 }}>
+            <Grid item xs={12} md={7}>
               <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.06)', mb: 3 }}>
                 <Typography variant="subtitle2" sx={{ color: '#a78bfa', fontWeight: 700, mb: 1 }}>
                   Strict 24-Hour Settlement Rule
@@ -378,7 +378,7 @@ export const ReservationCard: React.FC = () => {
             </Grid>
 
             {/* Right Summary Column */}
-            <Grid size={{ xs: 12, md: 5 }}>
+            <Grid item xs={12} md={5}>
               <Paper
                 sx={{
                   p: 3,

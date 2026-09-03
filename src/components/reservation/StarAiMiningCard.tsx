@@ -140,10 +140,10 @@ export const StarAiMiningCard: React.FC = () => {
           </Typography>
           <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
             <Typography variant="caption" sx={{ color: '#c4b5fd', fontWeight: 700, display: 'block' }}>
-              🎁 Milestone Bonus Active:
+              🎁 Milestone Referral Rewards Active:
             </Typography>
             <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-              Deposits from 50 USDT to 1,000 USDT receive instant milestone welcome credits!
+              Deposits from 50 USDT to 1,000 USDT award instant direct referral rewards to your sponsor's active balance!
             </Typography>
           </Box>
         </DialogContent>
@@ -269,7 +269,7 @@ export const StarAiMiningCard: React.FC = () => {
           {/* STAR AI WORKING CORE ANIMATION & DASHBOARD */}
           <Grid container spacing={3} sx={{ alignItems: 'center', mb: 3 }}>
             {/* Left: Star AI Animated Core Visual */}
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid item xs={12} md={4}>
               <Paper
                 sx={{
                   p: 3,
@@ -356,7 +356,7 @@ export const StarAiMiningCard: React.FC = () => {
             </Grid>
 
             {/* Right: Live Ticking Stats & Countdown */}
-            <Grid size={{ xs: 12, md: 8 }}>
+            <Grid item xs={12} md={8}>
               <Paper
                 sx={{
                   p: 2.5,
@@ -367,7 +367,7 @@ export const StarAiMiningCard: React.FC = () => {
               >
                 <Grid container spacing={2}>
                   {/* Stat 1: Mining Balance */}
-                  <Grid size={{ xs: 6, sm: 6 }}>
+                  <Grid item xs={6} sm={6}>
                     <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                         <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
@@ -390,7 +390,7 @@ export const StarAiMiningCard: React.FC = () => {
                   </Grid>
 
                   {/* Stat 2: Live Mined Yield (Ticking Real-Time) */}
-                  <Grid size={{ xs: 6, sm: 6 }}>
+                  <Grid item xs={6} sm={6}>
                     <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
                       <Typography variant="caption" sx={{ color: '#34d399', display: 'block', fontWeight: 600 }}>
                         {isMining ? 'Live Mined Profit (Ticking)' : 'Prepared Mined Profit'}
@@ -406,7 +406,7 @@ export const StarAiMiningCard: React.FC = () => {
                   </Grid>
 
                   {/* Stat 3: 24H Countdown Remaining */}
-                  <Grid size={{ xs: 6, sm: 6 }}>
+                  <Grid item xs={6} sm={6}>
                     <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
                       <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }}>
                         {isLocked ? '🔒 Next Cycle Available In' : '⏳ 24H Cycle Countdown'}
@@ -418,7 +418,7 @@ export const StarAiMiningCard: React.FC = () => {
                   </Grid>
 
                   {/* Stat 4: Active Elapsed Duration */}
-                  <Grid size={{ xs: 6, sm: 6 }}>
+                  <Grid item xs={6} sm={6}>
                     <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
                       <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }}>
                         Active Elapsed Duration

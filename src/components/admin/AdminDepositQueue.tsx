@@ -171,7 +171,7 @@ export const AdminDepositQueue: React.FC<AdminDepositQueueProps> = ({
               <TableBody>
                 {deposits.map((tx) => {
                   const units = Math.floor(Math.min(tx.amount, WALLET_CONFIG.depositBonusRatio.maxDeposit) / WALLET_CONFIG.depositBonusRatio.unitDeposit);
-                  const bonus = units * WALLET_CONFIG.depositBonusRatio.newUserBonusPerUnit;
+                  const sponsorBonus = units * WALLET_CONFIG.depositBonusRatio.sponsorBonusPerUnit;
 
                   return (
                     <TableRow
@@ -204,10 +204,10 @@ export const AdminDepositQueue: React.FC<AdminDepositQueueProps> = ({
                       </TableCell>
 
                       <TableCell>
-                        {bonus > 0 ? (
+                        {sponsorBonus > 0 ? (
                           <Chip
-                            label={`+${bonus} USDT Bonus`}
-                            color="success"
+                            label={`+${sponsorBonus} USDT Sponsor Ref`}
+                            color="primary"
                             size="small"
                             sx={{ fontWeight: 800, fontSize: '0.7rem' }}
                           />

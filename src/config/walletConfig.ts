@@ -13,8 +13,8 @@ export const WALLET_CONFIG = {
   },
   depositBonusRatio: {
     unitDeposit: 50, // per 50 USDT deposited
-    sponsorBonusPerUnit: 5, // 5 USDT sponsor bonus per 50 USDT
-    newUserBonusPerUnit: 1, // 1 USDT new user welcome bonus per 50 USDT
+    sponsorBonusPerUnit: 5, // 5 USDT sponsor referral reward per 50 USDT
+    newUserBonusPerUnit: 0, // 0 USDT (No welcome bonus - only referral rewards)
     minDeposit: 50,
     maxDeposit: 1000
   },

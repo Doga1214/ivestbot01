@@ -123,29 +123,29 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ open: exte
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
             <CardGiftcardIcon sx={{ color: '#a78bfa' }} />
             <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#ffffff' }}>
-              🎁 Exclusive Deposit Referral Milestone Bonus
+              🎁 Exclusive Deposit Referral Milestone Rewards
             </Typography>
           </Box>
           <Typography variant="body2" sx={{ color: '#d1d5db', lineHeight: 1.6, mb: 1.5 }}>
-            Invite friends to join with your referral link! When they deposit between <strong>50 USDT</strong> and <strong>1,000 USDT</strong>, both of you earn instant bonuses:
+            Invite friends to join with your referral link! When they deposit between <strong>50 USDT</strong> and <strong>1,000 USDT</strong>, instant referral rewards are credited directly to your active Main Balance:
           </Typography>
 
           <Stack spacing={1} sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)', p: 1.5, borderRadius: 2 }}>
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' }, gap: 0.3 }}>
               <span style={{ color: '#9CA3AF' }}>50 USDT Deposit:</span>
-              <strong style={{ color: '#34d399' }}>Sponsor: +5 USDT &nbsp;|&nbsp; User: +1 USDT</strong>
+              <strong style={{ color: '#34d399' }}>Sponsor Referral Reward: +5 USDT</strong>
             </Box>
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' }, gap: 0.3 }}>
               <span style={{ color: '#9CA3AF' }}>100 USDT Deposit:</span>
-              <strong style={{ color: '#34d399' }}>Sponsor: +10 USDT &nbsp;|&nbsp; User: +2 USDT</strong>
+              <strong style={{ color: '#34d399' }}>Sponsor Referral Reward: +10 USDT</strong>
             </Box>
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' }, gap: 0.3 }}>
               <span style={{ color: '#9CA3AF' }}>500 USDT Deposit:</span>
-              <strong style={{ color: '#34d399' }}>Sponsor: +50 USDT &nbsp;|&nbsp; User: +10 USDT</strong>
+              <strong style={{ color: '#34d399' }}>Sponsor Referral Reward: +50 USDT</strong>
             </Box>
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' }, gap: 0.3 }}>
               <span style={{ color: '#9CA3AF' }}>1,000 USDT Deposit:</span>
-              <strong style={{ color: '#34d399' }}>Sponsor: +100 USDT &nbsp;|&nbsp; User: +20 USDT</strong>
+              <strong style={{ color: '#34d399' }}>Sponsor Referral Reward: +100 USDT</strong>
             </Box>
           </Stack>
         </Paper>
@@ -217,7 +217,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ open: exte
           onClick={handleClose}
           sx={{ py: 1.2, fontWeight: 800, fontSize: '1rem' }}
         >
-          Welcome
+          Got It, Let's Go!
         </Button>
       </DialogActions>
     </Dialog>

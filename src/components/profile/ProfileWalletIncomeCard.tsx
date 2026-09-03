@@ -26,7 +26,7 @@ export const ProfileWalletIncomeCard: React.FC = () => {
 
   const teamTotal = referralSummary?.totalEarnings || 0.0;
   const activityTotal = transactions
-    .filter(t => t.type === 'WELCOME_BONUS' || t.type === 'ADMIN_CREDIT')
+    .filter(t => t.type === 'ADMIN_CREDIT')
     .reduce((sum, t) => sum + t.amount, 0);
   const stakeTotal = 0.0;
   const premiumTotal = 0.0;

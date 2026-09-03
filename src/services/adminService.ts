@@ -95,7 +95,7 @@ export const adminService = {
       const deleted = authService.getDeletedUserIds();
 
       if (profiles && !pErr) {
-        const cleanProfiles = profiles.filter(p => !deleted.has(p.id));
+        const cleanProfiles = profiles.filter(p => !deleted.has(p.id) && !deleted.has(p.email) && !deleted.has(p.username));
         const walletMap = new Map((wallets || []).map(w => [w.user_id, w]));
         const depList = deposits || [];
         const txList = txs || [];

@@ -3,6 +3,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogContentText,
   DialogActions,
   Typography,
   Box,
@@ -38,7 +39,8 @@ import {
   LockClockIcon,
   AddCircleOutlineIcon,
   RemoveCircleOutlineIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  DeleteOutlineIcon
 } from '../common/Icons';
 import { adminService, type UserDetailed360 } from '../../services/adminService';
 import type { WalletStatus, WalletRestrictions } from '../../services/walletService';
@@ -82,6 +84,10 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
   const [canReserve, setCanReserve] = useState(true);
   const [canTrade, setCanTrade] = useState(true);
   const [restrictionReason, setRestrictionReason] = useState('');
+
+  // Delete User State
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
 
   const loadData = async () => {
     if (!userId) return;
@@ -187,6 +193,22 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
     adminService.impersonateUser(data.profile.id);
     showSnackbar(`Switched active user to ${data.profile.name} (@${data.profile.username})!`, 'info');
     onClose();
+  };
+
+  const handlePermanentDelete = async () => {
+    if (!data) return;
+    setIsDeletingUser(true);
+    try {
+      await adminService.deleteUser(data.profile.id);
+      showSnackbar(`User ${data.profile.name} permanently wiped from database and all systems.`, 'info');
+      setIsConfirmDeleteOpen(false);
+      onClose();
+      onRefresh();
+    } catch (err) {
+      showSnackbar('Error deleting user: ' + String(err), 'error');
+    } finally {
+      setIsDeletingUser(false);
+    }
   };
 
   return (
@@ -402,9 +424,28 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
                 </Paper>
               </Grid>
 
-              <Grid size={{ xs: 12 }}>
+              <Grid size={{ xs: 12 }} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, pt: 1 }}>
                 <Button type="submit" variant="contained" color="primary" startIcon={<CheckCircleIcon />} sx={{ fontWeight: 800 }}>
                   Save Profile Changes
+                </Button>
+
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteOutlineIcon />}
+                  onClick={() => setIsConfirmDeleteOpen(true)}
+                  sx={{
+                    fontWeight: 700,
+                    textTransform: 'none',
+                    borderColor: 'rgba(239, 68, 68, 0.4)',
+                    color: '#f87171',
+                    '&:hover': {
+                      borderColor: '#ef4444',
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)'
+                    }
+                  }}
+                >
+                  Permanently Delete User Account
                 </Button>
               </Grid>
             </Grid>
@@ -661,6 +702,55 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
       </DialogActions>
       </>
       )}
+
+      {/* Delete User Confirmation Dialog */}
+      <Dialog
+        open={isConfirmDeleteOpen}
+        onClose={() => !isDeletingUser && setIsConfirmDeleteOpen(false)}
+        slotProps={{
+          paper: {
+            sx: {
+              backgroundColor: '#111528',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              borderRadius: 3,
+              p: 1
+            }
+          }
+        }}
+      >
+        <DialogTitle sx={{ color: '#ef4444', fontWeight: 800 }}>
+          Permanently Delete User Account?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: '#9CA3AF' }}>
+            Are you sure you want to permanently delete user{' '}
+            <strong style={{ color: '#fff' }}>{data?.profile.name}</strong> (@{data?.profile.username})?
+            <br /><br />
+            This will completely and permanently purge all database records across Supabase:
+            wallet balance (<strong>{data?.wallet.availableBalance.toFixed(2)} USDT</strong>), transactions, deposits, withdrawals, KYC documents, reservations, and database profile.
+            <br /><br />
+            <span style={{ color: '#f87171', fontWeight: 700 }}>⚠️ This user will NOT appear in Inactive or anywhere else. This action cannot be undone.</span>
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setIsConfirmDeleteOpen(false)}
+            disabled={isDeletingUser}
+            sx={{ color: '#9CA3AF', fontWeight: 700 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={isDeletingUser}
+            onClick={handlePermanentDelete}
+            sx={{ fontWeight: 800 }}
+          >
+            {isDeletingUser ? <CircularProgress size={20} color="inherit" /> : 'Yes, Delete Permanently'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 };
