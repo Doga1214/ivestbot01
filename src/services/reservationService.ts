@@ -1,5 +1,6 @@
 import { WALLET_CONFIG } from '../config/walletConfig';
 import { walletService } from './walletService';
+import { authService } from './authService';
 
 export interface ReservationRecord {
   id: string;
@@ -228,7 +229,7 @@ export const reservationService = {
   /**
    * 4. Finalize Settlement after 20s & enforce strict 24-hour lock countdown.
    */
-  finalizeSettlement(record: ReservationRecord): {
+  finalizeSettlement(record: ReservationRecord, userId?: string): {
     updatedWallet: ReturnType<typeof walletService.getWallet>;
     completedRecord: ReservationRecord;
   } {
@@ -239,25 +240,34 @@ export const reservationService = {
     };
 
     // Credit calculated profit to wallet
-    const wallet = walletService.getWallet();
+    const targetUserId = userId || authService.getCurrentUser()?.id;
+    const wallet = targetUserId ? walletService.getWalletForUser(targetUserId) : walletService.getWallet();
     const updatedWallet = {
       ...wallet,
       totalBalance: Number((wallet.totalBalance + completedRecord.profit).toFixed(4)),
       availableBalance: Number((wallet.availableBalance + completedRecord.profit).toFixed(4))
     };
+
+    if (targetUserId) {
+      walletService.saveWalletForUser(targetUserId, updatedWallet);
+    }
     walletService.saveWallet(updatedWallet);
 
+    const currentUser = authService.getCurrentUser();
     const durationText = completedRecord.isFullCycle
       ? '24h Full Cycle'
       : `${Math.floor(completedRecord.activeDurationSeconds / 3600)}h ${Math.floor((completedRecord.activeDurationSeconds % 3600) / 60)}m Active Duration`;
 
     // Log to immutable transaction ledger
     walletService.addTransaction({
+      userId: targetUserId,
+      userName: currentUser?.name || currentUser?.username,
+      userEmail: currentUser?.email,
       type: 'DAILY_PROFIT',
       amount: completedRecord.profit,
       currency: 'USDT',
       status: 'COMPLETED',
-      description: `Reservation & AI Mining Settlement (${completedRecord.effectiveRate}% for ${durationText})`,
+      description: `Reservation Settlement (${completedRecord.effectiveRate}% on ${completedRecord.amount.toFixed(2)} USDT for ${durationText})`,
       referenceId: completedRecord.referenceId
     });
 

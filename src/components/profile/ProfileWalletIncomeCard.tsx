@@ -33,7 +33,14 @@ export const ProfileWalletIncomeCard: React.FC = () => {
   const referralTotal = referralSummary?.rewardBalanceUSDT || 0.0;
 
   // Daily incomes
-  const dailyReserve = currentBalance > 0 ? Number((currentBalance * 0.028571).toFixed(2)) : 0.0;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayReserveEarned = transactions
+    .filter(t => (t.type === 'DAILY_PROFIT' || t.type === 'RESERVATION') && t.createdAt?.startsWith(todayStr))
+    .reduce((sum, t) => sum + (t.type === 'DAILY_PROFIT' ? t.amount : 0), 0);
+
+  const dailyReserve = todayReserveEarned > 0
+    ? Number(todayReserveEarned.toFixed(2))
+    : (currentBalance > 0 ? Number((currentBalance * 0.028571).toFixed(2)) : 0.0);
   const dailyTeam = referralSummary?.todayEarnings || 0.0;
   const dailyActivity = 0.0;
   const dailyStake = 0.0;

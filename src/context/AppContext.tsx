@@ -477,7 +477,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsProcessing(false);
 
         // Finalize settlement and lock strictly for 24 hours
-        const { updatedWallet, completedRecord } = reservationService.finalizeSettlement(record);
+        const { updatedWallet, completedRecord } = reservationService.finalizeSettlement(record, user?.id);
         setWallet(updatedWallet);
         setReservationState(reservationService.getReservationState());
         setReservationHistory(reservationService.getHistory());
