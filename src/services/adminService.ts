@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { authService, type UserProfile } from './authService';
+import { authService, isValidUuid, type UserProfile } from './authService';
 import { walletService, type WalletState, type WalletTransaction, type WalletStatus, type WalletRestrictions, type KycSubmission, type TransactionType, type TransactionStatus } from './walletService';
 import { reservationService } from './reservationService';
 import { referralService, type ReferralSummary } from './referralService';
@@ -10,6 +10,7 @@ export interface AdminUserListItem {
   pendingDepositsCount: number;
   pendingDepositsSum: number;
   totalTransactionsCount: number;
+  kycSubmission?: KycSubmission;
 }
 
 export interface UserDetailed360 {
@@ -91,12 +92,14 @@ export const adminService = {
       const { data: wallets } = await supabase.from('wallets').select('*');
       const { data: deposits } = await supabase.from('deposits').select('*').eq('status', 'PENDING');
       const { data: txs } = await supabase.from('wallet_transactions').select('id, user_id');
+      const { data: kycRecords } = await supabase.from('kyc_records').select('*');
 
       const deleted = authService.getDeletedUserIds();
 
       if (profiles && !pErr) {
         const cleanProfiles = profiles.filter(p => !deleted.has(p.id) && !deleted.has(p.email) && !deleted.has(p.username));
         const walletMap = new Map((wallets || []).map(w => [w.user_id, w]));
+        const kycMap = new Map((kycRecords || []).map(k => [k.user_id, k]));
         const depList = deposits || [];
         const txList = txs || [];
 
@@ -105,6 +108,7 @@ export const adminService = {
           const userDeps = depList.filter(d => d.user_id === p.id);
           const depSum = userDeps.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
           const userTxCount = txList.filter(t => t.user_id === p.id).length;
+          const kycRec = kycMap.get(p.id);
 
           const walletState: WalletState = {
             totalBalance: parseFloat(w?.total_balance) || 0,
@@ -129,12 +133,25 @@ export const adminService = {
             createdAt: p.created_at || new Date().toISOString()
           };
 
+          const kycSubmission: KycSubmission | undefined = kycRec ? {
+            userId: kycRec.user_id,
+            fullName: kycRec.full_name || p.name,
+            documentType: kycRec.document_type || 'PASSPORT',
+            documentNumber: kycRec.document_number || '',
+            documentFileName: kycRec.document_url || 'id_document.pdf',
+            status: (kycRec.status as any) || p.kyc_status || 'PENDING',
+            submittedAt: kycRec.created_at || p.created_at,
+            reviewedAt: kycRec.updated_at,
+            adminNotes: kycRec.rejection_reason || undefined
+          } : (p.kyc_status && p.kyc_status !== 'NOT_SUBMITTED' ? walletService.getKycStatus(p.id) : undefined);
+
           return {
             profile: userProfile,
             wallet: walletState,
             pendingDepositsCount: userDeps.length,
             pendingDepositsSum: Number(depSum.toFixed(4)),
-            totalTransactionsCount: userTxCount
+            totalTransactionsCount: userTxCount,
+            kycSubmission
           };
         });
       }
@@ -145,12 +162,14 @@ export const adminService = {
     const users = authService.getAllUsers();
     return users.map(user => {
       const wallet = walletService.getWalletForUser(user.id);
+      const kyc = walletService.getKycStatus(user.id);
       return {
         profile: user,
         wallet,
         pendingDepositsCount: 0,
         pendingDepositsSum: 0,
-        totalTransactionsCount: 0
+        totalTransactionsCount: 0,
+        kycSubmission: kyc.status !== 'NOT_SUBMITTED' ? kyc : undefined
       };
     });
   },
@@ -406,9 +425,42 @@ export const adminService = {
     return walletService.updateWalletRestrictions(status, restrictions, reason);
   },
 
-  verifyKyc(userId: string, status: 'VERIFIED' | 'REJECTED', notes?: string): KycSubmission {
+  async verifyKyc(userId: string, status: 'VERIFIED' | 'REJECTED', notes?: string): Promise<KycSubmission> {
+    const now = new Date().toISOString();
+    const reason = notes || (status === 'VERIFIED' ? 'Approved by Compliance Officer' : 'ID rejected');
+
+    // 1. Update Supabase kyc_records and profiles
+    if (userId && isValidUuid(userId)) {
+      try {
+        await supabase.from('kyc_records').upsert({
+          user_id: userId,
+          status,
+          rejection_reason: reason,
+          updated_at: now
+        }, { onConflict: 'user_id' });
+
+        await supabase.from('profiles').update({
+          kyc_status: status,
+          updated_at: now
+        }).eq('id', userId);
+      } catch (err) {
+        console.warn('Error updating Supabase KYC status:', err);
+      }
+    }
+
+    // 2. Update local state
     authService.adminUpdateUser(userId, { kycStatus: status });
-    return walletService.adminVerifyKyc(status, notes);
+    const updated = walletService.adminVerifyKyc(status, reason, userId);
+
+    // 3. Dispatch global browser events
+    try {
+      window.dispatchEvent(new CustomEvent('ivestbot_kyc_updated', { detail: { userId, status, notes: reason } }));
+      window.dispatchEvent(new Event('storage'));
+    } catch {
+      // ignore
+    }
+
+    return updated;
   },
 
   /**

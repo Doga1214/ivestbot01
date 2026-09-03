@@ -979,8 +979,15 @@ export const walletService = {
     return updated;
   },
 
-  getKycStatus(): KycSubmission {
+  getKycStatus(userId?: string): KycSubmission {
     try {
+      const activeId = userId || authService.getCurrentUser()?.id;
+      if (activeId) {
+        const userSpecific = localStorage.getItem(`ivestbot_kyc_${activeId}`);
+        if (userSpecific) {
+          return JSON.parse(userSpecific);
+        }
+      }
       const stored = localStorage.getItem(KYC_STORAGE_KEY);
       if (stored) {
         return JSON.parse(stored);
@@ -996,33 +1003,118 @@ export const walletService = {
     };
   },
 
-  submitKyc(data: { fullName: string; documentType: string; documentNumber: string; documentFileName?: string }, userMeta?: { id?: string }): Promise<KycSubmission> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
+  async syncKycFromSupabase(userId?: string): Promise<KycSubmission | null> {
+    const targetId = userId || authService.getCurrentUser()?.id;
+    if (!targetId || !isValidUuid(targetId)) {
+      return this.getKycStatus(targetId);
+    }
+    try {
+      const { data: record } = await supabase
+        .from('kyc_records')
+        .select('*')
+        .eq('user_id', targetId)
+        .maybeSingle();
+
+      if (record) {
         const kyc: KycSubmission = {
-          userId: userMeta?.id,
-          fullName: data.fullName,
-          documentType: data.documentType,
-          documentNumber: data.documentNumber,
-          documentFileName: data.documentFileName || 'id_document_scan.jpg',
-          status: 'PENDING',
-          submittedAt: new Date().toISOString()
+          userId: record.user_id,
+          fullName: record.full_name || '',
+          documentType: record.document_type || 'PASSPORT',
+          documentNumber: record.document_number || '',
+          documentFileName: record.document_url || 'id_document.pdf',
+          status: (record.status as any) || 'PENDING',
+          submittedAt: record.created_at,
+          reviewedAt: record.updated_at,
+          adminNotes: record.rejection_reason || undefined
         };
+        localStorage.setItem(`ivestbot_kyc_${targetId}`, JSON.stringify(kyc));
         localStorage.setItem(KYC_STORAGE_KEY, JSON.stringify(kyc));
-        resolve(kyc);
-      }, 400);
-    });
+        return kyc;
+      }
+    } catch (err) {
+      console.warn('Error syncing KYC from Supabase:', err);
+    }
+    return this.getKycStatus(targetId);
   },
 
-  adminVerifyKyc(status: 'VERIFIED' | 'REJECTED', notes?: string): KycSubmission {
-    const current = this.getKycStatus();
+  async submitKyc(
+    data: { fullName: string; documentType: string; documentNumber: string; documentFileName?: string },
+    userMeta?: { id?: string }
+  ): Promise<KycSubmission> {
+    const targetId = userMeta?.id || authService.getCurrentUser()?.id;
+    const now = new Date().toISOString();
+
+    const kyc: KycSubmission = {
+      userId: targetId,
+      fullName: data.fullName.trim(),
+      documentType: data.documentType,
+      documentNumber: data.documentNumber.trim(),
+      documentFileName: data.documentFileName || 'id_document_scan.jpg',
+      status: 'PENDING',
+      submittedAt: now
+    };
+
+    // 1. Store locally for instant UI response
+    if (targetId) {
+      localStorage.setItem(`ivestbot_kyc_${targetId}`, JSON.stringify(kyc));
+    }
+    localStorage.setItem(KYC_STORAGE_KEY, JSON.stringify(kyc));
+
+    // 2. Persist to Supabase Database with Realtime sync
+    if (targetId && isValidUuid(targetId)) {
+      try {
+        await supabase.from('kyc_records').upsert({
+          user_id: targetId,
+          full_name: kyc.fullName,
+          document_type: kyc.documentType,
+          document_number: kyc.documentNumber,
+          document_url: kyc.documentFileName,
+          status: 'PENDING',
+          updated_at: now
+        }, { onConflict: 'user_id' });
+
+        await supabase.from('profiles').update({
+          kyc_status: 'PENDING',
+          updated_at: now
+        }).eq('id', targetId);
+      } catch (err) {
+        console.error('Supabase KYC submit error:', err);
+      }
+    }
+
+    // 3. Dispatch global browser events for multi-tab and Admin instant response
+    try {
+      window.dispatchEvent(new CustomEvent('ivestbot_kyc_submitted', { detail: kyc }));
+      window.dispatchEvent(new Event('storage'));
+    } catch {
+      // ignore
+    }
+
+    return kyc;
+  },
+
+  adminVerifyKyc(status: 'VERIFIED' | 'REJECTED', notes?: string, userId?: string): KycSubmission {
+    const targetId = userId || authService.getCurrentUser()?.id;
+    const current = this.getKycStatus(targetId);
     const updated: KycSubmission = {
       ...current,
+      userId: targetId || current.userId,
       status,
       reviewedAt: new Date().toISOString(),
       adminNotes: notes || (status === 'VERIFIED' ? 'Approved by Compliance Officer' : 'ID rejected')
     };
+    if (targetId) {
+      localStorage.setItem(`ivestbot_kyc_${targetId}`, JSON.stringify(updated));
+    }
     localStorage.setItem(KYC_STORAGE_KEY, JSON.stringify(updated));
+
+    // Dispatch instant events
+    try {
+      window.dispatchEvent(new CustomEvent('ivestbot_kyc_updated', { detail: updated }));
+      window.dispatchEvent(new Event('storage'));
+    } catch {
+      // ignore
+    }
     return updated;
   }
 };

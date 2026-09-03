@@ -97,6 +97,9 @@ export const Admin: React.FC = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
         loadAdminData();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'kyc_records' }, () => {
+        loadAdminData();
+      })
       .subscribe();
 
     // 3. Fast 1.2s polling fallback
@@ -110,12 +113,18 @@ export const Admin: React.FC = () => {
     };
     window.addEventListener('storage', handleInstantTrigger);
     window.addEventListener('ivestbot_deposit_submitted', handleInstantTrigger);
+    window.addEventListener('ivestbot_kyc_submitted', handleInstantTrigger);
+    window.addEventListener('ivestbot_kyc_updated', handleInstantTrigger);
+    window.addEventListener('ivestbot_withdrawal_submitted', handleInstantTrigger);
 
     return () => {
       supabase.removeChannel(channel);
       clearInterval(interval);
       window.removeEventListener('storage', handleInstantTrigger);
       window.removeEventListener('ivestbot_deposit_submitted', handleInstantTrigger);
+      window.removeEventListener('ivestbot_kyc_submitted', handleInstantTrigger);
+      window.removeEventListener('ivestbot_kyc_updated', handleInstantTrigger);
+      window.removeEventListener('ivestbot_withdrawal_submitted', handleInstantTrigger);
     };
   }, [isAdminAuth, loadAdminData]);
 
@@ -180,9 +189,9 @@ export const Admin: React.FC = () => {
     loadAdminData();
   };
 
-  const handleVerifyKyc = (userId: string, status: 'VERIFIED' | 'REJECTED', notes?: string) => {
-    adminVerifyKyc(userId, status, notes);
-    loadAdminData();
+  const handleVerifyKyc = async (userId: string, status: 'VERIFIED' | 'REJECTED', notes?: string) => {
+    await adminVerifyKyc(userId, status, notes);
+    await loadAdminData();
   };
 
   const handleDeleteUser = async (userId: string, _userName: string) => {
@@ -190,12 +199,14 @@ export const Admin: React.FC = () => {
     loadAdminData();
   };
 
+  const pendingKycCount = users.filter(u => u.profile.kycStatus === 'PENDING' || u.kycSubmission?.status === 'PENDING').length;
+
   if (!isAdminAuth) {
     return <AdminAuthGate onSuccess={() => setIsAdminAuth(true)} />;
   }
 
   return (
-    <Box sx={{ pb: 6 }}>
+    <Box sx={{ maxWidth: 1400, mx: 'auto', p: { xs: 2, md: 4 }, pb: 6 }}>
       {/* Admin Top Bar */}
       <AdminHeader
         onRefresh={loadAdminData}
@@ -260,7 +271,11 @@ export const Admin: React.FC = () => {
           />
 
           <Tab
-            icon={<VerifiedUserIcon />}
+            icon={
+              <Badge badgeContent={pendingKycCount} color="error">
+                <VerifiedUserIcon />
+              </Badge>
+            }
             iconPosition="start"
             label="KYC Compliance"
           />
@@ -314,6 +329,8 @@ export const Admin: React.FC = () => {
           users={users}
           currentKyc={kyc}
           onVerify={handleVerifyKyc}
+          onRefresh={loadAdminData}
+          showSnackbar={showSnackbar}
         />
       )}
 

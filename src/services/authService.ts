@@ -378,6 +378,22 @@ export const authService = {
     const updated = { ...current, ...updates };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     this.upsertUser(updated);
+
+    // Sync to Supabase profiles table in background
+    if (isValidUuid(current.id)) {
+      const dbUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.username !== undefined) dbUpdates.username = updates.username.toLowerCase();
+      if (updates.email !== undefined) dbUpdates.email = updates.email.toLowerCase();
+      if (updates.kycStatus !== undefined) dbUpdates.kyc_status = updates.kycStatus;
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      if (updates.level !== undefined) dbUpdates.level = updates.level;
+
+      supabase.from('profiles').update(dbUpdates).eq('id', current.id).then(({ error }) => {
+        if (error) console.warn('Error updating Supabase profile:', error);
+      });
+    }
+
     return updated;
   },
 
@@ -393,6 +409,22 @@ export const authService = {
     if (current && current.id === userId) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(all[index]));
     }
+
+    // Sync to Supabase profiles table
+    if (isValidUuid(userId)) {
+      const dbUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.username !== undefined) dbUpdates.username = updates.username.toLowerCase();
+      if (updates.email !== undefined) dbUpdates.email = updates.email.toLowerCase();
+      if (updates.kycStatus !== undefined) dbUpdates.kyc_status = updates.kycStatus;
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      if (updates.level !== undefined) dbUpdates.level = updates.level;
+
+      supabase.from('profiles').update(dbUpdates).eq('id', userId).then(({ error }) => {
+        if (error) console.warn('Error updating profile in Supabase:', error);
+      });
+    }
+
     return all[index];
   },
 

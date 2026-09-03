@@ -144,6 +144,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (targetId) {
           const synced = await walletService.syncWalletFromSupabase(targetId);
           const txs = await walletService.syncTransactionsFromSupabase(targetId);
+          const kycData = await walletService.syncKycFromSupabase(targetId);
           if (synced) {
             setWallet(synced);
           } else {
@@ -151,6 +152,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
           if (txs) {
             setTransactions(txs);
+          }
+          if (kycData) {
+            setKyc(kycData);
           }
         }
         setSyncTick(t => t + 1);
@@ -173,7 +177,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
     };
+
+    const handleKycUpdated = (e: any) => {
+      const targetId = user?.id || authService.getCurrentUser()?.id;
+      if (targetId && (e.detail?.userId === targetId || !e.detail?.userId)) {
+        if (e.detail?.status) {
+          setKyc(prev => ({ ...prev, status: e.detail.status, adminNotes: e.detail.notes }));
+          setUser(prev => prev ? { ...prev, kycStatus: e.detail.status } : null);
+        }
+      }
+    };
+
     window.addEventListener('ivestbot_wallet_updated', handleWalletUpdated);
+    window.addEventListener('ivestbot_kyc_updated', handleKycUpdated);
     window.addEventListener('storage', handleWalletUpdated);
 
     // User-scoped Supabase Realtime Channel
@@ -195,6 +211,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .on('postgres_changes', { event: '*', schema: 'public', table: 'wallet_transactions', filter: `user_id=eq.${user.id}` }, () => {
           walletService.syncTransactionsFromSupabase(user.id).then(txs => { setTransactions(txs); });
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'kyc_records', filter: `user_id=eq.${user.id}` }, (payload: any) => {
+          if (payload.new) {
+            const updatedKyc: KycSubmission = {
+              userId: payload.new.user_id,
+              fullName: payload.new.full_name || '',
+              documentType: payload.new.document_type || 'PASSPORT',
+              documentNumber: payload.new.document_number || '',
+              documentFileName: payload.new.document_url || 'id_document.pdf',
+              status: payload.new.status || 'PENDING',
+              submittedAt: payload.new.created_at,
+              reviewedAt: payload.new.updated_at,
+              adminNotes: payload.new.rejection_reason || undefined
+            };
+            setKyc(updatedKyc);
+          }
+          walletService.syncKycFromSupabase(user.id).then(k => { if (k) setKyc(k); });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload: any) => {
+          if (payload.new) {
+            setUser(prev => prev ? {
+              ...prev,
+              kycStatus: payload.new.kyc_status || prev.kycStatus,
+              status: payload.new.status || prev.status,
+              level: payload.new.level || prev.level
+            } : null);
+          }
+        })
         .subscribe();
     }
 
@@ -205,6 +248,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (userChannel) supabase.removeChannel(userChannel);
       clearInterval(interval);
       window.removeEventListener('ivestbot_wallet_updated', handleWalletUpdated);
+      window.removeEventListener('ivestbot_kyc_updated', handleKycUpdated);
       window.removeEventListener('storage', handleWalletUpdated);
     };
   }, [user?.id]);
@@ -384,8 +428,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showSnackbar(`User wallet status updated to ${status} with customized restrictions!`, 'success');
   };
 
-  const adminVerifyKyc = (userId: string, status: 'VERIFIED' | 'REJECTED', notes?: string) => {
-    const updated = adminService.verifyKyc(userId, status, notes);
+  const adminVerifyKyc = async (userId: string, status: 'VERIFIED' | 'REJECTED', notes?: string) => {
+    const updated = await adminService.verifyKyc(userId, status, notes);
     setKyc(updated);
     if (user && user.id === userId) {
       setUser({ ...user, kycStatus: status });
