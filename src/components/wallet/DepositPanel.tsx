@@ -6,7 +6,6 @@ import {
   Box,
   TextField,
   Button,
-  Grid,
   Paper,
   IconButton,
   Tooltip,
@@ -14,6 +13,7 @@ import {
   Alert,
   Chip
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import {
   ContentCopyIcon,
   QrCode2Icon,

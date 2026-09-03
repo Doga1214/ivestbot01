@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Container, Grid, Paper, Typography } from '@mui/material';
+import { Box, Container, Paper, Typography } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 
 export const PlatformStatsBar: React.FC = () => {
   const stats = [

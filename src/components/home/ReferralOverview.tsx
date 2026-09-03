@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, Grid, Paper, Stack, Divider } from '@mui/material';
+import { Box, Typography, Paper, Stack, Divider } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import {
   PeopleAltOutlinedIcon,
   MonetizationOnOutlinedIcon,

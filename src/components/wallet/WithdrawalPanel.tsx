@@ -6,7 +6,6 @@ import {
   Box,
   TextField,
   Button,
-  Grid,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -15,6 +14,7 @@ import {
   Chip,
   Paper
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import {
   ArrowUpwardIcon,
   AccountBalanceWalletIcon,

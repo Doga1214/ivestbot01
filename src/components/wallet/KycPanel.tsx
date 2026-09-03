@@ -6,11 +6,11 @@ import {
   Box,
   TextField,
   Button,
-  Grid,
   MenuItem,
   Chip,
   Alert
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import {
   VerifiedUserIcon,
   UploadFileIcon,

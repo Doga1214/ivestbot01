@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, Button, Container, Grid, Paper, Chip } from '@mui/material';
+import { Box, Typography, Button, Container, Paper, Chip } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import {

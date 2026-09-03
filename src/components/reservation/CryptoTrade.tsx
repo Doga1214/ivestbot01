@@ -4,7 +4,6 @@ import {
   CardContent,
   Typography,
   Box,
-  Grid,
   Button,
   TextField,
   Dialog,
@@ -20,6 +19,7 @@ import {
   TableRow,
   Paper
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import {
   TrendingUpIcon,
   TrendingDownIcon,

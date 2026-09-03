@@ -4,7 +4,6 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid,
   Button,
   Paper,
   Tabs,
@@ -27,6 +26,7 @@ import {
   TableHead,
   TableRow
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import { useApp } from '../context/AppContext';
 import { referralService } from '../services/referralService';
 import type { ReferralRecord } from '../types/referral';
@@ -43,8 +43,7 @@ import {
   EmojiEventsIcon,
   ReceiptLongIcon,
   ShieldOutlinedIcon,
-  AutoAwesomeIcon,
-  SwapHorizIcon
+  AutoAwesomeIcon
 } from '../components/common/Icons';
 
 export const Referral: React.FC = () => {
@@ -53,8 +52,6 @@ export const Referral: React.FC = () => {
 
   // QR & Share Dialog state
   const [qrOpen, setQrOpen] = useState<boolean>(false);
-  const [claimDialogOpen, setClaimDialogOpen] = useState<boolean>(false);
-  const [claimAmount, setClaimAmount] = useState<string>('');
 
   // Withdrawal form state
   const [withdrawAmount, setWithdrawAmount] = useState<string>('');
@@ -162,29 +159,6 @@ export const Referral: React.FC = () => {
     }
   };
 
-  // Transfer Reward to Main Available Balance
-  const handleTransferToWallet = async () => {
-    const amt = parseFloat(claimAmount);
-    if (!user || isNaN(amt) || amt <= 0) {
-      showSnackbar('Enter a valid amount to transfer.', 'error');
-      return;
-    }
-    if (amt > summary.rewardBalanceUSDT) {
-      showSnackbar(`Maximum available to transfer is ${summary.rewardBalanceUSDT.toFixed(2)} USDT.`, 'error');
-      return;
-    }
-
-    try {
-      await referralService.claimRewardToMainWallet(user.id, amt);
-      showSnackbar(`Successfully transferred ${amt.toFixed(2)} USDT to your main wallet available balance!`, 'success');
-      setClaimDialogOpen(false);
-      setClaimAmount('');
-      refreshData();
-    } catch (err: any) {
-      showSnackbar(err.message || 'Transfer failed.', 'error');
-    }
-  };
-
   // Filtered Downlines
   const filteredRecords = useMemo(() => {
     return summary.referralRecords.filter((rec: ReferralRecord) => {
@@ -213,92 +187,31 @@ export const Referral: React.FC = () => {
           overflow: 'hidden'
         }}
       >
-        <Grid container spacing={3} sx={{ alignItems: 'center' }}>
-          <Grid size={{ xs: 12, md: 8 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-              <Chip
-                label={summary.currentTierName}
-                icon={<MilitaryTechIcon style={{ color: '#fff' }} />}
-                sx={{
-                  bgcolor: summary.currentTier === 4 ? '#00E5FF' : summary.currentTier === 3 ? '#FFD700' : summary.currentTier === 2 ? '#C0C0C0' : '#CD7F32',
-                  color: '#000',
-                  fontWeight: 900,
-                  fontSize: '0.8rem',
-                  letterSpacing: '0.05em'
-                }}
-              />
-              <Chip
-                label={`Tier ${summary.currentTier} of 4`}
-                variant="outlined"
-                sx={{ borderColor: 'rgba(255,255,255,0.2)', color: '#9CA3AF', fontWeight: 700 }}
-              />
-            </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+          <Chip
+            label={summary.currentTierName}
+            icon={<MilitaryTechIcon style={{ color: '#fff' }} />}
+            sx={{
+              bgcolor: summary.currentTier === 4 ? '#00E5FF' : summary.currentTier === 3 ? '#FFD700' : summary.currentTier === 2 ? '#C0C0C0' : '#CD7F32',
+              color: '#000',
+              fontWeight: 900,
+              fontSize: '0.8rem',
+              letterSpacing: '0.05em'
+            }}
+          />
+          <Chip
+            label={`Tier ${summary.currentTier} of 4`}
+            variant="outlined"
+            sx={{ borderColor: 'rgba(255,255,255,0.2)', color: '#9CA3AF', fontWeight: 700 }}
+          />
+        </Box>
 
-            <Typography variant="h4" sx={{ fontWeight: 900, mb: 1, letterSpacing: '-0.02em', fontSize: { xs: '1.4rem', sm: '1.8rem', md: '2.1rem' } }}>
-              Referral & Affiliate Command Center
-            </Typography>
-            <Typography variant="body1" sx={{ color: '#9CA3AF', maxWidth: 620, lineHeight: 1.6, fontSize: { xs: '0.88rem', sm: '1rem' } }}>
-              Earn lifetime passive commissions across 3 levels (A: 1%, B: 0.5%, C: 0.5%) + instant USDT signup & milestone unlock bonuses.
-            </Typography>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Paper
-              sx={{
-                p: { xs: 2, sm: 2.5 },
-                bgcolor: 'rgba(0, 0, 0, 0.6)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                borderRadius: 3,
-                textAlign: 'center'
-              }}
-            >
-              <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem' }}>
-                Claimable Reward Balance
-              </Typography>
-              <Typography variant="h3" sx={{ fontWeight: 900, color: '#34d399', my: 0.5, fontSize: { xs: '1.8rem', sm: '2.4rem' } }}>
-                {summary.rewardBalanceUSDT.toFixed(2)} <span style={{ fontSize: '1rem', color: '#9CA3AF' }}>USDT</span>
-              </Typography>
-
-              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5, mt: 2 }}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  startIcon={<SwapHorizIcon />}
-                  onClick={() => {
-                    setClaimAmount(summary.rewardBalanceUSDT.toString());
-                    setClaimDialogOpen(true);
-                  }}
-                  disabled={summary.rewardBalanceUSDT <= 0}
-                  sx={{
-                    fontWeight: 800,
-                    bgcolor: '#10b981',
-                    '&:hover': { bgcolor: '#059669' },
-                    fontSize: '0.82rem',
-                    py: 1
-                  }}
-                >
-                  Transfer to Wallet
-                </Button>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<ArrowUpwardIcon />}
-                  onClick={() => setActiveTab(3)}
-                  disabled={summary.rewardBalanceUSDT < adminConfig.minWithdrawalUSDT}
-                  sx={{
-                    fontWeight: 800,
-                    borderColor: 'rgba(255,255,255,0.2)',
-                    color: '#fff',
-                    fontSize: '0.82rem',
-                    py: 1
-                  }}
-                >
-                  Withdraw USDT
-                </Button>
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
+        <Typography variant="h4" sx={{ fontWeight: 900, mb: 1, letterSpacing: '-0.02em', fontSize: { xs: '1.4rem', sm: '1.8rem', md: '2.1rem' } }}>
+          Referral & Affiliate Command Center
+        </Typography>
+        <Typography variant="body1" sx={{ color: '#9CA3AF', maxWidth: 720, lineHeight: 1.6, fontSize: { xs: '0.88rem', sm: '1rem' } }}>
+          Earn lifetime passive commissions across 3 levels (A: 1%, B: 0.5%, C: 0.5%) + instant USDT signup & milestone unlock bonuses.
+        </Typography>
       </Box>
 
       {/* ─── QUICK METRICS KPI BAR ──────────────────────────────── */}
@@ -1399,74 +1312,6 @@ export const Referral: React.FC = () => {
             sx={{ fontWeight: 800 }}
           >
             Copy Invite URL
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* ─── MODAL: TRANSFER REWARD TO WALLET ───────────────────── */}
-      <Dialog
-        open={claimDialogOpen}
-        onClose={() => setClaimDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        slotProps={{
-          paper: {
-            sx: {
-              bgcolor: '#111522',
-              backgroundImage: 'none',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 3.5,
-              p: 1
-            }
-          }
-        }}
-      >
-        <DialogTitle sx={{ fontWeight: 800 }}>
-          Transfer to Main Wallet Balance
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ color: '#9CA3AF', mb: 2.5 }}>
-            Instantly transfer your referral earnings into your main trading wallet available balance for trading & reservations.
-          </Typography>
-
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-            <Typography variant="caption" sx={{ fontWeight: 700, color: '#9CA3AF' }}>
-              TRANSFER AMOUNT (USDT)
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 700 }}>
-              Available: {summary.rewardBalanceUSDT.toFixed(2)} USDT
-            </Typography>
-          </Box>
-          <TextField
-            fullWidth
-            type="number"
-            value={claimAmount}
-            onChange={e => setClaimAmount(e.target.value)}
-            slotProps={{
-              input: {
-                endAdornment: (
-                  <Button
-                    size="small"
-                    onClick={() => setClaimAmount(summary.rewardBalanceUSDT.toString())}
-                    sx={{ fontWeight: 800, color: '#a78bfa' }}
-                  >
-                    MAX
-                  </Button>
-                )
-              }
-            }}
-          />
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setClaimDialogOpen(false)} sx={{ color: '#9CA3AF', fontWeight: 700 }}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleTransferToWallet}
-            sx={{ fontWeight: 800, bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
-          >
-            Confirm Transfer
           </Button>
         </DialogActions>
       </Dialog>

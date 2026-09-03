@@ -4,7 +4,6 @@ import {
   CardContent,
   Typography,
   Box,
-  Grid,
   Table,
   TableBody,
   TableCell,
@@ -14,6 +13,7 @@ import {
   Paper,
   Chip
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import {
   MonetizationOnIcon,
   CardGiftcardIcon

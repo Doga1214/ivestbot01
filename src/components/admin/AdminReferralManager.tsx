@@ -4,7 +4,6 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid,
   Button,
   Paper,
   Tabs,
@@ -25,6 +24,7 @@ import {
   MenuItem,
   IconButton
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import { referralService } from '../../services/referralService';
 import { authService } from '../../services/authService';
 import type { ReferralWithdrawalRequest, ReferralAdminConfig } from '../../types/referral';

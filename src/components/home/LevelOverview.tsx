@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, Grid, Card, CardContent, Chip, Stack } from '@mui/material';
+import { Box, Typography, Card, CardContent, Chip, Stack } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import { MilitaryTechIcon } from '../common/Icons';
 import { levelService } from '../../services/levelService';
 

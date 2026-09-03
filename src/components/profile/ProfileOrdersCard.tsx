@@ -4,7 +4,6 @@ import {
   CardContent,
   Typography,
   Box,
-  Grid,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -19,6 +18,7 @@ import {
   Chip,
   Button
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import {
   AccountBoxIcon,
   DescriptionIcon,

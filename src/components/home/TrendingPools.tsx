@@ -3,7 +3,6 @@ import {
   Box,
   Container,
   Typography,
-  Grid,
   Paper,
   Chip,
   Button,
@@ -13,6 +12,7 @@ import {
   TableContainer,
   TableRow
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import {

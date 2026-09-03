@@ -9,7 +9,6 @@ import {
   Box,
   Tabs,
   Tab,
-  Grid,
   TextField,
   Button,
   Chip,
@@ -27,8 +26,10 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  CircularProgress
+  CircularProgress,
+  Alert
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import {
   PersonOutlineIcon,
   AccountBalanceWalletIcon,
@@ -69,7 +70,7 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [level, setLevel] = useState<number>(1);
-  const [accountStatus, setAccountStatus] = useState<'ACTIVE' | 'SUSPENDED' | 'BLOCKED'>('ACTIVE');
+  const [accountStatus, setAccountStatus] = useState<'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'BLOCKED'>('ACTIVE');
   const [kycStatus, setKycStatus] = useState<'NOT_SUBMITTED' | 'PENDING' | 'VERIFIED' | 'REJECTED'>('NOT_SUBMITTED');
 
   // Wallet Adjust State

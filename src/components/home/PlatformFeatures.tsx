@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Container, Typography, Grid, Paper } from '@mui/material';
+import { Box, Container, Typography, Paper } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import {
   RocketLaunchIcon,
   MonetizationOnIcon,
