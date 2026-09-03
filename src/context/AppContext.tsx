@@ -461,34 +461,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     const record = reservationService.initiateSettlementExecution(prepared);
+    // Instantly finalize settlement and credit profit directly to main balance
+    const { updatedWallet, completedRecord } = reservationService.finalizeSettlement(record, user?.id);
+    setWallet(updatedWallet);
     setReservationState(reservationService.getReservationState());
-    setIsProcessing(true);
-    setProcessingSecondsLeft(20);
+    setReservationHistory(reservationService.getHistory());
+    setTransactions(walletService.getTransactions());
+    setIsProcessing(false);
+    setProcessingSecondsLeft(0);
 
-    showSnackbar(`Executing 20-second smart settlement for ${record.profit.toFixed(4)} USDT profit...`, 'info');
-
-    let timeLeft = 20;
-    const interval = setInterval(() => {
-      timeLeft -= 1;
-      setProcessingSecondsLeft(timeLeft);
-
-      if (timeLeft <= 0) {
-        clearInterval(interval);
-        setIsProcessing(false);
-
-        // Finalize settlement and lock strictly for 24 hours
-        const { updatedWallet, completedRecord } = reservationService.finalizeSettlement(record, user?.id);
-        setWallet(updatedWallet);
-        setReservationState(reservationService.getReservationState());
-        setReservationHistory(reservationService.getHistory());
-        setTransactions(walletService.getTransactions());
-
-        showSnackbar(
-          `Settlement complete! +${completedRecord.profit.toFixed(4)} USDT added to your wallet balance. 24-Hour cooldown lock active.`,
-          'success'
-        );
-      }
-    }, 1000);
+    showSnackbar(
+      `Reservation complete! +${completedRecord.profit.toFixed(4)} USDT instantly added to your main balance. 24-Hour cooldown lock active.`,
+      'success'
+    );
   };
 
   // Demo Trade Handlers
