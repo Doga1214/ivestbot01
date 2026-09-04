@@ -303,7 +303,7 @@ export const referralService = {
         referredBy: u.referredBy,
         hasDeposited: dep > 0,
         depositAmount: dep,
-        rewardEarnedUSDT: dep > 0 ? 5 + Number((dep * 0.01).toFixed(2)) : 0
+        rewardEarnedUSDT: dep > 0 ? 5 + Number((dep * (WALLET_CONFIG.referralRates.A / 100)).toFixed(4)) : 0
       };
     });
 
@@ -337,7 +337,7 @@ export const referralService = {
         referredBy: u.referredBy,
         hasDeposited: dep > 0,
         depositAmount: dep,
-        rewardEarnedUSDT: dep > 0 ? Number((dep * 0.005).toFixed(2)) : 0
+        rewardEarnedUSDT: dep > 0 ? Number((dep * (WALLET_CONFIG.referralRates.B / 100)).toFixed(4)) : 0
       };
     });
 
@@ -348,7 +348,7 @@ export const referralService = {
       if (u.id) tierBIds.add(u.id.toLowerCase());
       if (u.referralCode) tierBKeys.add(u.referralCode.trim().toLowerCase());
       if (u.username) tierBKeys.add(u.username.trim().toLowerCase());
-      if (u.id) tierBKeys.add(u.id.trim().toLowerCase());
+      if (u.id) tierBIds.add(u.id.trim().toLowerCase());
     });
 
     const tierCUsers = allUsers.filter(u => {
@@ -371,7 +371,7 @@ export const referralService = {
         referredBy: u.referredBy,
         hasDeposited: dep > 0,
         depositAmount: dep,
-        rewardEarnedUSDT: dep > 0 ? Number((dep * 0.005).toFixed(2)) : 0
+        rewardEarnedUSDT: dep > 0 ? Number((dep * (WALLET_CONFIG.referralRates.C / 100)).toFixed(4)) : 0
       };
     });
 

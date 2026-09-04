@@ -63,7 +63,7 @@ export const ReferralTree: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Chip label="TIER A" color="primary" size="small" sx={{ fontWeight: 800 }} />
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Direct Referrals (1.0% Commission)
+                  Direct Referrals (0.5% Commission)
                 </Typography>
               </Box>
               <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#a78bfa' }}>
@@ -132,7 +132,7 @@ export const ReferralTree: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Chip label="TIER B" color="secondary" size="small" sx={{ fontWeight: 800 }} />
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Secondary Referrals (0.5% Commission)
+                  Secondary Referrals (0.25% Commission)
                 </Typography>
               </Box>
               <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#60a5fa' }}>
@@ -202,7 +202,7 @@ export const ReferralTree: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Chip label="TIER C" color="success" size="small" sx={{ fontWeight: 800 }} />
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Tertiary Referrals (0.5% Commission)
+                  Tertiary Referrals (0.225% Commission)
                 </Typography>
               </Box>
               <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#34d399' }}>

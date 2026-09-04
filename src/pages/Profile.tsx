@@ -3,17 +3,12 @@ import { Box, Dialog, DialogTitle, DialogContent, IconButton, Typography } from 
 import { ProfileHeader } from '../components/profile/ProfileHeader';
 import { ProfileWalletIncomeCard } from '../components/profile/ProfileWalletIncomeCard';
 import { ProfileTeamCard } from '../components/profile/ProfileTeamCard';
-import { ProfileOrdersCard } from '../components/profile/ProfileOrdersCard';
 import { ProfileMenuSection } from '../components/profile/ProfileMenuSection';
 import { KycPanel } from '../components/wallet/KycPanel';
-import { DepositPanel } from '../components/wallet/DepositPanel';
-import { WithdrawalPanel } from '../components/wallet/WithdrawalPanel';
 import { CloseIcon } from '../components/common/Icons';
 
 export const Profile: React.FC = () => {
   const [kycDialogOpen, setKycDialogOpen] = useState<boolean>(false);
-  const [depositDialogOpen, setDepositDialogOpen] = useState<boolean>(false);
-  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState<boolean>(false);
 
   return (
     <Box sx={{ maxWidth: 640, mx: 'auto', pb: 12, px: { xs: 1.5, sm: 2 } }}>
@@ -26,13 +21,7 @@ export const Profile: React.FC = () => {
       {/* 3. My Team Stats (100% Real Data) & 4 Action Buttons Card */}
       <ProfileTeamCard />
 
-      {/* 4. My Orders Stats & Action Buttons Card */}
-      <ProfileOrdersCard
-        onOpenDeposit={() => setDepositDialogOpen(true)}
-        onOpenWithdraw={() => setWithdrawDialogOpen(true)}
-      />
-
-      {/* 5. Settings, Security (2FA), Learn, Leaderboard, Disclaimer Menu */}
+      {/* 4. Settings, Security (2FA), Learn, Leaderboard, Disclaimer Menu */}
       <ProfileMenuSection />
 
       {/* ─── MODAL: KYC VERIFICATION ───────────────────────────────── */}
@@ -63,68 +52,6 @@ export const Profile: React.FC = () => {
         </DialogTitle>
         <DialogContent sx={{ p: { xs: 1.5, sm: 2.5 } }}>
           <KycPanel />
-        </DialogContent>
-      </Dialog>
-
-      {/* ─── MODAL: QUICK DEPOSIT ──────────────────────────────────── */}
-      <Dialog
-        open={depositDialogOpen}
-        onClose={() => setDepositDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        slotProps={{
-          paper: {
-            sx: {
-              bgcolor: '#111522',
-              backgroundImage: 'none',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: 3.5,
-              p: 1
-            }
-          }
-        }}
-      >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>
-            Deposit USDT (TRC20)
-          </Typography>
-          <IconButton onClick={() => setDepositDialogOpen(false)} size="small">
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: { xs: 1.5, sm: 2.5 } }}>
-          <DepositPanel />
-        </DialogContent>
-      </Dialog>
-
-      {/* ─── MODAL: QUICK WITHDRAW ─────────────────────────────────── */}
-      <Dialog
-        open={withdrawDialogOpen}
-        onClose={() => setWithdrawDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        slotProps={{
-          paper: {
-            sx: {
-              bgcolor: '#111522',
-              backgroundImage: 'none',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: 3.5,
-              p: 1
-            }
-          }
-        }}
-      >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>
-            Withdraw USDT
-          </Typography>
-          <IconButton onClick={() => setWithdrawDialogOpen(false)} size="small">
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: { xs: 1.5, sm: 2.5 } }}>
-          <WithdrawalPanel />
         </DialogContent>
       </Dialog>
     </Box>

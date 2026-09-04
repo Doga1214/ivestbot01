@@ -119,9 +119,9 @@ export interface ReferralAdminConfig {
     tier4Bonus: number;
   };
   commissionRates: {
-    A: number; // e.g. 1.0%
-    B: number; // e.g. 0.5%
-    C: number; // e.g. 0.5%
+    A: number; // e.g. 0.5%
+    B: number; // e.g. 0.25%
+    C: number; // e.g. 0.225%
   };
   antiFraudEnabled: boolean;
   maxHourlyReferralsPerIp: number;

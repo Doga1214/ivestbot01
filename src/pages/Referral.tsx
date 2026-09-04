@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -59,6 +59,16 @@ export const Referral: React.FC = () => {
   // Re-fetch referral data & sync
   const [tick, setTick] = useState<number>(0);
   const refreshData = () => setTick(t => t + 1);
+
+  useEffect(() => {
+    const handleUpdate = () => refreshData();
+    window.addEventListener('ivestbot_referral_config_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('ivestbot_referral_config_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
 
   const referralCode = user?.referralCode || 'IVEST100';
   const summary = useMemo(
@@ -155,7 +165,7 @@ export const Referral: React.FC = () => {
           Referral & Affiliate Command Center
         </Typography>
         <Typography variant="body1" sx={{ color: '#9CA3AF', maxWidth: 720, lineHeight: 1.6, fontSize: { xs: '0.88rem', sm: '1rem' } }}>
-          Earn lifetime passive commissions across 3 levels (A: 1%, B: 0.5%, C: 0.5%) + instant USDT signup & milestone unlock bonuses.
+          Earn lifetime passive commissions across 3 levels (A: 0.5%, B: 0.25%, C: 0.225%) + instant USDT signup & milestone unlock bonuses.
         </Typography>
       </Box>
 

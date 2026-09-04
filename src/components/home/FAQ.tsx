@@ -14,7 +14,7 @@ export const FAQ: React.FC = () => {
     },
     {
       q: 'How do referral commissions and deposit milestone bonuses work?',
-      a: 'When you invite members using your referral link, you earn lifetime commissions on their reservations: 1.0% on direct Tier A members, 0.5% on Tier B members, and 0.5% on Tier C members. In addition, when new invited members deposit between 50 USDT and 1,000 USDT, sponsors earn an instant 5 USDT bonus per 50 USDT deposited (e.g. 50 USDT deposit -> +5 USDT sponsor bonus & +1 USDT user bonus; 1000 USDT deposit -> +100 USDT sponsor bonus & +20 USDT user bonus).'
+      a: 'When you invite members using your referral link, you earn lifetime commissions on their reservations: 0.5% on direct Tier A members, 0.25% on Tier B members, and 0.225% on Tier C members. In addition, when new invited members deposit between 50 USDT and 1,000 USDT, sponsors earn an instant 5 USDT bonus per 50 USDT deposited (e.g. 50 USDT deposit -> +5 USDT sponsor bonus & +1 USDT user bonus; 1000 USDT deposit -> +100 USDT sponsor bonus & +20 USDT user bonus).'
     },
     {
       q: 'What are the requirements for Level 2, 3, and 4?',

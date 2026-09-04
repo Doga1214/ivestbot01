@@ -466,7 +466,7 @@ export const ProfileTeamCard: React.FC = () => {
                 Level A Direct Referrals
               </Typography>
               <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-                Earn <strong>10% Instant Commission</strong> on all 24-hour doubling reservations placed by direct invitees.
+                Earn <strong>0.5% Commission</strong> on all 24-hour doubling reservations placed by direct invitees.
               </Typography>
             </Paper>
 
@@ -475,7 +475,7 @@ export const ProfileTeamCard: React.FC = () => {
                 Level B Secondary Team
               </Typography>
               <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-                Earn <strong>5% Commission</strong> from users invited by your Level A team members.
+                Earn <strong>0.25% Commission</strong> from users invited by your Level A team members.
               </Typography>
             </Paper>
 
@@ -484,7 +484,7 @@ export const ProfileTeamCard: React.FC = () => {
                 Level C Extended Network
               </Typography>
               <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-                Earn <strong>2% Commission</strong> across all 3rd generation reservations.
+                Earn <strong>0.225% Commission</strong> across all 3rd generation reservations.
               </Typography>
             </Paper>
           </Box>

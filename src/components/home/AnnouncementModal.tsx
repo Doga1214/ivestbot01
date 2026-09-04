@@ -171,7 +171,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ open: exte
                 A/B/C Multi-Tier Referral Network
               </Typography>
               <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-                Earn direct <strong>1.0%</strong> on Tier A members, and <strong>0.5%</strong> on Tier B & C team members.
+                Earn direct <strong>0.5%</strong> on Tier A members, <strong>0.25%</strong> on Tier B, and <strong>0.225%</strong> on Tier C team members.
               </Typography>
             </Box>
           </Box>

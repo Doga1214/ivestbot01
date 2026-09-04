@@ -44,7 +44,7 @@ export const ReferralEarnings: React.FC = () => {
           <Grid size={{ xs: 12, sm: 4 }}>
             <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
               <Typography variant="caption" sx={{ color: '#a78bfa', fontWeight: 600, display: 'block' }}>
-                Tier A Direct Earnings (1.0% + Bonuses)
+                Tier A Direct Earnings (0.5% + Bonuses)
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 900, color: '#ffffff', mt: 0.5 }}>
                 {formatUSDT(referralSummary.tierAEarnings)}
@@ -55,7 +55,7 @@ export const ReferralEarnings: React.FC = () => {
           <Grid size={{ xs: 12, sm: 4 }}>
             <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
               <Typography variant="caption" sx={{ color: '#60a5fa', fontWeight: 600, display: 'block' }}>
-                Tier B Secondary Earnings (0.5%)
+                Tier B Secondary Earnings (0.25%)
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 900, color: '#ffffff', mt: 0.5 }}>
                 {formatUSDT(referralSummary.tierBEarnings)}
@@ -66,7 +66,7 @@ export const ReferralEarnings: React.FC = () => {
           <Grid size={{ xs: 12, sm: 4 }}>
             <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
               <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 600, display: 'block' }}>
-                Tier C Tertiary Earnings (0.5%)
+                Tier C Tertiary Earnings (0.225%)
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 900, color: '#ffffff', mt: 0.5 }}>
                 {formatUSDT(referralSummary.tierCEarnings)}

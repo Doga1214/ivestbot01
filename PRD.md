@@ -1116,11 +1116,11 @@ Default values:
 
 reservationDailyRate = 2.58
 
-referralRateA = 2
+referralRateA = 0.5
 
-referralRateB = 1
+referralRateB = 0.25
 
-referralRateC = 0.5
+referralRateC = 0.225
 
 depositAddress1 =
 THSahZbPSUspYRKmEQgrKb3NXutckSBXsZ

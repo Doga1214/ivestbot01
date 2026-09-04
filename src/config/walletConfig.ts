@@ -7,9 +7,9 @@ export const WALLET_CONFIG = {
   doublingDays: 35, // Principle amount doubles in 35 days (100% profit / 35 = 2.8571% per day)
   defaultDailyRate: 2.8571, // 2.8571% per 24-hour reservation cycle (100% in 35 days)
   referralRates: {
-    A: 1.0, // 1% commission for direct A members
-    B: 0.5, // 0.5% commission for secondary B members
-    C: 0.5  // 0.5% commission for tertiary C members
+    A: 0.5, // 0.5% commission for direct A members
+    B: 0.25, // 0.25% commission for secondary B members
+    C: 0.225  // 0.225% commission for tertiary C members
   },
   depositBonusRatio: {
     unitDeposit: 50, // per 50 USDT deposited
@@ -86,7 +86,7 @@ export const WALLET_CONFIG = {
         rewardPerReferralUSDT: 5,
         tierBonusUSDT: 25,
         badgeColor: '#CD7F32',
-        benefits: ['5 USDT per active referral', '25 USDT Tier 1 Unlock Bonus', '1% Direct Level A Commission']
+        benefits: ['5 USDT per active referral', '25 USDT Tier 1 Unlock Bonus', '0.5% Direct Level A Commission']
       },
       {
         tier: 2 as const,
@@ -96,7 +96,7 @@ export const WALLET_CONFIG = {
         rewardPerReferralUSDT: 7.5,
         tierBonusUSDT: 50,
         badgeColor: '#C0C0C0',
-        benefits: ['7.5 USDT per active referral', '50 USDT Tier 2 Milestone Bonus', '+0.5% Level B Indirect Commission']
+        benefits: ['7.5 USDT per active referral', '50 USDT Tier 2 Milestone Bonus', '+0.25% Level B Indirect Commission']
       },
       {
         tier: 3 as const,
@@ -106,7 +106,7 @@ export const WALLET_CONFIG = {
         rewardPerReferralUSDT: 10,
         tierBonusUSDT: 100,
         badgeColor: '#FFD700',
-        benefits: ['10 USDT per active referral', '100 USDT Tier 3 Milestone Bonus', '+0.5% Level C Indirect Commission']
+        benefits: ['10 USDT per active referral', '100 USDT Tier 3 Milestone Bonus', '+0.225% Level C Indirect Commission']
       },
       {
         tier: 4 as const,

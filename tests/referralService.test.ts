@@ -27,6 +27,13 @@ export async function runReferralServiceTests(runner: TestRunner) {
     assert.strictEqual(t4.nextTierRemaining, 0);
   });
 
+  await runner.test('getReferralRates: returns A: 0.5%, B: 0.25%, C: 0.225%', () => {
+    const rates = referralService.getReferralRates();
+    assert.strictEqual(rates.A, 0.5);
+    assert.strictEqual(rates.B, 0.25);
+    assert.strictEqual(rates.C, 0.225);
+  });
+
   await runner.test('calculateDepositBonus: calculates 50 USDT unit bonus correctly (sponsor only, 0 welcome bonus)', () => {
     // Under minimum (< 50 USDT)
     const zero = referralService.calculateDepositBonus(40);
