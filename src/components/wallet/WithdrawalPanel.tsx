@@ -20,9 +20,14 @@ import {
   AccountBalanceWalletIcon,
   OpenInNewIcon,
   DeleteOutlineIcon,
-  BookmarkAddIcon
+  BookmarkAddIcon,
+  LockOutlinedIcon,
+  ShieldOutlinedIcon,
+  VerifiedUserIcon,
+  CheckCircleIcon
 } from '../common/Icons';
 import { useApp } from '../../context/AppContext';
+import { authService } from '../../services/authService';
 import { formatUSDT } from '../../utils/formatters';
 import { WALLET_CONFIG } from '../../config/walletConfig';
 
@@ -36,7 +41,7 @@ interface SavedAddress {
 const SAVED_ADDRESSES_KEY = 'ivestbot_saved_withdrawal_addresses';
 
 export const WithdrawalPanel: React.FC = () => {
-  const { wallet, transactions, submitWithdrawal, cancelWithdrawal, showSnackbar } = useApp();
+  const { user, kyc, wallet, transactions, submitWithdrawal, cancelWithdrawal, showSnackbar } = useApp();
 
   const [selectedNetworkId, setSelectedNetworkId] = useState<string>('TRC20');
   const [withdrawAmount, setWithdrawAmount] = useState<string>('100');
@@ -47,6 +52,17 @@ export const WithdrawalPanel: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+
+  // Security PIN States
+  const [isSetPinModalOpen, setIsSetPinModalOpen] = useState<boolean>(false);
+  const [newPin, setNewPin] = useState<string>('');
+  const [confirmPin, setConfirmPin] = useState<string>('');
+  const [setupPinError, setSetupPinError] = useState<string | null>(null);
+
+  const [withdrawalPin, setWithdrawalPin] = useState<string>('');
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [isPinLocked, setIsPinLocked] = useState<boolean>(false);
+  const [lockoutMsg, setLockoutMsg] = useState<string | null>(null);
 
   // Load saved address book from localStorage
   useEffect(() => {
@@ -71,6 +87,12 @@ export const WithdrawalPanel: React.FC = () => {
       WALLET_CONFIG.withdrawalNetworks[0]
     );
   }, [selectedNetworkId]);
+
+  // Check if destination address is already saved/whitelisted
+  const isAddressWhitelisted = useMemo(() => {
+    const trimmed = recipientAddress.trim().toLowerCase();
+    return savedAddresses.some(a => a.address.trim().toLowerCase() === trimmed);
+  }, [recipientAddress, savedAddresses]);
 
   // Active pending withdrawals for this user
   const pendingWithdrawals = transactions.filter(
@@ -194,11 +216,92 @@ export const WithdrawalPanel: React.FC = () => {
       return;
     }
 
+    // 1. Check if user has set a Withdrawal Security PIN
+    const hasPin = user?.id ? authService.hasWithdrawalPin(user.id) : false;
+    if (!hasPin) {
+      setSetupPinError(null);
+      setNewPin('');
+      setConfirmPin('');
+      setIsSetPinModalOpen(true);
+      return;
+    }
+
+    // 2. Check if user is locked out of PIN attempts
+    const pinState = authService.getPinSecurityState(user?.id);
+    if (pinState.lockedUntil) {
+      const expiry = new Date(pinState.lockedUntil).getTime();
+      if (Date.now() < expiry) {
+        const mins = Math.ceil((expiry - Date.now()) / (60 * 1000));
+        setIsPinLocked(true);
+        setLockoutMsg(`Withdrawals are temporarily locked due to failed PIN attempts. Please wait ${mins} minute(s).`);
+      } else {
+        setIsPinLocked(false);
+        setLockoutMsg(null);
+      }
+    } else {
+      setIsPinLocked(false);
+      setLockoutMsg(null);
+    }
+
+    setWithdrawalPin('');
+    setPinError(null);
     setIsConfirmOpen(true);
   };
 
+  const handleSaveNewPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) {
+      setSetupPinError('Please log in first to set your PIN');
+      return;
+    }
+    if (newPin.length !== 6 || !/^\d{6}$/.test(newPin)) {
+      setSetupPinError('PIN must be exactly 6 numeric digits (0-9).');
+      return;
+    }
+    if (newPin !== confirmPin) {
+      setSetupPinError('PIN confirmation does not match.');
+      return;
+    }
+    try {
+      await authService.setWithdrawalPin(user.id, newPin);
+      showSnackbar('6-Digit Withdrawal Security PIN set successfully!', 'success');
+      setIsSetPinModalOpen(false);
+      setNewPin('');
+      setConfirmPin('');
+      setSetupPinError(null);
+      // Auto open confirmation modal
+      setWithdrawalPin('');
+      setPinError(null);
+      setIsConfirmOpen(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to set PIN';
+      setSetupPinError(msg);
+    }
+  };
+
   const handleConfirmWithdrawal = async () => {
+    if (!user?.id) return;
+
+    if (!withdrawalPin || withdrawalPin.length !== 6) {
+      setPinError('Please enter your 6-digit Withdrawal PIN');
+      return;
+    }
+
     setLoading(true);
+    setPinError(null);
+
+    // Verify PIN against stored hash with rate-limiting
+    const verifyRes = await authService.verifyWithdrawalPin(user.id, withdrawalPin);
+    if (!verifyRes.success) {
+      setPinError(verifyRes.message || 'Incorrect PIN');
+      if (verifyRes.isLocked) {
+        setIsPinLocked(true);
+        setLockoutMsg(verifyRes.message || 'PIN locked');
+      }
+      setLoading(false);
+      return;
+    }
+
     try {
       // Submit withdrawal with network tag in description
       const fullAddressWithNetwork = `[${currentNetwork.id}] ${recipientAddress.trim()}`;
@@ -211,6 +314,7 @@ export const WithdrawalPanel: React.FC = () => {
 
       setIsConfirmOpen(false);
       setRecipientAddress('');
+      setWithdrawalPin('');
       showSnackbar(`Withdrawal request of ${numAmount} USDT submitted successfully!`, 'success');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Withdrawal failed';
@@ -324,11 +428,30 @@ export const WithdrawalPanel: React.FC = () => {
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 1, mb: 2 }}>
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 900, letterSpacing: '-0.02em' }}>
-                Request USDT Cashout
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 900, letterSpacing: '-0.02em' }}>
+                  Request USDT Cashout
+                </Typography>
+                {kyc?.status === 'VERIFIED' ? (
+                  <Chip
+                    icon={<VerifiedUserIcon sx={{ fontSize: 14 }} />}
+                    label="KYC Verified Tier"
+                    color="success"
+                    size="small"
+                    sx={{ fontWeight: 800, fontSize: '0.7rem' }}
+                  />
+                ) : (
+                  <Chip
+                    icon={<ShieldOutlinedIcon sx={{ fontSize: 14 }} />}
+                    label="PIN Protected"
+                    color="secondary"
+                    size="small"
+                    sx={{ fontWeight: 800, fontSize: '0.7rem' }}
+                  />
+                )}
+              </Box>
               <Typography variant="body2" sx={{ color: '#9CA3AF', fontSize: '0.85rem' }}>
-                Receive USDT directly to your verified personal crypto wallet.
+                Receive USDT directly to your verified personal crypto wallet with 6-digit PIN authorization.
               </Typography>
             </Box>
 
@@ -659,19 +782,131 @@ export const WithdrawalPanel: React.FC = () => {
             </Grid>
           </form>
 
-          {/* Confirmation Modal */}
+          {/* Set PIN Modal (If User Has No PIN Yet) */}
+          <Dialog
+            open={isSetPinModalOpen}
+            onClose={() => setIsSetPinModalOpen(false)}
+            maxWidth="xs"
+            fullWidth
+            slotProps={{ paper: { sx: { p: 1, backgroundColor: '#0d111d', border: '1px solid rgba(139, 92, 246, 0.3)', borderRadius: 3.5 } } }}
+          >
+            <form onSubmit={handleSaveNewPin}>
+              <DialogTitle sx={{ fontWeight: 900, fontSize: '1.2rem', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <LockOutlinedIcon sx={{ color: '#8b5cf6' }} />
+                Set 6-Digit Withdrawal PIN
+              </DialogTitle>
+              <DialogContent>
+                <Typography variant="body2" sx={{ color: '#9CA3AF', mb: 2 }}>
+                  To protect your funds against unauthorized access, create a 6-digit Security PIN. You will need this PIN for every cashout.
+                </Typography>
+
+                {setupPinError && (
+                  <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+                    {setupPinError}
+                  </Alert>
+                )}
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, my: 1 }}>
+                  <TextField
+                    fullWidth
+                    label="Create 6-Digit PIN"
+                    type="password"
+                    value={newPin}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setNewPin(val);
+                    }}
+                    placeholder="••••••"
+                    slotProps={{
+                      input: {
+                        sx: { fontFamily: 'monospace', letterSpacing: '0.4em', textAlign: 'center', fontSize: '1.2rem' },
+                        inputProps: { maxLength: 6, inputMode: 'numeric' }
+                      }
+                    }}
+                    required
+                  />
+
+                  <TextField
+                    fullWidth
+                    label="Confirm 6-Digit PIN"
+                    type="password"
+                    value={confirmPin}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setConfirmPin(val);
+                    }}
+                    placeholder="••••••"
+                    slotProps={{
+                      input: {
+                        sx: { fontFamily: 'monospace', letterSpacing: '0.4em', textAlign: 'center', fontSize: '1.2rem' },
+                        inputProps: { maxLength: 6, inputMode: 'numeric' }
+                      }
+                    }}
+                    required
+                  />
+                </Box>
+
+                <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mt: 1.5 }}>
+                  🛡️ Tip: Do not share your PIN with anyone. Admin will never ask for your PIN.
+                </Typography>
+              </DialogContent>
+              <DialogActions sx={{ p: 2, gap: 1 }}>
+                <Button onClick={() => setIsSetPinModalOpen(false)} sx={{ color: '#9CA3AF', fontWeight: 700 }}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="secondary"
+                  disabled={newPin.length !== 6 || confirmPin.length !== 6}
+                  sx={{
+                    fontWeight: 900,
+                    px: 3,
+                    background: 'linear-gradient(90deg, #ec4899 0%, #8b5cf6 100%)'
+                  }}
+                >
+                  Save PIN & Continue
+                </Button>
+              </DialogActions>
+            </form>
+          </Dialog>
+
+          {/* Confirmation & PIN Authorization Modal */}
           <Dialog
             open={isConfirmOpen}
-            onClose={() => setIsConfirmOpen(false)}
+            onClose={() => !loading && setIsConfirmOpen(false)}
             maxWidth="xs"
             fullWidth
             slotProps={{ paper: { sx: { p: 1, backgroundColor: '#0d111d', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 3.5 } } }}
           >
-            <DialogTitle sx={{ fontWeight: 900, fontSize: '1.2rem', pb: 1 }}>Confirm USDT Cashout</DialogTitle>
+            <DialogTitle sx={{ fontWeight: 900, fontSize: '1.2rem', pb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Confirm USDT Cashout</span>
+              <Chip
+                icon={<ShieldOutlinedIcon sx={{ fontSize: 16 }} />}
+                label="PIN Protected"
+                size="small"
+                color="secondary"
+                sx={{ fontWeight: 800, fontSize: '0.7rem' }}
+              />
+            </DialogTitle>
             <DialogContent>
               <Typography variant="body2" sx={{ color: '#9CA3AF', mb: 2 }}>
-                Please review your withdrawal details carefully before confirming.
+                Review transaction details and enter your 6-digit Withdrawal PIN to authorize transfer.
               </Typography>
+
+              {/* Lockout alert if applicable */}
+              {isPinLocked && lockoutMsg && (
+                <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+                  <strong>Security Lockout:</strong> {lockoutMsg}
+                </Alert>
+              )}
+
+              {/* Error feedback */}
+              {pinError && !isPinLocked && (
+                <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+                  {pinError}
+                </Alert>
+              )}
 
               <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', mb: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
@@ -693,33 +928,105 @@ export const WithdrawalPanel: React.FC = () => {
                 </Box>
               </Box>
 
-              <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mb: 0.5 }}>
-                Destination Address:
-              </Typography>
-              <Alert severity="info" sx={{ mb: 2, wordBreak: 'break-all', fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                {recipientAddress}
-              </Alert>
+              {/* Address Whitelist Status Badge */}
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                  <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700 }}>
+                    Destination Address:
+                  </Typography>
+                  {isAddressWhitelisted ? (
+                    <Chip
+                      size="small"
+                      icon={<CheckCircleIcon sx={{ fontSize: 14 }} />}
+                      label="Whitelisted Address"
+                      color="success"
+                      variant="outlined"
+                      sx={{ fontSize: '0.68rem', height: 20, fontWeight: 700 }}
+                    />
+                  ) : (
+                    <Chip
+                      size="small"
+                      label="New Destination"
+                      color="warning"
+                      variant="outlined"
+                      sx={{ fontSize: '0.68rem', height: 20, fontWeight: 700 }}
+                    />
+                  )}
+                </Box>
+                <Alert severity="info" sx={{ wordBreak: 'break-all', fontFamily: 'monospace', fontSize: '0.8rem', py: 0.5 }}>
+                  {recipientAddress}
+                </Alert>
+              </Box>
 
-              <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-                🛡️ Note: The amount will be locked in Pending Balance until verified by admin. You can cancel and receive an instant refund anytime before approval.
-              </Typography>
+              {/* 6-Digit PIN Input */}
+              <Box sx={{ mt: 2.5, p: 2, borderRadius: 2.5, bgcolor: 'rgba(139, 92, 246, 0.06)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
+                <Typography variant="caption" sx={{ color: '#c084fc', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 0.8, mb: 1 }}>
+                  <LockOutlinedIcon sx={{ fontSize: 16 }} />
+                  ENTER 6-DIGIT WITHDRAWAL PIN
+                </Typography>
+                <TextField
+                  fullWidth
+                  type="password"
+                  value={withdrawalPin}
+                  disabled={isPinLocked || loading}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setWithdrawalPin(val);
+                    if (pinError) setPinError(null);
+                  }}
+                  placeholder="••••••"
+                  autoFocus
+                  slotProps={{
+                    input: {
+                      sx: {
+                        fontFamily: 'monospace',
+                        letterSpacing: '0.5em',
+                        textAlign: 'center',
+                        fontSize: '1.4rem',
+                        fontWeight: 900,
+                        bgcolor: 'rgba(0,0,0,0.4)',
+                        borderRadius: 2
+                      },
+                      inputProps: { maxLength: 6, inputMode: 'numeric' }
+                    }
+                  }}
+                />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                  <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.72rem' }}>
+                    3 failed attempts locks cashouts for 12 hrs
+                  </Typography>
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setIsConfirmOpen(false);
+                      setSetupPinError(null);
+                      setNewPin('');
+                      setConfirmPin('');
+                      setIsSetPinModalOpen(true);
+                    }}
+                    sx={{ fontSize: '0.72rem', textTransform: 'none', color: '#a78bfa', p: 0 }}
+                  >
+                    Forgot / Reset PIN?
+                  </Button>
+                </Box>
+              </Box>
             </DialogContent>
             <DialogActions sx={{ p: 2, gap: 1 }}>
-              <Button onClick={() => setIsConfirmOpen(false)} sx={{ color: '#9CA3AF', fontWeight: 700 }}>
-                Back
+              <Button onClick={() => setIsConfirmOpen(false)} disabled={loading} sx={{ color: '#9CA3AF', fontWeight: 700 }}>
+                Cancel
               </Button>
               <Button
                 variant="contained"
                 color="secondary"
                 onClick={handleConfirmWithdrawal}
-                disabled={loading}
+                disabled={loading || isPinLocked || withdrawalPin.length !== 6}
                 sx={{
                   fontWeight: 900,
                   px: 3,
                   background: 'linear-gradient(90deg, #ec4899 0%, #8b5cf6 100%)'
                 }}
               >
-                {loading ? 'Processing...' : 'Confirm & Submit'}
+                {loading ? 'Verifying & Submitting...' : 'Authorize Cashout'}
               </Button>
             </DialogActions>
           </Dialog>

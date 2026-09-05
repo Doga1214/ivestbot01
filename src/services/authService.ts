@@ -11,7 +11,39 @@ export interface UserProfile {
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'BLOCKED';
   kycStatus: 'NOT_SUBMITTED' | 'PENDING' | 'VERIFIED' | 'REJECTED';
   avatarUrl?: string;
+  hasWithdrawalPin?: boolean;
+  withdrawalPinHash?: string;
+  pinFailedAttempts?: number;
+  pinLockedUntil?: string;
   createdAt: string;
+}
+
+export interface PinSecurityState {
+  hasPin: boolean;
+  pinHash?: string;
+  failedAttempts: number;
+  lockedUntil?: string | null;
+}
+
+export async function hashWithdrawalPin(pin: string, salt: string = 'ivestbot_sec_pin_'): Promise<string> {
+  try {
+    if (typeof crypto !== 'undefined' && crypto.subtle) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(salt + pin);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+  } catch {
+    // fallback
+  }
+  let hash = 0;
+  const str = salt + pin;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return 'fb_' + Math.abs(hash).toString(16);
 }
 
 export function isValidUuid(id?: string | null): boolean {
@@ -523,5 +555,138 @@ export const authService = {
     }
 
     return true;
+  },
+
+  getPinSecurityState(userId?: string): PinSecurityState {
+    const targetId = userId || this.getCurrentUser()?.id;
+    if (!targetId) {
+      return { hasPin: false, failedAttempts: 0, lockedUntil: null };
+    }
+    try {
+      const stored = localStorage.getItem(`ivestbot_pin_${targetId}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return {
+          hasPin: !!parsed.pinHash,
+          pinHash: parsed.pinHash,
+          failedAttempts: parsed.failedAttempts || 0,
+          lockedUntil: parsed.lockedUntil || null
+        };
+      }
+    } catch {
+      // ignore
+    }
+    return { hasPin: false, failedAttempts: 0, lockedUntil: null };
+  },
+
+  hasWithdrawalPin(userId?: string): boolean {
+    return this.getPinSecurityState(userId).hasPin;
+  },
+
+  async setWithdrawalPin(userId: string, newPin: string): Promise<boolean> {
+    if (!newPin || !/^\d{6}$/.test(newPin)) {
+      throw new Error('Withdrawal Security PIN must be exactly 6 digits.');
+    }
+    const hash = await hashWithdrawalPin(newPin);
+    const data: PinSecurityState = {
+      hasPin: true,
+      pinHash: hash,
+      failedAttempts: 0,
+      lockedUntil: null
+    };
+    localStorage.setItem(`ivestbot_pin_${userId}`, JSON.stringify(data));
+    this.updateUser(userId, { hasWithdrawalPin: true });
+    return true;
+  },
+
+  async verifyWithdrawalPin(
+    userId: string,
+    pin: string
+  ): Promise<{ success: boolean; message?: string; attemptsLeft?: number; isLocked?: boolean; unlockTime?: string }> {
+    const state = this.getPinSecurityState(userId);
+
+    if (!state.hasPin || !state.pinHash) {
+      return {
+        success: false,
+        message: 'Withdrawal PIN is not set yet. Please set a 6-digit PIN first.',
+        attemptsLeft: 3,
+        isLocked: false
+      };
+    }
+
+    // Check if account is currently locked out
+    if (state.lockedUntil) {
+      const lockExpiry = new Date(state.lockedUntil).getTime();
+      const now = Date.now();
+      if (now < lockExpiry) {
+        const minutesLeft = Math.ceil((lockExpiry - now) / (60 * 1000));
+        return {
+          success: false,
+          message: `Withdrawal PIN is locked due to multiple failed attempts. Try again in ${minutesLeft} minute(s).`,
+          isLocked: true,
+          unlockTime: state.lockedUntil
+        };
+      }
+    }
+
+    const inputHash = await hashWithdrawalPin(pin);
+    if (inputHash === state.pinHash) {
+      // Reset failed attempts on success
+      const updated: PinSecurityState = {
+        ...state,
+        failedAttempts: 0,
+        lockedUntil: null
+      };
+      localStorage.setItem(`ivestbot_pin_${userId}`, JSON.stringify(updated));
+      return { success: true };
+    }
+
+    // Incorrect PIN
+    const newFailed = (state.failedAttempts || 0) + 1;
+    const maxAttempts = 3;
+    const attemptsLeft = Math.max(0, maxAttempts - newFailed);
+
+    let lockedUntil: string | null = null;
+    if (newFailed >= maxAttempts) {
+      // Lock for 12 hours (or 1 hour for test/safety)
+      lockedUntil = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+    }
+
+    const updated: PinSecurityState = {
+      ...state,
+      failedAttempts: newFailed,
+      lockedUntil
+    };
+    localStorage.setItem(`ivestbot_pin_${userId}`, JSON.stringify(updated));
+
+    if (lockedUntil) {
+      return {
+        success: false,
+        message: 'Too many incorrect PIN attempts. Withdrawals are temporarily locked for 12 hours.',
+        attemptsLeft: 0,
+        isLocked: true,
+        unlockTime: lockedUntil
+      };
+    }
+
+    return {
+      success: false,
+      message: `Incorrect 6-digit PIN. ${attemptsLeft} attempt(s) remaining before security lockout.`,
+      attemptsLeft,
+      isLocked: false
+    };
+  },
+
+  async changeWithdrawalPin(
+    userId: string,
+    currentPin: string,
+    newPin: string
+  ): Promise<{ success: boolean; message: string }> {
+    const verifyRes = await this.verifyWithdrawalPin(userId, currentPin);
+    if (!verifyRes.success) {
+      return { success: false, message: verifyRes.message || 'Current PIN verification failed' };
+    }
+    await this.setWithdrawalPin(userId, newPin);
+    return { success: true, message: 'Withdrawal PIN updated successfully!' };
   }
 };

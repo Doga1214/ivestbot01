@@ -106,4 +106,53 @@ export async function runAuthServiceTests(runner: TestRunner) {
     assert.ok(deletedIds.has(userToDelete.id));
     assert.strictEqual(localStorage.getItem(`ivestbot_wallet_${userToDelete.id}`), null);
   });
+
+  await runner.test('Withdrawal PIN lifecycle: set PIN, verify PIN, incorrect attempt countdown, lockout, and change PIN', async () => {
+    const testUserId = '55555555-5555-5555-a555-555555555555';
+
+    // 1. Initial state: hasPin = false
+    assert.strictEqual(authService.hasWithdrawalPin(testUserId), false);
+
+    // 2. Set valid 6-digit PIN '123456'
+    const setSuccess = await authService.setWithdrawalPin(testUserId, '123456');
+    assert.strictEqual(setSuccess, true);
+    assert.strictEqual(authService.hasWithdrawalPin(testUserId), true);
+
+    // 3. Verify correct PIN
+    const correctRes = await authService.verifyWithdrawalPin(testUserId, '123456');
+    assert.strictEqual(correctRes.success, true);
+
+    // 4. Verify incorrect PIN (1st attempt)
+    const fail1 = await authService.verifyWithdrawalPin(testUserId, '999999');
+    assert.strictEqual(fail1.success, false);
+    assert.strictEqual(fail1.attemptsLeft, 2);
+    assert.strictEqual(fail1.isLocked, false);
+
+    // 5. Verify incorrect PIN (2nd attempt)
+    const fail2 = await authService.verifyWithdrawalPin(testUserId, '888888');
+    assert.strictEqual(fail2.success, false);
+    assert.strictEqual(fail2.attemptsLeft, 1);
+    assert.strictEqual(fail2.isLocked, false);
+
+    // 6. Verify incorrect PIN (3rd attempt -> lockout triggered)
+    const fail3 = await authService.verifyWithdrawalPin(testUserId, '777777');
+    assert.strictEqual(fail3.success, false);
+    assert.strictEqual(fail3.attemptsLeft, 0);
+    assert.strictEqual(fail3.isLocked, true);
+
+    // 7. Further attempt while locked is blocked
+    const lockCheck = await authService.verifyWithdrawalPin(testUserId, '123456');
+    assert.strictEqual(lockCheck.success, false);
+    assert.strictEqual(lockCheck.isLocked, true);
+
+    // 8. Change PIN with new valid PIN (after unlocking)
+    localStorage.removeItem(`ivestbot_pin_${testUserId}`);
+    await authService.setWithdrawalPin(testUserId, '112233');
+    const changeRes = await authService.changeWithdrawalPin(testUserId, '112233', '654321');
+    assert.strictEqual(changeRes.success, true);
+
+    // Verify new PIN works
+    const newVerify = await authService.verifyWithdrawalPin(testUserId, '654321');
+    assert.strictEqual(newVerify.success, true);
+  });
 }

@@ -16,10 +16,20 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField
+  TextField,
+  Paper
 } from '@mui/material';
-import { CheckIcon, CancelIcon, HourglassBottomIcon } from '../common/Icons';
+import {
+  CheckIcon,
+  CancelIcon,
+  HourglassBottomIcon,
+  ShieldOutlinedIcon,
+  LockOutlinedIcon,
+  VerifiedUserIcon,
+  WarningAmberIcon
+} from '../common/Icons';
 import type { WalletTransaction } from '../../services/walletService';
+import { authService } from '../../services/authService';
 import { formatUSDT, formatDateTime } from '../../utils/formatters';
 
 interface AdminWithdrawalQueueProps {
@@ -38,10 +48,16 @@ export const AdminWithdrawalQueue: React.FC<AdminWithdrawalQueueProps> = ({
   const [adminRemarks, setAdminRemarks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const allUsers = authService.getAllUsers();
+
   const handleOpenAction = (tx: WalletTransaction, type: 'APPROVE' | 'REJECT') => {
     setSelectedTx(tx);
     setActionType(type);
-    setAdminRemarks(type === 'APPROVE' ? 'Withdrawal dispatched via blockchain batch.' : 'Withdrawal rejected: suspicious activity / security review.');
+    setAdminRemarks(
+      type === 'APPROVE'
+        ? 'Withdrawal authorized and dispatched via blockchain batch.'
+        : 'Withdrawal rejected: security review / suspicious activity.'
+    );
   };
 
   const handleConfirmAction = async () => {
@@ -78,7 +94,7 @@ export const AdminWithdrawalQueue: React.FC<AdminWithdrawalQueueProps> = ({
               Withdrawal Verification Queue
             </Typography>
             <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-              Review pending user withdrawal requests and approve payout or reject & refund.
+              Review pending user withdrawal requests, inspect risk flags, and approve payout or refund.
             </Typography>
           </Box>
           <Chip
@@ -114,84 +130,130 @@ export const AdminWithdrawalQueue: React.FC<AdminWithdrawalQueueProps> = ({
                   <TableCell>Ref ID / Time</TableCell>
                   <TableCell>User</TableCell>
                   <TableCell align="right">Amount</TableCell>
+                  <TableCell>Security / Risk Assessment</TableCell>
                   <TableCell>Destination Address</TableCell>
                   <TableCell align="center">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {withdrawals.map((tx) => (
-                  <TableRow
-                    key={tx.id}
-                    hover
-                    sx={{ '& td': { borderColor: 'rgba(255, 255, 255, 0.05)', py: 1.8 } }}
-                  >
-                    <TableCell>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#f87171' }}>
-                        {tx.referenceId}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: '#6B7280' }}>
-                        {formatDateTime(tx.createdAt)}
-                      </Typography>
-                    </TableCell>
+                {withdrawals.map((tx) => {
+                  const userProfile = allUsers.find(u => u.id === tx.userId);
+                  const isKycVerified = userProfile?.kycStatus === 'VERIFIED';
+                  const isHighValue = tx.amount >= 1000;
+                  const hasPin = tx.userId ? authService.hasWithdrawalPin(tx.userId) : true;
 
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {tx.userName || 'Current Demo User'}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-                        {tx.userEmail || 'demo@ivestbot.com'}
-                      </Typography>
-                    </TableCell>
+                  return (
+                    <TableRow
+                      key={tx.id}
+                      hover
+                      sx={{ '& td': { borderColor: 'rgba(255, 255, 255, 0.05)', py: 1.8 } }}
+                    >
+                      <TableCell>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#f87171' }}>
+                          {tx.referenceId}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                          {formatDateTime(tx.createdAt)}
+                        </Typography>
+                      </TableCell>
 
-                    <TableCell align="right">
-                      <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#f87171' }}>
-                        -{formatUSDT(tx.amount)}
-                      </Typography>
-                    </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {tx.userName || userProfile?.name || 'User'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
+                          {tx.userEmail || userProfile?.email || 'N/A'}
+                        </Typography>
+                      </TableCell>
 
-                    <TableCell>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          fontFamily: 'monospace',
-                          maxWidth: 160,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          display: 'block',
-                          color: '#e2e8f0'
-                        }}
-                      >
-                        {tx.address || 'N/A'}
-                      </Typography>
-                    </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#f87171' }}>
+                          -{formatUSDT(tx.amount)}
+                        </Typography>
+                      </TableCell>
 
-                    <TableCell align="center">
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                        <Button
-                          variant="contained"
-                          color="success"
-                          size="small"
-                          startIcon={<CheckIcon />}
-                          onClick={() => handleOpenAction(tx, 'APPROVE')}
-                          sx={{ fontWeight: 800, textTransform: 'none' }}
+                      {/* Security / Risk Flags */}
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 0.8, flexWrap: 'wrap' }}>
+                          {hasPin && (
+                            <Chip
+                              icon={<LockOutlinedIcon sx={{ fontSize: 13 }} />}
+                              label="PIN Verified"
+                              size="small"
+                              sx={{ bgcolor: 'rgba(139, 92, 246, 0.15)', color: '#c084fc', fontWeight: 800, fontSize: '0.68rem', height: 22 }}
+                            />
+                          )}
+                          {isKycVerified ? (
+                            <Chip
+                              icon={<VerifiedUserIcon sx={{ fontSize: 13 }} />}
+                              label="KYC Verified"
+                              color="success"
+                              size="small"
+                              sx={{ fontWeight: 800, fontSize: '0.68rem', height: 22 }}
+                            />
+                          ) : (
+                            <Chip
+                              icon={<WarningAmberIcon sx={{ fontSize: 13 }} />}
+                              label="Unverified KYC"
+                              color="warning"
+                              size="small"
+                              sx={{ fontWeight: 800, fontSize: '0.68rem', height: 22 }}
+                            />
+                          )}
+                          {isHighValue && (
+                            <Chip
+                              label="High Value ($1k+)"
+                              size="small"
+                              sx={{ bgcolor: 'rgba(236, 72, 153, 0.15)', color: '#f472b6', fontWeight: 800, fontSize: '0.68rem', height: 22 }}
+                            />
+                          )}
+                        </Box>
+                      </TableCell>
+
+                      <TableCell>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontFamily: 'monospace',
+                            maxWidth: 160,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            display: 'block',
+                            color: '#e2e8f0'
+                          }}
                         >
-                          Approve Payout
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          size="small"
-                          startIcon={<CancelIcon />}
-                          onClick={() => handleOpenAction(tx, 'REJECT')}
-                          sx={{ fontWeight: 700, textTransform: 'none' }}
-                        >
-                          Reject & Refund
-                        </Button>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          {tx.address || 'N/A'}
+                        </Typography>
+                      </TableCell>
+
+                      <TableCell align="center">
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            color="success"
+                            size="small"
+                            startIcon={<CheckIcon />}
+                            onClick={() => handleOpenAction(tx, 'APPROVE')}
+                            sx={{ fontWeight: 800, textTransform: 'none' }}
+                          >
+                            Approve Payout
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            size="small"
+                            startIcon={<CancelIcon />}
+                            onClick={() => handleOpenAction(tx, 'REJECT')}
+                            sx={{ fontWeight: 700, textTransform: 'none' }}
+                          >
+                            Reject & Refund
+                          </Button>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>
@@ -217,6 +279,25 @@ export const AdminWithdrawalQueue: React.FC<AdminWithdrawalQueueProps> = ({
           {actionType === 'APPROVE' ? 'Approve & Release Withdrawal' : 'Reject & Refund Withdrawal'}
         </DialogTitle>
         <DialogContent>
+          {selectedTx && (
+            <Paper sx={{ p: 2, mb: 2, bgcolor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.8 }}>
+                <Typography variant="caption" sx={{ color: '#9CA3AF' }}>User:</Typography>
+                <Typography variant="caption" sx={{ fontWeight: 800, color: '#ffffff' }}>{selectedTx.userName || 'User'}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.8 }}>
+                <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Amount:</Typography>
+                <Typography variant="caption" sx={{ fontWeight: 800, color: '#34d399' }}>{selectedTx.amount} USDT</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Recipient:</Typography>
+                <Typography variant="caption" sx={{ fontFamily: 'monospace', color: '#60a5fa', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {selectedTx.address}
+                </Typography>
+              </Box>
+            </Paper>
+          )}
+
           <Typography variant="body2" sx={{ color: '#9CA3AF', mb: 2 }}>
             {actionType === 'APPROVE'
               ? `Confirm payout of ${selectedTx?.amount} USDT to ${selectedTx?.address}?`
