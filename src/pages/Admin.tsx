@@ -190,6 +190,32 @@ export const Admin: React.FC = () => {
   };
 
   const handleVerifyKyc = async (userId: string, status: 'VERIFIED' | 'REJECTED', notes?: string) => {
+    // Instant optimistic state update for 0ms UI latency in KYC queue
+    setUsers(prevUsers => prevUsers.map(u => {
+      if (u.profile.id === userId) {
+        return {
+          ...u,
+          profile: { ...u.profile, kycStatus: status },
+          kycSubmission: u.kycSubmission ? {
+            ...u.kycSubmission,
+            status,
+            reviewedAt: new Date().toISOString(),
+            adminNotes: notes || (status === 'VERIFIED' ? 'Approved by Compliance Officer' : 'ID rejected')
+          } : {
+            userId,
+            fullName: u.profile.name,
+            documentType: 'PASSPORT',
+            documentNumber: 'VERIFIED-DOC',
+            status,
+            submittedAt: u.profile.createdAt,
+            reviewedAt: new Date().toISOString(),
+            adminNotes: notes
+          }
+        };
+      }
+      return u;
+    }));
+
     await adminVerifyKyc(userId, status, notes);
     await loadAdminData();
   };

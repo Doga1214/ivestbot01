@@ -133,20 +133,30 @@ export const adminService = {
             createdAt: p.created_at || new Date().toISOString()
           };
 
-          const kycSubmission: KycSubmission | undefined = kycRec ? {
-            userId: kycRec.user_id,
-            fullName: kycRec.full_name || p.name,
-            documentType: kycRec.document_type || 'PASSPORT',
-            documentNumber: kycRec.document_number || '',
-            documentFileName: kycRec.document_url || 'id_document.pdf',
-            status: (kycRec.status as any) || p.kyc_status || 'PENDING',
-            submittedAt: kycRec.created_at || p.created_at,
-            reviewedAt: kycRec.updated_at,
-            adminNotes: kycRec.rejection_reason || undefined
-          } : (p.kyc_status && p.kyc_status !== 'NOT_SUBMITTED' ? walletService.getKycStatus(p.id) : undefined);
+          const localKyc = walletService.getKycStatus(p.id);
+          const effectiveKycStatus = (p.kyc_status && p.kyc_status !== 'NOT_SUBMITTED')
+            ? p.kyc_status
+            : (kycRec?.status as any) || localKyc.status || 'NOT_SUBMITTED';
+
+          const hasKyc = kycRec || (localKyc && localKyc.status !== 'NOT_SUBMITTED') || (p.kyc_status && p.kyc_status !== 'NOT_SUBMITTED');
+
+          const kycSubmission: KycSubmission | undefined = hasKyc ? {
+            userId: p.id,
+            fullName: kycRec?.full_name || localKyc.fullName || p.name,
+            documentType: kycRec?.document_type || localKyc.documentType || 'PASSPORT',
+            documentNumber: kycRec?.document_number || localKyc.documentNumber || '',
+            documentFileName: kycRec?.document_url || localKyc.documentFileName || 'id_document.pdf',
+            status: effectiveKycStatus as any,
+            submittedAt: kycRec?.created_at || localKyc.submittedAt || p.created_at,
+            reviewedAt: kycRec?.updated_at || localKyc.reviewedAt,
+            adminNotes: kycRec?.rejection_reason || localKyc.adminNotes || undefined
+          } : undefined;
 
           return {
-            profile: userProfile,
+            profile: {
+              ...userProfile,
+              kycStatus: effectiveKycStatus as any
+            },
             wallet: walletState,
             pendingDepositsCount: userDeps.length,
             pendingDepositsSum: Number(depSum.toFixed(4)),
@@ -169,7 +179,7 @@ export const adminService = {
         pendingDepositsCount: 0,
         pendingDepositsSum: 0,
         totalTransactionsCount: 0,
-        kycSubmission: kyc.status !== 'NOT_SUBMITTED' ? kyc : undefined
+        kycSubmission: (kyc.status && kyc.status !== 'NOT_SUBMITTED') ? kyc : undefined
       };
     });
   },
@@ -454,7 +464,13 @@ export const adminService = {
 
     // 3. Dispatch global browser events
     try {
-      window.dispatchEvent(new CustomEvent('ivestbot_kyc_updated', { detail: { userId, status, notes: reason } }));
+      const payload = { userId, status, notes: reason, adminNotes: reason, reviewedAt: now, ...updated };
+      window.dispatchEvent(new CustomEvent('ivestbot_kyc_updated', { detail: payload }));
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('ivestbot_realtime_sync');
+        bc.postMessage({ type: 'KYC_UPDATED', payload });
+        bc.close();
+      }
       window.dispatchEvent(new Event('storage'));
     } catch {
       // ignore

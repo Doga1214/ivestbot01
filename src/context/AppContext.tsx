@@ -180,17 +180,75 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const handleKycUpdated = (e: any) => {
       const targetId = user?.id || authService.getCurrentUser()?.id;
-      if (targetId && (e.detail?.userId === targetId || !e.detail?.userId)) {
-        if (e.detail?.status) {
-          setKyc(prev => ({ ...prev, status: e.detail.status, adminNotes: e.detail.notes }));
-          setUser(prev => prev ? { ...prev, kycStatus: e.detail.status } : null);
+      const detail = e.detail || e.payload || e;
+      if (targetId && (detail?.userId === targetId || !detail?.userId)) {
+        if (detail?.status) {
+          const newStatus = detail.status;
+          const notes = detail.notes || detail.adminNotes;
+          setKyc(prev => ({
+            ...prev,
+            ...detail,
+            status: newStatus,
+            adminNotes: notes,
+            reviewedAt: detail.reviewedAt || new Date().toISOString()
+          }));
+          setUser(prev => {
+            if (prev && prev.kycStatus !== newStatus) {
+              if (newStatus === 'VERIFIED') {
+                showSnackbar('🎉 KYC Verification Approved! Your account is now fully verified with higher limits.', 'success');
+              } else if (newStatus === 'REJECTED') {
+                showSnackbar('⚠️ KYC Document Rejected by Compliance Officer. Please re-submit valid documents.', 'error');
+              }
+            }
+            return prev ? { ...prev, kycStatus: newStatus } : null;
+          });
+        }
+      }
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+      handleWalletUpdated(e);
+      const targetId = user?.id || authService.getCurrentUser()?.id;
+      if (targetId) {
+        const storedKyc = walletService.getKycStatus(targetId);
+        if (storedKyc && storedKyc.status !== 'NOT_SUBMITTED') {
+          setKyc(storedKyc);
+          if (storedKyc.status === 'VERIFIED' || storedKyc.status === 'REJECTED') {
+            setUser(prev => {
+              if (prev && prev.kycStatus !== storedKyc.status && storedKyc.status === 'VERIFIED') {
+                showSnackbar('🎉 KYC Verification Approved! Your account is now fully verified.', 'success');
+              }
+              return prev ? { ...prev, kycStatus: storedKyc.status } : null;
+            });
+          }
+        }
+        const activeUser = authService.getCurrentUser();
+        if (activeUser && activeUser.id === targetId) {
+          setUser(activeUser);
         }
       }
     };
 
     window.addEventListener('ivestbot_wallet_updated', handleWalletUpdated);
     window.addEventListener('ivestbot_kyc_updated', handleKycUpdated);
-    window.addEventListener('storage', handleWalletUpdated);
+    window.addEventListener('storage', handleStorageChange);
+
+    // BroadcastChannel for instant cross-tab real-time sync
+    let syncBc: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        syncBc = new BroadcastChannel('ivestbot_realtime_sync');
+        syncBc.onmessage = (event) => {
+          if (event.data?.type === 'KYC_UPDATED') {
+            handleKycUpdated({ detail: event.data.payload });
+          } else if (event.data?.type === 'WALLET_UPDATED') {
+            handleWalletUpdated({ detail: event.data.payload });
+          }
+        };
+      } catch {
+        // ignore
+      }
+    }
 
     // User-scoped Supabase Realtime Channel
     let userChannel: any = null;
@@ -225,6 +283,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               adminNotes: payload.new.rejection_reason || undefined
             };
             setKyc(updatedKyc);
+            if (payload.new.status) {
+              setUser(prev => prev ? { ...prev, kycStatus: payload.new.status } : null);
+            }
           }
           walletService.syncKycFromSupabase(user.id).then(k => { if (k) setKyc(k); });
         })
@@ -246,10 +307,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     return () => {
       if (userChannel) supabase.removeChannel(userChannel);
+      if (syncBc) syncBc.close();
       clearInterval(interval);
       window.removeEventListener('ivestbot_wallet_updated', handleWalletUpdated);
       window.removeEventListener('ivestbot_kyc_updated', handleKycUpdated);
-      window.removeEventListener('storage', handleWalletUpdated);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, [user?.id]);
 

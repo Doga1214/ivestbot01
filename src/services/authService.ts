@@ -431,15 +431,28 @@ export const authService = {
 
   adminUpdateUser(userId: string, updates: Partial<UserProfile>): UserProfile | null {
     const all = this.getAllUsers();
-    const index = all.findIndex(u => u.id === userId);
-    if (index === -1) return null;
+    let index = all.findIndex(u => u.id === userId);
+    let updatedUser: UserProfile | null = null;
 
-    all[index] = { ...all[index], ...updates };
-    this.saveAllUsers(all);
+    if (index === -1) {
+      const current = this.getCurrentUser();
+      if (current && current.id === userId) {
+        updatedUser = { ...current, ...updates };
+        all.push(updatedUser);
+      }
+    } else {
+      all[index] = { ...all[index], ...updates };
+      updatedUser = all[index];
+    }
+
+    if (updatedUser) {
+      this.saveAllUsers(all);
+    }
 
     const current = this.getCurrentUser();
     if (current && current.id === userId) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(all[index]));
+      const newCurrent = { ...current, ...updates };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newCurrent));
     }
 
     // Sync to Supabase profiles table
@@ -457,7 +470,7 @@ export const authService = {
       });
     }
 
-    return all[index];
+    return updatedUser || (current && current.id === userId ? { ...current, ...updates } : null);
   },
 
   async deleteUser(userId: string): Promise<boolean> {

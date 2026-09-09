@@ -1111,6 +1111,11 @@ export const walletService = {
     // Dispatch instant events
     try {
       window.dispatchEvent(new CustomEvent('ivestbot_kyc_updated', { detail: updated }));
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('ivestbot_realtime_sync');
+        bc.postMessage({ type: 'KYC_UPDATED', payload: updated });
+        bc.close();
+      }
       window.dispatchEvent(new Event('storage'));
     } catch {
       // ignore
