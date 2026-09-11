@@ -253,70 +253,136 @@ export const walletService = {
   },
 
   async syncWalletFromSupabase(userId: string): Promise<WalletState | null> {
-    if (!isValidUuid(userId)) {
+    if (!userId) {
       return null;
     }
 
     try {
-      // 1. Query Supabase wallets table
-      const { data: walletData } = await supabase
-        .from('wallets')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
+      const currentUser = authService.getCurrentUser();
+      const allUsers = authService.getAllUsers();
+      const userProfile = allUsers.find(u => u.id === userId || (currentUser && u.id === currentUser.id));
 
-      // 2. Query immutable deposits table for this user (Approved & Pending)
-      const { data: approvedDeposits } = await supabase
-        .from('deposits')
-        .select('amount')
-        .eq('user_id', userId)
-        .eq('status', 'APPROVED');
+      // Collect all possible ID aliases for this user (UUID, legacy ID, email, username)
+      const candidateIds = new Set<string>();
+      candidateIds.add(userId);
+      if (currentUser?.id) candidateIds.add(currentUser.id);
+      if (userProfile?.id) candidateIds.add(userProfile.id);
 
-      const { data: pendingDeposits } = await supabase
-        .from('deposits')
-        .select('amount')
-        .eq('user_id', userId)
-        .eq('status', 'PENDING');
+      // Try resolving canonical UUID from Supabase profiles if not a UUID
+      let canonicalId = isValidUuid(userId) ? userId : (currentUser?.id && isValidUuid(currentUser.id) ? currentUser.id : '');
+      const userEmail = (userProfile?.email || currentUser?.email || '').toLowerCase().trim();
+      const userUsername = (userProfile?.username || currentUser?.username || '').toLowerCase().trim();
 
-      // 3. Query immutable withdrawals table for this user
-      const { data: approvedWithdrawals } = await supabase
-        .from('withdrawals')
-        .select('amount')
-        .eq('user_id', userId)
-        .eq('status', 'APPROVED');
+      if (!canonicalId && (userEmail || userUsername)) {
+        try {
+          let query = supabase.from('profiles').select('id, email, username');
+          if (userEmail && userUsername) {
+            query = query.or(`email.eq.${userEmail},username.eq.${userUsername}`);
+          } else if (userEmail) {
+            query = query.eq('email', userEmail);
+          } else if (userUsername) {
+            query = query.eq('username', userUsername);
+          }
+          const { data: matchedProf } = await query.maybeSingle();
+          if (matchedProf?.id) {
+            canonicalId = matchedProf.id;
+            candidateIds.add(matchedProf.id);
+          }
+        } catch {
+          // ignore
+        }
+      }
 
-      const totalApprovedDep = (approvedDeposits || []).reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
-      const totalApprovedWth = (approvedWithdrawals || []).reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
-      const totalPendingDep = (pendingDeposits || []).reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      const idList = Array.from(candidateIds);
+
+      // 1. Query Supabase wallets table for all matching candidate IDs
+      let dbWalletData: any = null;
+      for (const id of idList) {
+        const { data: w } = await supabase.from('wallets').select('*').eq('user_id', id).maybeSingle();
+        if (w) {
+          dbWalletData = w;
+          break;
+        }
+      }
+
+      // 2. Query deposits table for all candidate IDs
+      let approvedDeposits: any[] = [];
+      let pendingDeposits: any[] = [];
+      for (const id of idList) {
+        const { data: depList } = await supabase.from('deposits').select('*').eq('user_id', id);
+        if (depList && depList.length > 0) {
+          depList.forEach(d => {
+            if (d.status === 'APPROVED' || d.status === 'COMPLETED' || d.status === 'CONFIRMED') {
+              approvedDeposits.push(d);
+            } else if (d.status === 'PENDING') {
+              pendingDeposits.push(d);
+            }
+          });
+        }
+      }
+
+      // 3. Query withdrawals table for all candidate IDs
+      let approvedWithdrawals: any[] = [];
+      for (const id of idList) {
+        const { data: wthList } = await supabase.from('withdrawals').select('*').eq('user_id', id);
+        if (wthList && wthList.length > 0) {
+          wthList.forEach(w => {
+            if (w.status === 'APPROVED' || w.status === 'COMPLETED') {
+              approvedWithdrawals.push(w);
+            }
+          });
+        }
+      }
+
+      // 4. Query wallet_transactions table for profits / adjustments
+      let totalProfits = 0;
+      for (const id of idList) {
+        const { data: txList } = await supabase.from('wallet_transactions').select('*').eq('user_id', id);
+        if (txList && txList.length > 0) {
+          txList.forEach(t => {
+            const amt = parseFloat(t.amount) || 0;
+            if (t.type === 'DAILY_PROFIT' || t.type === 'WELCOME_BONUS' || t.type === 'REFERRAL_BONUS' || t.type === 'ADMIN_CREDIT') {
+              totalProfits += amt;
+            }
+          });
+        }
+      }
+
+      const totalApprovedDep = approvedDeposits.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+      const totalApprovedWth = approvedWithdrawals.reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
+      const totalPendingDep = pendingDeposits.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
 
       const local = this.getWalletForUser(userId);
-      const rawDbAvailable = parseFloat(walletData?.available_balance);
-      const rawDbTotal = parseFloat(walletData?.total_balance);
+      const rawDbAvailable = parseFloat(dbWalletData?.available_balance);
+      const rawDbTotal = parseFloat(dbWalletData?.total_balance);
       const localAvailable = local?.availableBalance || 0;
       const localTotal = local?.totalBalance || 0;
-      const minimumExpectedAvailable = Math.max(0, Number((totalApprovedDep - totalApprovedWth).toFixed(4)));
 
-      // Retain the highest valid available balance across DB, Ledger, and Local Wallet
+      const ledgerAvailable = Math.max(0, Number((totalApprovedDep + totalProfits - totalApprovedWth).toFixed(4)));
+
+      // Retain the maximum positive available balance from DB, Ledger, or Local Storage
       let availableBalance = 0;
       if (!isNaN(rawDbAvailable) && rawDbAvailable > 0) {
-        availableBalance = Math.max(rawDbAvailable, minimumExpectedAvailable, localAvailable);
-      } else if (minimumExpectedAvailable > 0) {
-        availableBalance = Math.max(minimumExpectedAvailable, localAvailable);
+        availableBalance = Math.max(rawDbAvailable, ledgerAvailable, localAvailable);
+      } else if (ledgerAvailable > 0) {
+        availableBalance = Math.max(ledgerAvailable, localAvailable);
       } else {
         availableBalance = localAvailable;
       }
 
-      let pendingBalance = pendingDeposits && pendingDeposits.length > 0 ? totalPendingDep : (local?.pendingBalance || 0);
-      let totalBalance = Math.max(
+      const pendingBalance = totalPendingDep > 0 ? totalPendingDep : (local?.pendingBalance || 0);
+      const totalBalance = Math.max(
         !isNaN(rawDbTotal) ? rawDbTotal : 0,
         localTotal,
         Number((availableBalance + pendingBalance).toFixed(4))
       );
 
-      // Auto-heal & persist to Supabase if DB balance was lower or missing
-      if (availableBalance > 0 && (!walletData || isNaN(rawDbAvailable) || rawDbAvailable < availableBalance)) {
+      const targetPersistId = canonicalId || userId;
+
+      // Auto-heal & persist to Supabase PostgreSQL database
+      if (isValidUuid(targetPersistId) && availableBalance > 0 && (!dbWalletData || isNaN(rawDbAvailable) || rawDbAvailable < availableBalance)) {
         await supabase.from('wallets').upsert({
-          user_id: userId,
+          user_id: targetPersistId,
           available_balance: availableBalance,
           total_balance: totalBalance,
           pending_balance: pendingBalance,
@@ -330,21 +396,20 @@ export const walletService = {
         totalBalance,
         availableBalance,
         pendingBalance,
-        currency: walletData?.currency || local.currency || 'USDT',
+        currency: dbWalletData?.currency || local.currency || 'USDT',
         status: (local.status === 'FROZEN' ? 'FROZEN' : 'ACTIVE'),
-        updatedAt: walletData?.updated_at || new Date().toISOString()
+        updatedAt: dbWalletData?.updated_at || new Date().toISOString()
       };
 
-      const key = `ivestbot_wallet_${userId}`;
-      localStorage.setItem(key, JSON.stringify(syncedWallet));
-
-      const currentStored = localStorage.getItem('ivestbot_auth_user');
-      if (currentStored) {
-        const currentUser = JSON.parse(currentStored);
-        if (currentUser.id === userId) {
-          this.saveWallet(syncedWallet);
-        }
+      // Save across all candidate keys
+      for (const id of idList) {
+        localStorage.setItem(`ivestbot_wallet_${id}`, JSON.stringify(syncedWallet));
       }
+
+      if (currentUser && idList.includes(currentUser.id)) {
+        this.saveWallet(syncedWallet);
+      }
+
       return syncedWallet;
     } catch (err) {
       console.warn('syncWalletFromSupabase error:', err);
@@ -371,19 +436,21 @@ export const walletService = {
 
   async syncTransactionsFromSupabase(userId?: string): Promise<WalletTransaction[]> {
     try {
-      const validUserId = userId && isValidUuid(userId) ? userId : undefined;
       const allUsers = authService.getAllUsers();
+      const currentUser = authService.getCurrentUser();
       const txMap = new Map<string, WalletTransaction>();
 
-      // 1. Fetch from deposits table (authoritative table for deposits)
-      let depQuery = supabase.from('deposits').select('*').order('created_at', { ascending: false });
-      if (validUserId) {
-        depQuery = depQuery.eq('user_id', validUserId);
-      }
-      const { data: depData } = await depQuery;
+      // Candidate IDs
+      const candidateIds = new Set<string>();
+      if (userId) candidateIds.add(userId);
+      if (currentUser?.id) candidateIds.add(currentUser.id);
+
+      // 1. Fetch from deposits table
+      const { data: depData } = await supabase.from('deposits').select('*').order('created_at', { ascending: false });
 
       if (depData && depData.length > 0) {
         depData.forEach(d => {
+          if (userId && !candidateIds.has(d.user_id)) return;
           const user = allUsers.find(u => u.id === d.user_id);
           const refId = `DEP-${d.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
           txMap.set(d.id, {
@@ -409,15 +476,12 @@ export const walletService = {
         });
       }
 
-      // 2. Fetch from withdrawals table (authoritative table for withdrawals)
-      let wthQuery = supabase.from('withdrawals').select('*').order('created_at', { ascending: false });
-      if (userId) {
-        wthQuery = wthQuery.eq('user_id', userId);
-      }
-      const { data: wthData } = await wthQuery;
+      // 2. Fetch from withdrawals table
+      const { data: wthData } = await supabase.from('withdrawals').select('*').order('created_at', { ascending: false });
 
       if (wthData && wthData.length > 0) {
         wthData.forEach(d => {
+          if (userId && !candidateIds.has(d.user_id)) return;
           const user = allUsers.find(u => u.id === d.user_id);
           const refId = `WTH-${d.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
           txMap.set(d.id, {
@@ -443,14 +507,11 @@ export const walletService = {
       }
 
       // 3. Fetch non-deposit, non-withdrawal records from wallet_transactions table (bonuses, trades, admin adjustments)
-      let txQuery = supabase.from('wallet_transactions').select('*').order('created_at', { ascending: false });
-      if (userId) {
-        txQuery = txQuery.eq('user_id', userId);
-      }
-      const { data: txData } = await txQuery;
+      const { data: txData } = await supabase.from('wallet_transactions').select('*').order('created_at', { ascending: false });
 
       if (txData && txData.length > 0) {
         txData.forEach(d => {
+          if (userId && !candidateIds.has(d.user_id)) return;
           // Avoid duplicate deposits/withdrawals already indexed by ID
           if (txMap.has(d.id)) return;
 
