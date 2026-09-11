@@ -24,13 +24,7 @@ export const ProfileWalletIncomeCard: React.FC = () => {
     .filter(t => t.type === 'DAILY_PROFIT')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const teamTotal = referralSummary?.totalEarnings || 0.0;
-  const activityTotal = transactions
-    .filter(t => t.type === 'ADMIN_CREDIT')
-    .reduce((sum, t) => sum + t.amount, 0);
-  const stakeTotal = 0.0;
-  const premiumTotal = 0.0;
-  const referralTotal = referralSummary?.rewardBalanceUSDT || 0.0;
+  const referralTotal = (referralSummary?.totalEarnings || 0.0) + (referralSummary?.rewardBalanceUSDT || 0.0);
 
   // Daily incomes
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -41,26 +35,18 @@ export const ProfileWalletIncomeCard: React.FC = () => {
   const dailyReserve = todayReserveEarned > 0
     ? Number(todayReserveEarned.toFixed(2))
     : (currentBalance > 0 ? Number((currentBalance * 0.028571).toFixed(2)) : 0.0);
-  const dailyTeam = referralSummary?.todayEarnings || 0.0;
-  const dailyActivity = 0.0;
-  const dailyStake = 0.0;
-  const dailyPremium = 0.0;
-  const dailyReferral = 0.0;
+  const dailyReferral = referralSummary?.todayEarnings || 0.0;
 
   const dailyComprehensive = Number(
-    (dailyReserve + dailyTeam + dailyActivity + dailyStake + dailyPremium + dailyReferral).toFixed(2)
+    (dailyReserve + dailyReferral).toFixed(2)
   );
   const totalComprehensive = Number(
-    (reserveTotal + teamTotal + activityTotal + stakeTotal + premiumTotal + referralTotal).toFixed(2)
+    (reserveTotal + referralTotal).toFixed(2)
   );
 
-  // Exact 7 rows matching the user's screenshot
+  // Cleaned income rows (Removed Activity, Team, Stake, Premium)
   const incomeRows = [
     { label: 'Comprehensive', daily: dailyComprehensive, total: totalComprehensive },
-    { label: 'Activity', daily: dailyActivity, total: activityTotal },
-    { label: 'Team', daily: dailyTeam, total: teamTotal },
-    { label: 'Stake', daily: dailyStake, total: stakeTotal },
-    { label: 'Premium', daily: dailyPremium, total: premiumTotal },
     { label: 'Referral', daily: dailyReferral, total: referralTotal },
     { label: 'Reserve', daily: dailyReserve, total: reserveTotal }
   ];
