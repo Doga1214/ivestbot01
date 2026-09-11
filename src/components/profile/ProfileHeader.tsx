@@ -18,7 +18,8 @@ import {
   CheckCircleIcon,
   ContentCopyIcon,
   HourglassBottomIcon,
-  ShieldOutlinedIcon
+  ShieldOutlinedIcon,
+  CancelIcon
 } from '../common/Icons';
 import { useApp } from '../../context/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -42,7 +43,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onOpenKyc }) => {
   };
 
   const isKycVerified = user.kycStatus === 'VERIFIED' || kyc?.status === 'VERIFIED';
-  const isKycPending = user.kycStatus === 'PENDING' || kyc?.status === 'PENDING';
+  const isKycPending = !isKycVerified && (user.kycStatus === 'PENDING' || kyc?.status === 'PENDING');
+  const isKycRejected = !isKycVerified && !isKycPending && (user.kycStatus === 'REJECTED' || kyc?.status === 'REJECTED');
 
   // Copy helper
   const handleCopy = (text: string, label: string) => {
@@ -312,6 +314,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onOpenKyc }) => {
                       <CheckCircleIcon sx={{ fontSize: '14px !important', color: '#10b981 !important' }} />
                     ) : isKycPending ? (
                       <HourglassBottomIcon sx={{ fontSize: '14px !important', color: '#f59e0b !important' }} />
+                    ) : isKycRejected ? (
+                      <CancelIcon sx={{ fontSize: '14px !important', color: '#ef4444 !important' }} />
                     ) : (
                       <ShieldOutlinedIcon sx={{ fontSize: '14px !important', color: '#9CA3AF !important' }} />
                     )
@@ -321,6 +325,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onOpenKyc }) => {
                       ? 'KYC Verified'
                       : isKycPending
                       ? 'KYC Pending'
+                      : isKycRejected
+                      ? 'KYC Rejected'
                       : 'KYC Unverified'
                   }
                   size="small"
@@ -329,16 +335,22 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onOpenKyc }) => {
                       ? 'rgba(16, 185, 129, 0.12)'
                       : isKycPending
                       ? 'rgba(245, 158, 11, 0.12)'
+                      : isKycRejected
+                      ? 'rgba(239, 68, 68, 0.12)'
                       : 'rgba(255, 255, 255, 0.06)',
                     border: isKycVerified
                       ? '1px solid rgba(16, 185, 129, 0.4)'
                       : isKycPending
                       ? '1px solid rgba(245, 158, 11, 0.4)'
+                      : isKycRejected
+                      ? '1px solid rgba(239, 68, 68, 0.4)'
                       : '1px solid rgba(255, 255, 255, 0.15)',
                     color: isKycVerified
                       ? '#34d399'
                       : isKycPending
                       ? '#fbbf24'
+                      : isKycRejected
+                      ? '#f87171'
                       : '#9CA3AF',
                     fontWeight: 700,
                     fontSize: '0.78rem',

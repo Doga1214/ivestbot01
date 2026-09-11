@@ -981,16 +981,34 @@ export const walletService = {
 
   getKycStatus(userId?: string): KycSubmission {
     try {
-      const activeId = userId || authService.getCurrentUser()?.id;
+      const activeUser = authService.getCurrentUser();
+      const activeId = userId || activeUser?.id;
       if (activeId) {
         const userSpecific = localStorage.getItem(`ivestbot_kyc_${activeId}`);
         if (userSpecific) {
-          return JSON.parse(userSpecific);
+          const parsed: KycSubmission = JSON.parse(userSpecific);
+          if (activeUser && activeUser.id === activeId && activeUser.kycStatus === 'VERIFIED') {
+            parsed.status = 'VERIFIED';
+          }
+          return parsed;
         }
       }
       const stored = localStorage.getItem(KYC_STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed: KycSubmission = JSON.parse(stored);
+        if (activeUser && activeUser.kycStatus === 'VERIFIED') {
+          parsed.status = 'VERIFIED';
+        }
+        return parsed;
+      }
+      if (activeUser && activeUser.kycStatus && activeUser.kycStatus !== 'NOT_SUBMITTED') {
+        return {
+          userId: activeUser.id,
+          fullName: activeUser.name || '',
+          documentType: 'PASSPORT',
+          documentNumber: '',
+          status: activeUser.kycStatus
+        };
       }
     } catch {
       // ignore
@@ -1004,31 +1022,57 @@ export const walletService = {
   },
 
   async syncKycFromSupabase(userId?: string): Promise<KycSubmission | null> {
-    const targetId = userId || authService.getCurrentUser()?.id;
+    const activeUser = authService.getCurrentUser();
+    const targetId = userId || activeUser?.id;
     if (!targetId || !isValidUuid(targetId)) {
       return this.getKycStatus(targetId);
     }
     try {
+      // 1. Check profiles table for user KYC status
+      const { data: profileRecord } = await supabase
+        .from('profiles')
+        .select('kyc_status, name')
+        .eq('id', targetId)
+        .maybeSingle();
+
+      // 2. Check kyc_records table for document metadata
       const { data: record } = await supabase
         .from('kyc_records')
         .select('*')
         .eq('user_id', targetId)
         .maybeSingle();
 
-      if (record) {
+      const profileKycStatus = profileRecord?.kyc_status;
+      const recordKycStatus = record?.status;
+
+      let effectiveStatus: 'NOT_SUBMITTED' | 'PENDING' | 'VERIFIED' | 'REJECTED' = 'NOT_SUBMITTED';
+      if (profileKycStatus === 'VERIFIED' || recordKycStatus === 'VERIFIED') {
+        effectiveStatus = 'VERIFIED';
+      } else if (profileKycStatus === 'REJECTED' || recordKycStatus === 'REJECTED') {
+        effectiveStatus = 'REJECTED';
+      } else if (profileKycStatus === 'PENDING' || recordKycStatus === 'PENDING') {
+        effectiveStatus = 'PENDING';
+      } else if (record) {
+        effectiveStatus = (record.status as any) || 'PENDING';
+      }
+
+      if (record || profileRecord) {
+        const localCurrent = this.getKycStatus(targetId);
         const kyc: KycSubmission = {
-          userId: record.user_id,
-          fullName: record.full_name || '',
-          documentType: record.document_type || 'PASSPORT',
-          documentNumber: record.document_number || '',
-          documentFileName: record.document_url || 'id_document.pdf',
-          status: (record.status as any) || 'PENDING',
-          submittedAt: record.created_at,
-          reviewedAt: record.updated_at,
-          adminNotes: record.rejection_reason || undefined
+          userId: targetId,
+          fullName: record?.full_name || profileRecord?.name || localCurrent.fullName || '',
+          documentType: record?.document_type || localCurrent.documentType || 'PASSPORT',
+          documentNumber: record?.document_number || localCurrent.documentNumber || '',
+          documentFileName: record?.document_url || localCurrent.documentFileName || 'id_document.pdf',
+          status: effectiveStatus,
+          submittedAt: record?.created_at || localCurrent.submittedAt || new Date().toISOString(),
+          reviewedAt: record?.updated_at || localCurrent.reviewedAt,
+          adminNotes: record?.rejection_reason || localCurrent.adminNotes
         };
         localStorage.setItem(`ivestbot_kyc_${targetId}`, JSON.stringify(kyc));
-        localStorage.setItem(KYC_STORAGE_KEY, JSON.stringify(kyc));
+        if (targetId === activeUser?.id) {
+          localStorage.setItem(KYC_STORAGE_KEY, JSON.stringify(kyc));
+        }
         return kyc;
       }
     } catch (err) {
@@ -1094,7 +1138,8 @@ export const walletService = {
   },
 
   adminVerifyKyc(status: 'VERIFIED' | 'REJECTED', notes?: string, userId?: string): KycSubmission {
-    const targetId = userId || authService.getCurrentUser()?.id;
+    const currentActive = authService.getCurrentUser();
+    const targetId = userId || currentActive?.id;
     const current = this.getKycStatus(targetId);
     const updated: KycSubmission = {
       ...current,
@@ -1106,7 +1151,9 @@ export const walletService = {
     if (targetId) {
       localStorage.setItem(`ivestbot_kyc_${targetId}`, JSON.stringify(updated));
     }
-    localStorage.setItem(KYC_STORAGE_KEY, JSON.stringify(updated));
+    if (targetId === currentActive?.id || !userId) {
+      localStorage.setItem(KYC_STORAGE_KEY, JSON.stringify(updated));
+    }
 
     // Dispatch instant events
     try {

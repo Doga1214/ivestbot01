@@ -138,10 +138,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     const syncUserData = async () => {
       try {
-        await authService.syncAllUsersFromSupabase();
+        const allUsers = await authService.syncAllUsersFromSupabase();
 
         const targetId = user?.id || authService.getCurrentUser()?.id;
         if (targetId) {
+          const currentRemoteUser = allUsers.find(u => u.id === targetId) || authService.getCurrentUser();
+          if (currentRemoteUser) {
+            setUser(prev => {
+              if (!prev) return currentRemoteUser;
+              if (
+                prev.kycStatus !== currentRemoteUser.kycStatus ||
+                prev.status !== currentRemoteUser.status ||
+                prev.level !== currentRemoteUser.level ||
+                prev.name !== currentRemoteUser.name ||
+                prev.email !== currentRemoteUser.email
+              ) {
+                return { ...prev, ...currentRemoteUser };
+              }
+              return prev;
+            });
+          }
+
           const synced = await walletService.syncWalletFromSupabase(targetId);
           const txs = await walletService.syncTransactionsFromSupabase(targetId);
           const kycData = await walletService.syncKycFromSupabase(targetId);
@@ -200,7 +217,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 showSnackbar('⚠️ KYC Document Rejected by Compliance Officer. Please re-submit valid documents.', 'error');
               }
             }
-            return prev ? { ...prev, kycStatus: newStatus } : null;
+            return prev ? { ...prev, ...authService.getCurrentUser(), kycStatus: newStatus } : null;
           });
         }
       }
@@ -271,32 +288,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'kyc_records', filter: `user_id=eq.${user.id}` }, (payload: any) => {
           if (payload.new) {
+            const newStatus = payload.new.status || 'PENDING';
             const updatedKyc: KycSubmission = {
               userId: payload.new.user_id,
               fullName: payload.new.full_name || '',
               documentType: payload.new.document_type || 'PASSPORT',
               documentNumber: payload.new.document_number || '',
               documentFileName: payload.new.document_url || 'id_document.pdf',
-              status: payload.new.status || 'PENDING',
+              status: newStatus,
               submittedAt: payload.new.created_at,
               reviewedAt: payload.new.updated_at,
               adminNotes: payload.new.rejection_reason || undefined
             };
             setKyc(updatedKyc);
-            if (payload.new.status) {
-              setUser(prev => prev ? { ...prev, kycStatus: payload.new.status } : null);
-            }
+            setUser(prev => prev ? { ...prev, kycStatus: newStatus } : null);
           }
           walletService.syncKycFromSupabase(user.id).then(k => { if (k) setKyc(k); });
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload: any) => {
           if (payload.new) {
+            const newKycStatus = payload.new.kyc_status;
             setUser(prev => prev ? {
               ...prev,
-              kycStatus: payload.new.kyc_status || prev.kycStatus,
+              kycStatus: newKycStatus || prev.kycStatus,
               status: payload.new.status || prev.status,
               level: payload.new.level || prev.level
             } : null);
+
+            if (newKycStatus) {
+              setKyc(prev => ({
+                ...prev,
+                status: newKycStatus
+              }));
+              walletService.syncKycFromSupabase(user.id).then(k => { if (k) setKyc(k); });
+            }
           }
         })
         .subscribe();

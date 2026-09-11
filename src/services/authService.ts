@@ -159,6 +159,17 @@ export const authService = {
           }));
 
         this.saveAllUsers(remoteUsers);
+
+        // Keep current active user session up to date with remote Supabase profile
+        const current = this.getCurrentUser();
+        if (current) {
+          const matched = remoteUsers.find(u => u.id === current.id || (u.email && u.email.toLowerCase() === current.email.toLowerCase()));
+          if (matched) {
+            const updatedCurrent = { ...current, ...matched };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedCurrent));
+          }
+        }
+
         return remoteUsers;
       }
     } catch {

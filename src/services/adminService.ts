@@ -269,14 +269,27 @@ export const adminService = {
   async updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<UserProfile | null> {
     const res = authService.adminUpdateUser(userId, updates);
     try {
-      await supabase.from('profiles').update({
-        name: updates.name,
-        username: updates.username,
-        email: updates.email,
-        level: updates.level,
-        status: updates.status,
+      const dbUpdates: Record<string, any> = {
         updated_at: new Date().toISOString()
-      }).eq('id', userId);
+      };
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.username !== undefined) dbUpdates.username = updates.username;
+      if (updates.email !== undefined) dbUpdates.email = updates.email;
+      if (updates.level !== undefined) dbUpdates.level = updates.level;
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      if (updates.kycStatus !== undefined) dbUpdates.kyc_status = updates.kycStatus;
+
+      if (isValidUuid(userId)) {
+        await supabase.from('profiles').update(dbUpdates).eq('id', userId);
+
+        if (updates.kycStatus && updates.kycStatus !== 'NOT_SUBMITTED') {
+          await supabase.from('kyc_records').update({
+            status: updates.kycStatus,
+            updated_at: new Date().toISOString()
+          }).eq('user_id', userId);
+          walletService.adminVerifyKyc(updates.kycStatus as any, undefined, userId);
+        }
+      }
     } catch {
       // ignore
     }
@@ -442,13 +455,28 @@ export const adminService = {
     // 1. Update Supabase kyc_records and profiles
     if (userId && isValidUuid(userId)) {
       try {
-        await supabase.from('kyc_records').upsert({
-          user_id: userId,
-          status,
-          rejection_reason: reason,
-          updated_at: now
-        }, { onConflict: 'user_id' });
+        // Try updating existing kyc_records row first
+        const { data: updatedRows, error: updateErr } = await supabase
+          .from('kyc_records')
+          .update({
+            status,
+            rejection_reason: reason,
+            updated_at: now
+          })
+          .eq('user_id', userId)
+          .select();
 
+        // If no row existed or error, try upserting
+        if (!updatedRows || updatedRows.length === 0 || updateErr) {
+          await supabase.from('kyc_records').upsert({
+            user_id: userId,
+            status,
+            rejection_reason: reason,
+            updated_at: now
+          }, { onConflict: 'user_id' });
+        }
+
+        // Always update profiles table
         await supabase.from('profiles').update({
           kyc_status: status,
           updated_at: now
