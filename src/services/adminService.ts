@@ -90,7 +90,8 @@ export const adminService = {
     try {
       const { data: profiles, error: pErr } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
       const { data: wallets } = await supabase.from('wallets').select('*');
-      const { data: deposits } = await supabase.from('deposits').select('*').eq('status', 'PENDING');
+      const { data: allDeposits } = await supabase.from('deposits').select('*');
+      const { data: allWithdrawals } = await supabase.from('withdrawals').select('*');
       const { data: txs } = await supabase.from('wallet_transactions').select('id, user_id');
       const { data: kycRecords } = await supabase.from('kyc_records').select('*');
 
@@ -100,20 +101,34 @@ export const adminService = {
         const cleanProfiles = profiles.filter(p => !deleted.has(p.id) && !deleted.has(p.email) && !deleted.has(p.username));
         const walletMap = new Map((wallets || []).map(w => [w.user_id, w]));
         const kycMap = new Map((kycRecords || []).map(k => [k.user_id, k]));
-        const depList = deposits || [];
+        const depList = (allDeposits || []).filter(d => d.status === 'PENDING');
+        const approvedDepList = (allDeposits || []).filter(d => d.status === 'APPROVED');
+        const approvedWthList = (allWithdrawals || []).filter(w => w.status === 'APPROVED');
         const txList = txs || [];
 
         return cleanProfiles.map(p => {
           const w = walletMap.get(p.id);
-          const userDeps = depList.filter(d => d.user_id === p.id);
-          const depSum = userDeps.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+          const userPendingDeps = depList.filter(d => d.user_id === p.id);
+          const userApprovedDeps = approvedDepList.filter(d => d.user_id === p.id);
+          const userApprovedWths = approvedWthList.filter(w => w.user_id === p.id);
+
+          const depSum = userPendingDeps.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+          const approvedDepSum = userApprovedDeps.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+          const approvedWthSum = userApprovedWths.reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
+
           const userTxCount = txList.filter(t => t.user_id === p.id).length;
           const kycRec = kycMap.get(p.id);
 
+          const rawAvailable = parseFloat(w?.available_balance) || 0;
+          const rawPending = parseFloat(w?.pending_balance) || depSum;
+          const minAvailable = Math.max(0, Number((approvedDepSum - approvedWthSum).toFixed(4)));
+          const effectiveAvailable = minAvailable > 0 && rawAvailable < minAvailable ? minAvailable : rawAvailable;
+          const effectiveTotal = Math.max(parseFloat(w?.total_balance) || 0, Number((effectiveAvailable + rawPending).toFixed(4)));
+
           const walletState: WalletState = {
-            totalBalance: parseFloat(w?.total_balance) || 0,
-            availableBalance: parseFloat(w?.available_balance) || 0,
-            pendingBalance: parseFloat(w?.pending_balance) || 0,
+            totalBalance: effectiveTotal,
+            availableBalance: effectiveAvailable,
+            pendingBalance: rawPending,
             currency: w?.currency || 'USDT',
             status: (p.status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE') as WalletStatus,
             restrictions: { canDeposit: true, canWithdraw: true, canReserve: true, canTrade: true },

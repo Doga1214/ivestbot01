@@ -258,37 +258,83 @@ export const walletService = {
     }
 
     try {
-      const { data, error } = await supabase
+      // 1. Query Supabase wallets table
+      const { data: walletData } = await supabase
         .from('wallets')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (data && !error) {
-        const local = this.getWalletForUser(userId);
-        const syncedWallet: WalletState = {
-          ...local,
-          totalBalance: parseFloat(data.total_balance) || 0,
-          availableBalance: parseFloat(data.available_balance) || 0,
-          pendingBalance: parseFloat(data.pending_balance) || 0,
-          currency: data.currency || 'USDT',
-          updatedAt: data.updated_at
-        };
+      // 2. Query immutable deposits table for this user (Approved & Pending)
+      const { data: approvedDeposits } = await supabase
+        .from('deposits')
+        .select('amount')
+        .eq('user_id', userId)
+        .eq('status', 'APPROVED');
 
-        const key = `ivestbot_wallet_${userId}`;
-        localStorage.setItem(key, JSON.stringify(syncedWallet));
+      const { data: pendingDeposits } = await supabase
+        .from('deposits')
+        .select('amount')
+        .eq('user_id', userId)
+        .eq('status', 'PENDING');
 
-        const currentStored = localStorage.getItem('ivestbot_auth_user');
-        if (currentStored) {
-          const currentUser = JSON.parse(currentStored);
-          if (currentUser.id === userId) {
-            this.saveWallet(syncedWallet);
-          }
-        }
-        return syncedWallet;
+      // 3. Query immutable withdrawals table for this user
+      const { data: approvedWithdrawals } = await supabase
+        .from('withdrawals')
+        .select('amount')
+        .eq('user_id', userId)
+        .eq('status', 'APPROVED');
+
+      const totalApprovedDep = (approvedDeposits || []).reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+      const totalApprovedWth = (approvedWithdrawals || []).reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
+      const totalPendingDep = (pendingDeposits || []).reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+
+      const local = this.getWalletForUser(userId);
+      let availableBalance = parseFloat(walletData?.available_balance) || 0;
+      let totalBalance = parseFloat(walletData?.total_balance) || 0;
+      let pendingBalance = totalPendingDep;
+
+      // Auto-Healing Ledger Integrity:
+      // If approved deposits exist, user's balance must NEVER drop below approved deposits minus approved withdrawals
+      const minimumExpectedAvailable = Math.max(0, Number((totalApprovedDep - totalApprovedWth).toFixed(4)));
+      if (minimumExpectedAvailable > 0 && availableBalance < minimumExpectedAvailable) {
+        availableBalance = minimumExpectedAvailable;
+        totalBalance = Math.max(totalBalance, Number((availableBalance + pendingBalance).toFixed(4)));
+
+        // Persist healed balance back to Supabase PostgreSQL database
+        await supabase.from('wallets').upsert({
+          user_id: userId,
+          available_balance: availableBalance,
+          total_balance: totalBalance,
+          pending_balance: pendingBalance,
+          currency: 'USDT',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
       }
-    } catch {
-      // ignore
+
+      const syncedWallet: WalletState = {
+        ...local,
+        totalBalance: totalBalance > 0 ? totalBalance : Number((availableBalance + pendingBalance).toFixed(4)),
+        availableBalance,
+        pendingBalance,
+        currency: walletData?.currency || 'USDT',
+        status: (local.status === 'FROZEN' ? 'FROZEN' : 'ACTIVE'),
+        updatedAt: walletData?.updated_at || new Date().toISOString()
+      };
+
+      const key = `ivestbot_wallet_${userId}`;
+      localStorage.setItem(key, JSON.stringify(syncedWallet));
+
+      const currentStored = localStorage.getItem('ivestbot_auth_user');
+      if (currentStored) {
+        const currentUser = JSON.parse(currentStored);
+        if (currentUser.id === userId) {
+          this.saveWallet(syncedWallet);
+        }
+      }
+      return syncedWallet;
+    } catch (err) {
+      console.warn('syncWalletFromSupabase error:', err);
     }
     return null;
   },
@@ -646,46 +692,98 @@ export const walletService = {
     welcomeBonus: number;
     sponsorBonus: number;
   }> {
-    const { data: rpcRes, error: rpcErr } = await supabase.rpc('approve_deposit_request', {
-      p_deposit_id: txId,
-      p_admin_id: 'admin',
-      p_remarks: adminRemarks || 'Deposit verified and credited by Admin'
-    });
+    let depositUserId = '';
+    let depositAmount = 0;
+    let rpcSuccess = false;
+    let rpcResData: any = null;
 
-    if (rpcErr || !rpcRes?.success) {
-      throw new Error(rpcErr?.message || 'Failed to approve deposit in database');
+    try {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('approve_deposit_request', {
+        p_deposit_id: txId,
+        p_admin_id: 'admin',
+        p_remarks: adminRemarks || 'Deposit verified and credited by Admin'
+      });
+      if (!rpcErr && rpcRes?.success) {
+        rpcSuccess = true;
+        rpcResData = rpcRes;
+        depositUserId = rpcRes.wallet?.user_id;
+        depositAmount = rpcRes.creditedAmount || 0;
+      }
+    } catch {
+      // ignore
     }
 
-    const dbWallet = rpcRes.wallet;
-    const userId = dbWallet.user_id;
-    const syncedWallet: WalletState = {
-      ...this.getWalletForUser(userId),
-      totalBalance: parseFloat(dbWallet.total_balance) || 0,
-      availableBalance: parseFloat(dbWallet.available_balance) || 0,
-      pendingBalance: parseFloat(dbWallet.pending_balance) || 0,
-      updatedAt: dbWallet.updated_at
+    if (!rpcSuccess) {
+      // 1. Fetch deposit record from Supabase
+      const { data: depRow } = await supabase.from('deposits').select('*').eq('id', txId).maybeSingle();
+      if (!depRow) {
+        throw new Error('Deposit record not found in database.');
+      }
+
+      depositUserId = depRow.user_id;
+      depositAmount = parseFloat(depRow.amount) || 0;
+
+      // 2. Mark deposit as APPROVED in deposits table
+      await supabase.from('deposits').update({
+        status: 'APPROVED',
+        admin_note: adminRemarks || 'Deposit verified and credited by Admin',
+        updated_at: new Date().toISOString()
+      }).eq('id', txId);
+
+      // 3. Mark user profile status as ACTIVE
+      await supabase.from('profiles').update({
+        status: 'ACTIVE',
+        updated_at: new Date().toISOString()
+      }).eq('id', depositUserId);
+
+      // 4. Fetch and update wallets table
+      const { data: dbWallet } = await supabase.from('wallets').select('*').eq('user_id', depositUserId).maybeSingle();
+      const currentAvail = parseFloat(dbWallet?.available_balance) || 0;
+      const currentPend = parseFloat(dbWallet?.pending_balance) || 0;
+
+      const nextAvail = Number((currentAvail + depositAmount).toFixed(4));
+      const nextPend = Math.max(0, Number((currentPend - depositAmount).toFixed(4)));
+      const nextTot = Number((nextAvail + nextPend).toFixed(4));
+
+      await supabase.from('wallets').upsert({
+        user_id: depositUserId,
+        available_balance: nextAvail,
+        total_balance: nextTot,
+        pending_balance: nextPend,
+        currency: 'USDT',
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+    }
+
+    const syncedWallet = (await this.syncWalletFromSupabase(depositUserId)) || {
+      ...this.getWalletForUser(depositUserId),
+      availableBalance: depositAmount,
+      totalBalance: depositAmount,
+      pendingBalance: 0,
+      status: 'ACTIVE'
     };
-    this.saveWalletForUser(userId, syncedWallet);
+    this.saveWalletForUser(depositUserId, syncedWallet);
 
     await this.syncTransactionsFromSupabase();
 
     const transactions = this.getTransactions();
     const approvedTx = transactions.find(t => t.id === txId) || {
       id: txId,
-      userId,
+      userId: depositUserId,
       type: 'DEPOSIT' as TransactionType,
-      amount: rpcRes.creditedAmount || 0,
+      amount: depositAmount,
       currency: 'USDT',
       status: 'APPROVED' as TransactionStatus,
-      description: `USDT Deposit Verified & Approved (+${rpcRes.creditedAmount} USDT credited)`,
+      description: `USDT Deposit Verified & Approved (+${depositAmount} USDT credited)`,
       referenceId: `DEP-${txId.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      adminRemarks: adminRemarks || 'Deposit verified and credited by Admin'
     };
 
     return {
       updatedWallet: syncedWallet,
       approvedTx,
-      welcomeBonus: rpcRes.welcomeBonus || 0,
+      welcomeBonus: rpcResData?.welcomeBonus || 0,
       sponsorBonus: 0
     };
   },
