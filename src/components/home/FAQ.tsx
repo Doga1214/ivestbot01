@@ -10,7 +10,7 @@ export const FAQ: React.FC = () => {
     },
     {
       q: 'What is the daily configured yield rate?',
-      a: 'The platform operates with a daily yield rate of 2.8571% (approx 2.86%). At this rate, executing one reservation every 24 hours doubles your principle amount in exactly 35 days (35 days × 2.8571% = 100% net profit). The yield is credited directly to your available wallet balance upon completion of the 20-second processing window.'
+      a: 'The platform operates with a daily yield rate of 2.2222% (approx 2.22%). At this rate, executing one reservation every 24 hours doubles your principle amount in exactly 45 days (45 days × 2.2222% = 100% net profit). The yield is credited directly to your available wallet balance upon completion of the 20-second processing window.'
     },
     {
       q: 'How do referral commissions and deposit milestone bonuses work?',

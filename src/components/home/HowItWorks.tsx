@@ -24,7 +24,7 @@ export const HowItWorks: React.FC = () => {
     {
       num: '03',
       title: 'Earn & Withdraw',
-      desc: 'Receive 2.857% daily profit directly into your balance. Withdraw to your personal TRC20/BEP20 crypto address anytime.',
+      desc: 'Receive 2.22% daily profit directly into your balance. Withdraw to your personal TRC20/BEP20 crypto address anytime.',
       icon: <AutoAwesomeIcon sx={{ fontSize: 24, color: '#10b981' }} />
     }
   ];

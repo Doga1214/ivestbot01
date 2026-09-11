@@ -140,7 +140,7 @@ export const Footer: React.FC = () => {
           </Typography>
 
           <Typography variant="caption" sx={{ color: '#6B7280' }}>
-            24h Algorithmic Yield Protocol • Principle Doubling in 35 Days
+            24h Algorithmic Yield Protocol • Principle Doubling in 45 Days
           </Typography>
         </Box>
       </Container>

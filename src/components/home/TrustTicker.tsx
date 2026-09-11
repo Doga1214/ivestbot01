@@ -13,8 +13,8 @@ export const TrustTicker: React.FC = () => {
   const items = [
     { label: 'Audited Smart Contracts', icon: <ShieldOutlinedIcon sx={{ fontSize: 16, color: '#10b981' }} /> },
     { label: 'Instant USDT Deposits & Payouts', icon: <ElectricBoltIcon sx={{ fontSize: 16, color: '#38bdf8' }} /> },
-    { label: '2.857% Daily Continuous Yield', icon: <MonetizationOnIcon sx={{ fontSize: 16, color: '#FFD700' }} /> },
-    { label: '35-Day Principle Doubling Cycle', icon: <VerifiedIcon sx={{ fontSize: 16, color: '#a78bfa' }} /> },
+    { label: '2.22% Daily Continuous Yield', icon: <MonetizationOnIcon sx={{ fontSize: 16, color: '#FFD700' }} /> },
+    { label: '45-Day Principle Doubling Cycle', icon: <VerifiedIcon sx={{ fontSize: 16, color: '#a78bfa' }} /> },
     { label: '3-Tier Multi-Level Affiliate Rewards', icon: <GroupsIcon sx={{ fontSize: 16, color: '#34d399' }} /> },
     { label: '24/7 Automated Algorithmic Engine', icon: <AccessTimeIcon sx={{ fontSize: 16, color: '#f472b6' }} /> }
   ];

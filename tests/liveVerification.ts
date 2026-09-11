@@ -56,10 +56,10 @@ async function runLiveSystemVerification() {
   // Prepare reservation
   const prepared = {
     amount: updatedWalletAfterDeposit.availableBalance,
-    dailyRate: 2.8571,
-    effectiveRate: 2.8571,
+    dailyRate: 2.2222,
+    effectiveRate: 2.2222,
     activeDurationSeconds: 86400,
-    profit: Number((updatedWalletAfterDeposit.availableBalance * 0.028571).toFixed(4)),
+    profit: Number((updatedWalletAfterDeposit.availableBalance * 0.022222).toFixed(4)),
     isFullCycle: true,
     preparedAt: new Date().toISOString()
   };

@@ -13,12 +13,12 @@ export const PlatformFeatures: React.FC = () => {
     {
       icon: <RocketLaunchIcon sx={{ fontSize: 24, color: '#a78bfa' }} />,
       title: 'Curated Reservations',
-      desc: 'Exclusive 24-hour algorithmic liquidity doubling cycles with principal doubling in exactly 35 days.'
+      desc: 'Exclusive 24-hour algorithmic liquidity doubling cycles with principal doubling in exactly 45 days.'
     },
     {
       icon: <MonetizationOnIcon sx={{ fontSize: 24, color: '#a78bfa' }} />,
       title: 'Daily Yield Rewards',
-      desc: 'Continuous real-time profit distribution calculated at 2.8571% per 24-hour reservation cycle.'
+      desc: 'Continuous real-time profit distribution calculated at 2.2222% per 24-hour reservation cycle.'
     },
     {
       icon: <ElectricBoltIcon sx={{ fontSize: 24, color: '#a78bfa' }} />,

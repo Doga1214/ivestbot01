@@ -355,7 +355,7 @@ export const ProfileOrdersCard: React.FC<ProfileOrdersCardProps> = ({
               />
             </Box>
             <Typography variant="body2" sx={{ color: '#9CA3AF', mb: 1.5 }}>
-              Yield rate: <strong>2.857% daily return</strong> (Full principal doubling cycle in 35 days).
+              Yield rate: <strong>2.222% daily return</strong> (Full principal doubling cycle in 45 days).
             </Typography>
             <Button
               variant="contained"

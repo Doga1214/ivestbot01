@@ -88,7 +88,7 @@ export const Referral: React.FC = () => {
 
   // Social Share Handlers
   const shareText = encodeURIComponent(
-    `🚀 Join Ivestbot with my invite link! Double your principle in 35 days (2.85% daily profit) & claim up to 20 USDT welcome bonus! 💰`
+    `🚀 Join Ivestbot with my invite link! Double your principle in 45 days (2.22% daily profit) & claim up to 20 USDT bonus! 💰`
   );
   const shareUrl = encodeURIComponent(summary.referralLink);
 

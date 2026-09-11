@@ -156,10 +156,10 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ open: exte
             <TrendingUpIcon sx={{ color: '#8b5cf6', fontSize: 22, mt: 0.3 }} />
             <Box>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#fff' }}>
-                2.86% Daily (35-Day Principle 2X Doubling)
+                2.22% Daily (45-Day Principle 2X Doubling)
               </Typography>
               <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-                Participate with your available USDT balance in one reservation every 24 hours. Your principle doubles in 35 days (100% total profit).
+                Participate with your available USDT balance in one reservation every 24 hours. Your principle doubles in 45 days (100% total profit).
               </Typography>
             </Box>
           </Box>

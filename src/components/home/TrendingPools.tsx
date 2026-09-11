@@ -33,11 +33,11 @@ export const TrendingPools: React.FC = () => {
   };
 
   const topRankedPools = [
-    { rank: 1, name: 'Genesis Alpha', dailyROI: '+2.857%', volume: '142.5K USDT', color: '#FFD700' },
-    { rank: 2, name: 'Apex Matrix', dailyROI: '+2.857%', volume: '98.2K USDT', color: '#C0C0C0' },
-    { rank: 3, name: 'Cyber Node', dailyROI: '+2.857%', volume: '64.1K USDT', color: '#CD7F32' },
-    { rank: 4, name: 'Titan Pool', dailyROI: '+2.857%', volume: '45.8K USDT', color: '#38bdf8' },
-    { rank: 5, name: 'Mystic Pulse', dailyROI: '+2.857%', volume: '29.3K USDT', color: '#a78bfa' }
+    { rank: 1, name: 'Genesis Alpha', dailyROI: '+2.22%', volume: '142.5K USDT', color: '#FFD700' },
+    { rank: 2, name: 'Apex Matrix', dailyROI: '+2.22%', volume: '98.2K USDT', color: '#C0C0C0' },
+    { rank: 3, name: 'Cyber Node', dailyROI: '+2.22%', volume: '64.1K USDT', color: '#CD7F32' },
+    { rank: 4, name: 'Titan Pool', dailyROI: '+2.22%', volume: '45.8K USDT', color: '#38bdf8' },
+    { rank: 5, name: 'Mystic Pulse', dailyROI: '+2.22%', volume: '29.3K USDT', color: '#a78bfa' }
   ];
 
   const horizontalCards = [
@@ -45,7 +45,7 @@ export const TrendingPools: React.FC = () => {
       id: 'n1',
       name: 'Genesis Legend',
       badge: 'Level 1',
-      dailyROI: '2.857%',
+      dailyROI: '2.22%',
       floor: '50 USDT',
       bg: 'linear-gradient(135deg, #0284c7, #0369a1)'
     },
@@ -53,7 +53,7 @@ export const TrendingPools: React.FC = () => {
       id: 'n2',
       name: 'Titan Spark',
       badge: 'Level 2',
-      dailyROI: '2.857%',
+      dailyROI: '2.22%',
       floor: '200 USDT',
       bg: 'linear-gradient(135deg, #059669, #047857)'
     },
@@ -61,7 +61,7 @@ export const TrendingPools: React.FC = () => {
       id: 'n3',
       name: 'Aurora Realm',
       badge: 'Level 3',
-      dailyROI: '2.857%',
+      dailyROI: '2.22%',
       floor: '500 USDT',
       bg: 'linear-gradient(135deg, #7c3aed, #6d28d9)'
     },
@@ -69,7 +69,7 @@ export const TrendingPools: React.FC = () => {
       id: 'n4',
       name: 'Mystic Beast',
       badge: 'Level 4',
-      dailyROI: '2.857%',
+      dailyROI: '2.22%',
       floor: '1000 USDT',
       bg: 'linear-gradient(135deg, #b45309, #92400e)'
     }
@@ -191,7 +191,7 @@ export const TrendingPools: React.FC = () => {
                   </Box>
                   <Box>
                     <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', fontSize: '0.72rem' }}>Daily Return</Typography>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#34d399', fontSize: { xs: '0.9rem', sm: '1rem' } }}>+2.857%</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#34d399', fontSize: { xs: '0.9rem', sm: '1rem' } }}>+2.22%</Typography>
                   </Box>
                   <Box>
                     <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', fontSize: '0.72rem' }}>Duration</Typography>

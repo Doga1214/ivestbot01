@@ -13,6 +13,7 @@ import {
   TetherIcon
 } from '../common/Icons';
 import { useApp } from '../../context/AppContext';
+import { WALLET_CONFIG } from '../../config/walletConfig';
 
 export const ProfileWalletIncomeCard: React.FC = () => {
   const { wallet, referralSummary, transactions } = useApp();
@@ -34,7 +35,7 @@ export const ProfileWalletIncomeCard: React.FC = () => {
 
   const dailyReserve = todayReserveEarned > 0
     ? Number(todayReserveEarned.toFixed(2))
-    : (currentBalance > 0 ? Number((currentBalance * 0.028571).toFixed(2)) : 0.0);
+    : (currentBalance > 0 ? Number((currentBalance * (WALLET_CONFIG.defaultDailyRate / 100)).toFixed(2)) : 0.0);
   const dailyReferral = referralSummary?.todayEarnings || 0.0;
 
   const dailyComprehensive = Number(

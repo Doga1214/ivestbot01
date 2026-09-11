@@ -28,7 +28,7 @@ export const Hero: React.FC = () => {
       id: 'h1',
       name: 'Titan Alpha',
       badge: 'Level 1',
-      dailyRate: '2.857%',
+      dailyRate: '2.22%',
       floorUSDT: 50,
       avatarColor: 'linear-gradient(135deg, #f59e0b, #d97706)',
       svgType: 'ape_gold'
@@ -37,7 +37,7 @@ export const Hero: React.FC = () => {
       id: 'h2',
       name: 'Cyber Pulse',
       badge: 'Level 2',
-      dailyRate: '2.857%',
+      dailyRate: '2.22%',
       floorUSDT: 200,
       avatarColor: 'linear-gradient(135deg, #10b981, #059669)',
       svgType: 'ape_green'
@@ -46,7 +46,7 @@ export const Hero: React.FC = () => {
       id: 'h3',
       name: 'Aurora Realm',
       badge: 'Level 3',
-      dailyRate: '2.857%',
+      dailyRate: '2.22%',
       floorUSDT: 500,
       avatarColor: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
       svgType: 'ape_purple'
@@ -55,7 +55,7 @@ export const Hero: React.FC = () => {
       id: 'h4',
       name: 'Genesis Node',
       badge: 'Level 4',
-      dailyRate: '2.857%',
+      dailyRate: '2.22%',
       floorUSDT: 1000,
       avatarColor: 'linear-gradient(135deg, #38bdf8, #0284c7)',
       svgType: 'ape_blue'
@@ -133,8 +133,7 @@ export const Hero: React.FC = () => {
             px: { xs: 1, sm: 0 }
           }}
         >
-          The all-in-one Web3 crypto yield platform to double initial capital in 35 days.
-          Automated 24h reservations, continuous 2.857% daily returns, and multi-tier passive commissions.
+          The all-in-one Web3 crypto yield platform. Automated 24h reservations, continuous 2.22% daily returns, and multi-tier passive commissions.
         </Typography>
 
         {/* Dual CTA Buttons */}
@@ -218,7 +217,7 @@ export const Hero: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, color: '#9CA3AF' }}>
             <VerifiedIcon sx={{ color: '#a78bfa', fontSize: 18 }} />
             <Typography variant="caption" sx={{ fontWeight: 700, fontSize: { xs: '0.78rem', sm: '0.85rem' } }}>
-              Double Principle in 35 Days
+              24H Automated Yield Cycles
             </Typography>
           </Box>
         </Box>

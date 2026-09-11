@@ -4,8 +4,8 @@ export const WALLET_CONFIG = {
   depositAddress2: '0x1c16D0cf66e717dF73706a9d4bf923b1cafCaee7',
   depositAddress2Network: 'ERC20 / BEP20 (USDT)',
   currency: 'USDT',
-  doublingDays: 35, // Principle amount doubles in 35 days (100% profit / 35 = 2.8571% per day)
-  defaultDailyRate: 2.8571, // 2.8571% per 24-hour reservation cycle (100% in 35 days)
+  doublingDays: 45, // Principle amount doubles in 45 days (100% profit / 45 = 2.2222% per day)
+  defaultDailyRate: 2.2222, // 2.2222% per 24-hour reservation cycle (100% in 45 days)
   referralRates: {
     A: 0.1, // 0.1% commission for direct A members
     B: 0.05, // 0.05% commission for secondary B members
