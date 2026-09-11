@@ -56,10 +56,22 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onRefresh, onLogout, o
           <AdminPanelSettingsIcon sx={{ color: '#fff', fontSize: 28 }} />
         </Box>
         <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
             <Typography variant="h5" sx={{ fontWeight: 900, letterSpacing: '-0.02em' }}>
               Master Admin Control Plane
             </Typography>
+            <Chip
+              label="Admin: ivestbot team"
+              color="primary"
+              size="small"
+              sx={{
+                fontWeight: 800,
+                fontSize: '0.75rem',
+                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.35) 0%, rgba(59, 130, 246, 0.35) 100%)',
+                border: '1px solid rgba(139, 92, 246, 0.5)',
+                color: '#f1f5f9'
+              }}
+            />
             <Chip
               label="WP Swings Engine Active"
               color="secondary"
@@ -68,7 +80,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onRefresh, onLogout, o
             />
           </Box>
           <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-            Direct financial control, deposit verification queue, user wallet restriction, & audit logs.
+            Logged in as <strong style={{ color: '#a78bfa' }}>ivestbot team</strong> • Direct financial control, deposit verification queue, user wallet restriction, & audit logs.
           </Typography>
         </Box>
       </Box>

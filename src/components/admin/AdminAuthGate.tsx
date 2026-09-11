@@ -89,8 +89,11 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ onSuccess }) => {
             <Typography variant="h5" sx={{ fontWeight: 900, letterSpacing: '-0.02em', mb: 0.5 }}>
               Admin Control Plane
             </Typography>
+            <Typography variant="subtitle2" sx={{ color: '#a78bfa', fontWeight: 800, mb: 1 }}>
+              ivestbot team
+            </Typography>
             <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-              Restricted backend management portal. Enter master passkey to access.
+              Restricted backend management portal for <strong>ivestbot team</strong>. Enter master passkey to access.
             </Typography>
           </Box>
 
