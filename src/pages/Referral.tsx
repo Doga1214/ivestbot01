@@ -165,7 +165,7 @@ export const Referral: React.FC = () => {
           Referral & Affiliate Command Center
         </Typography>
         <Typography variant="body1" sx={{ color: '#9CA3AF', maxWidth: 720, lineHeight: 1.6, fontSize: { xs: '0.88rem', sm: '1rem' } }}>
-          Earn lifetime passive commissions across 3 levels (A: 0.5%, B: 0.25%, C: 0.225%) + instant USDT signup & milestone unlock bonuses.
+          Earn lifetime passive commissions across 3 levels (A: 0.1%, B: 0.05%, C: 0.025%) + instant USDT signup & milestone unlock bonuses.
         </Typography>
       </Box>
 

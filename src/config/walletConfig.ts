@@ -7,13 +7,13 @@ export const WALLET_CONFIG = {
   doublingDays: 35, // Principle amount doubles in 35 days (100% profit / 35 = 2.8571% per day)
   defaultDailyRate: 2.8571, // 2.8571% per 24-hour reservation cycle (100% in 35 days)
   referralRates: {
-    A: 0.5, // 0.5% commission for direct A members
-    B: 0.25, // 0.25% commission for secondary B members
-    C: 0.225  // 0.225% commission for tertiary C members
+    A: 0.1, // 0.1% commission for direct A members
+    B: 0.05, // 0.05% commission for secondary B members
+    C: 0.025  // 0.025% commission for tertiary C members
   },
   depositBonusRatio: {
     unitDeposit: 50, // per 50 USDT deposited
-    sponsorBonusPerUnit: 5, // 5 USDT sponsor referral reward per 50 USDT
+    sponsorBonusPerUnit: 1, // 1 USDT sponsor referral reward per 50 USDT
     newUserBonusPerUnit: 0, // 0 USDT (No welcome bonus - only referral rewards)
     minDeposit: 50,
     maxDeposit: 1000
@@ -76,47 +76,47 @@ export const WALLET_CONFIG = {
     minWithdrawalUSDT: 100,
     minAccountAgeDays: 0,
     requireKycForWithdrawal: false,
-    baseRewardUSDT: 5, // 5 USDT per qualified referral
+    baseRewardUSDT: 1, // 1 USDT per qualified referral
     tiers: [
       {
         tier: 1 as const,
         name: 'Bronze Ambassador',
         minReferrals: 0,
         maxReferrals: 10,
-        rewardPerReferralUSDT: 5,
-        tierBonusUSDT: 25,
+        rewardPerReferralUSDT: 1,
+        tierBonusUSDT: 5,
         badgeColor: '#CD7F32',
-        benefits: ['5 USDT per active referral', '25 USDT Tier 1 Unlock Bonus', '0.5% Direct Level A Commission']
+        benefits: ['1 USDT per active referral', '5 USDT Tier 1 Unlock Bonus', '0.1% Direct Level A Commission']
       },
       {
         tier: 2 as const,
         name: 'Silver Partner',
         minReferrals: 11,
         maxReferrals: 25,
-        rewardPerReferralUSDT: 7.5,
-        tierBonusUSDT: 50,
+        rewardPerReferralUSDT: 1.5,
+        tierBonusUSDT: 10,
         badgeColor: '#C0C0C0',
-        benefits: ['7.5 USDT per active referral', '50 USDT Tier 2 Milestone Bonus', '+0.25% Level B Indirect Commission']
+        benefits: ['1.5 USDT per active referral', '10 USDT Tier 2 Milestone Bonus', '+0.05% Level B Indirect Commission']
       },
       {
         tier: 3 as const,
         name: 'Gold Leader',
         minReferrals: 26,
         maxReferrals: 50,
-        rewardPerReferralUSDT: 10,
-        tierBonusUSDT: 100,
+        rewardPerReferralUSDT: 2,
+        tierBonusUSDT: 20,
         badgeColor: '#FFD700',
-        benefits: ['10 USDT per active referral', '100 USDT Tier 3 Milestone Bonus', '+0.225% Level C Indirect Commission']
+        benefits: ['2 USDT per active referral', '20 USDT Tier 3 Milestone Bonus', '+0.025% Level C Indirect Commission']
       },
       {
         tier: 4 as const,
         name: 'Diamond VIP',
         minReferrals: 51,
         maxReferrals: 999999,
-        rewardPerReferralUSDT: 15,
-        tierBonusUSDT: 250,
+        rewardPerReferralUSDT: 3,
+        tierBonusUSDT: 50,
         badgeColor: '#00E5FF',
-        benefits: ['15 USDT per active referral', '250 USDT Diamond Cash Reward', 'VIP Priority Payouts & Private Account Manager']
+        benefits: ['3 USDT per active referral', '50 USDT Diamond Cash Reward', 'VIP Priority Payouts & Private Account Manager']
       }
     ]
   }

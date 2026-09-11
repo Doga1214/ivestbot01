@@ -43,9 +43,9 @@ async function runLiveSystemVerification() {
   // Verify referral bonus for sponsor (0 welcome bonus for new user)
   const depositBonus = referralService.calculateDepositBonus(100);
   console.log(`   ✔ New User Welcome Bonus: ${depositBonus.newUserBonus} USDT (Expected: 0)`);
-  console.log(`   ✔ Sponsor Referral Bonus: ${depositBonus.sponsorBonus} USDT (Expected: +10 USDT)`);
+  console.log(`   ✔ Sponsor Referral Bonus: ${depositBonus.sponsorBonus} USDT (Expected: +2 USDT)`);
   if (depositBonus.newUserBonus !== 0) throw new Error('New user bonus must be 0');
-  if (depositBonus.sponsorBonus !== 10) throw new Error('Sponsor bonus for 100 USDT deposit must be 10 USDT');
+  if (depositBonus.sponsorBonus !== 2) throw new Error('Sponsor bonus for 100 USDT deposit must be 2 USDT');
 
   // 4. Test Reservation Execution
   console.log('\n4️⃣ Executing Reservation with available balance (100.00 USDT)...');

@@ -303,7 +303,7 @@ export const referralService = {
         referredBy: u.referredBy,
         hasDeposited: dep > 0,
         depositAmount: dep,
-        rewardEarnedUSDT: dep > 0 ? 5 + Number((dep * (WALLET_CONFIG.referralRates.A / 100)).toFixed(4)) : 0
+        rewardEarnedUSDT: dep > 0 ? (WALLET_CONFIG.referralSystem?.baseRewardUSDT ?? 5) + Number((dep * (WALLET_CONFIG.referralRates.A / 100)).toFixed(4)) : 0
       };
     });
 
@@ -427,7 +427,7 @@ export const referralService = {
         referralCode: userRefCode,
         tierLevel: 'A' as const,
         status: (m.status === 'ACTIVE' ? 'COMPLETED' : 'PENDING') as 'PENDING' | 'COMPLETED' | 'CLAIMED',
-        rewardAmountUSDT: m.rewardEarnedUSDT || 5,
+        rewardAmountUSDT: m.rewardEarnedUSDT || (WALLET_CONFIG.referralSystem?.baseRewardUSDT ?? 1),
         hasDeposited: !!m.hasDeposited,
         depositAmountUSDT: m.depositAmount,
         hasReserved: m.status === 'ACTIVE',

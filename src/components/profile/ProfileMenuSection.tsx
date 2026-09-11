@@ -507,7 +507,7 @@ export const ProfileMenuSection: React.FC = () => {
                 3. Three-Tier Team Commissions
               </Typography>
               <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-                Earn 0.5% on Level A, 0.25% on Level B, and 0.225% on Level C whenever downline members place doubling reservations.
+                Earn 0.1% on Level A, 0.05% on Level B, and 0.025% on Level C whenever downline members place doubling reservations.
               </Typography>
             </Paper>
           </Box>

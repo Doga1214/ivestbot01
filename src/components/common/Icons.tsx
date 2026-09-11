@@ -323,3 +323,12 @@ export const OpenInNewIcon: React.FC<SvgIconProps> = (props) => (
 export const BookmarkAddIcon: React.FC<SvgIconProps> = (props) => (
   <SvgIcon {...props}><path d="M21 7h-2v2h-2V7h-2V5h2V3h2v2h2v2zm-4 14l-5-2.18L7 21V5c0-1.1.9-2 2-2h4.5c-.32.6-.5 1.28-.5 2H9v13.5l4-1.74 4 1.74V11.5c.72 0 1.4-.18 2-.5V21z"/></SvgIcon>
 );
+
+export const ArrowBackIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props}><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></SvgIcon>
+);
+
+export const MarkEmailReadIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props}><path d="M12 19c0-3.87 3.13-7 7-7 .7 0 1.37.1 2 .29V6c0-1.1-.9-2-2-2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h9.09c-.06-.33-.09-.66-.09-1zm-9-13l8 5 8-5v2l-8 5-8-5V6zm14.34 16l-3.54-3.54 1.41-1.41 2.12 2.12 4.24-4.24 1.41 1.41L17.34 22z"/></SvgIcon>
+);
+

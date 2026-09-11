@@ -19,6 +19,9 @@ interface AppContextType {
   isAuthenticated: boolean;
   login: (usernameOrEmail: string, password?: string) => Promise<void>;
   register: (data: { name: string; username: string; email: string; password?: string; referralCode?: string }) => Promise<void>;
+  sendEmailOtp: (email: string, password?: string, metadata?: { name?: string; username?: string }) => Promise<{ success: boolean; message: string; isSimulated?: boolean; simulatedOtp?: string }>;
+  verifyOtpAndRegister: (data: { name: string; username: string; email: string; password?: string; referralCode?: string; otp: string }) => Promise<void>;
+  resendEmailOtp: (email: string) => Promise<{ success: boolean; message: string; simulatedOtp?: string }>;
   logout: () => void;
   updateUserProfile: (data: Partial<UserProfile>) => void;
 
@@ -198,7 +201,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const handleKycUpdated = (e: any) => {
       const targetId = user?.id || authService.getCurrentUser()?.id;
       const detail = e.detail || e.payload || e;
-      if (targetId && (detail?.userId === targetId || !detail?.userId)) {
+      if (targetId && (!detail?.userId || detail.userId === targetId)) {
         if (detail?.status) {
           const newStatus = detail.status;
           const notes = detail.notes || detail.adminNotes;
@@ -228,7 +231,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const targetId = user?.id || authService.getCurrentUser()?.id;
       if (targetId) {
         const storedKyc = walletService.getKycStatus(targetId);
-        if (storedKyc && storedKyc.status !== 'NOT_SUBMITTED') {
+        if (storedKyc) {
           setKyc(storedKyc);
           if (storedKyc.status === 'VERIFIED' || storedKyc.status === 'REJECTED') {
             setUser(prev => {
@@ -361,6 +364,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const userWallet = walletService.getWalletForUser(loggedInUser.id);
     walletService.saveWallet(userWallet);
     setWallet(userWallet);
+    setKyc(walletService.getKycStatus(loggedInUser.id));
     setIsLoginModalOpen(false);
     refreshWallet();
     showSnackbar(`Welcome back, ${loggedInUser.name}!`, 'success');
@@ -385,14 +389,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     walletService.saveWalletForUser(registeredUser.id, zeroWallet);
     walletService.saveWallet(zeroWallet);
     setWallet(zeroWallet);
+    setKyc(walletService.getKycStatus(registeredUser.id));
     setIsRegisterModalOpen(false);
     refreshWallet();
     showSnackbar('Account created successfully! Wallet initialized with 0.00 USDT.', 'success');
   };
 
+  const sendEmailOtp = async (email: string, password?: string, metadata?: { name?: string; username?: string }) => {
+    return await authService.sendEmailOtp(email, password, metadata);
+  };
+
+  const verifyOtpAndRegister = async (data: { name: string; username: string; email: string; password?: string; referralCode?: string; otp: string }) => {
+    const registeredUser = await authService.verifyOtpAndRegister(data);
+    setUser(registeredUser);
+    const zeroWallet: WalletState = {
+      totalBalance: 0.0,
+      availableBalance: 0.0,
+      pendingBalance: 0.0,
+      currency: 'USDT',
+      status: 'ACTIVE',
+      restrictions: {
+        canDeposit: true,
+        canWithdraw: true,
+        canReserve: true,
+        canTrade: true
+      }
+    };
+    walletService.saveWalletForUser(registeredUser.id, zeroWallet);
+    walletService.saveWallet(zeroWallet);
+    setWallet(zeroWallet);
+    setKyc(walletService.getKycStatus(registeredUser.id));
+    setIsRegisterModalOpen(false);
+    refreshWallet();
+    showSnackbar('Email verified & Account created successfully! Welcome to Ivestbot.', 'success');
+  };
+
+  const resendEmailOtp = async (email: string) => {
+    return await authService.resendEmailOtp(email);
+  };
+
   const logout = () => {
     authService.logout();
     setUser(null);
+    setKyc(walletService.getKycStatus(''));
     showSnackbar('Logged out successfully.', 'info');
   };
 
@@ -641,6 +680,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isAuthenticated: !!user,
         login,
         register,
+        sendEmailOtp,
+        verifyOtpAndRegister,
+        resendEmailOtp,
         logout,
         updateUserProfile,
         isLoginModalOpen,

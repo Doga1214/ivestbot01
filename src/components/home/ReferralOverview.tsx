@@ -35,19 +35,19 @@ export const ReferralOverview: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <ShareOutlinedIcon sx={{ color: '#8b5cf6' }} />
                 <Typography variant="body2" sx={{ color: '#ffffff' }}>
-                  <strong>A Members (Direct)</strong>: 1.0% Lifetime Daily Reservation Commission
+                  <strong>A Members (Direct)</strong>: 0.1% Lifetime Daily Reservation Commission
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <PeopleAltOutlinedIcon sx={{ color: '#3b82f6' }} />
                 <Typography variant="body2" sx={{ color: '#ffffff' }}>
-                  <strong>B Members (Secondary)</strong>: 0.5% Lifetime Daily Reservation Commission
+                  <strong>B Members (Secondary)</strong>: 0.05% Lifetime Daily Reservation Commission
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <MonetizationOnOutlinedIcon sx={{ color: '#10b981' }} />
                 <Typography variant="body2" sx={{ color: '#ffffff' }}>
-                  <strong>C Members (Tertiary)</strong>: 0.5% Lifetime Daily Reservation Commission
+                  <strong>C Members (Tertiary)</strong>: 0.025% Lifetime Daily Reservation Commission
                 </Typography>
               </Box>
             </Stack>
@@ -76,27 +76,27 @@ export const ReferralOverview: React.FC = () => {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1.2, borderRadius: 2, bgcolor: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
                   <Typography variant="body2" sx={{ fontWeight: 700, color: '#e2e8f0' }}>50 USDT Deposit</Typography>
-                  <Typography variant="body2" sx={{ color: '#34d399', fontWeight: 800 }}>Sponsor: +5 USDT | User: +1 USDT</Typography>
+                  <Typography variant="body2" sx={{ color: '#34d399', fontWeight: 800 }}>Sponsor: +1 USDT</Typography>
                 </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1.2, borderRadius: 2, bgcolor: 'rgba(139, 92, 246, 0.06)', border: '1px solid rgba(139, 92, 246, 0.15)' }}>
                   <Typography variant="body2" sx={{ fontWeight: 700, color: '#e2e8f0' }}>100 USDT Deposit</Typography>
-                  <Typography variant="body2" sx={{ color: '#34d399', fontWeight: 800 }}>Sponsor: +10 USDT | User: +2 USDT</Typography>
+                  <Typography variant="body2" sx={{ color: '#34d399', fontWeight: 800 }}>Sponsor: +2 USDT</Typography>
                 </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1.2, borderRadius: 2, bgcolor: 'rgba(139, 92, 246, 0.06)', border: '1px solid rgba(139, 92, 246, 0.15)' }}>
                   <Typography variant="body2" sx={{ fontWeight: 700, color: '#e2e8f0' }}>200 USDT Deposit</Typography>
-                  <Typography variant="body2" sx={{ color: '#34d399', fontWeight: 800 }}>Sponsor: +20 USDT | User: +4 USDT</Typography>
+                  <Typography variant="body2" sx={{ color: '#34d399', fontWeight: 800 }}>Sponsor: +4 USDT</Typography>
                 </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1.2, borderRadius: 2, bgcolor: 'rgba(139, 92, 246, 0.06)', border: '1px solid rgba(139, 92, 246, 0.15)' }}>
                   <Typography variant="body2" sx={{ fontWeight: 700, color: '#e2e8f0' }}>500 USDT Deposit</Typography>
-                  <Typography variant="body2" sx={{ color: '#34d399', fontWeight: 800 }}>Sponsor: +50 USDT | User: +10 USDT</Typography>
+                  <Typography variant="body2" sx={{ color: '#34d399', fontWeight: 800 }}>Sponsor: +10 USDT</Typography>
                 </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1.2, borderRadius: 2, bgcolor: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                   <Typography variant="body2" sx={{ fontWeight: 700, color: '#34d399' }}>1,000 USDT Deposit</Typography>
-                  <Typography variant="body2" sx={{ color: '#34d399', fontWeight: 900 }}>Sponsor: +100 USDT | User: +20 USDT</Typography>
+                  <Typography variant="body2" sx={{ color: '#34d399', fontWeight: 900 }}>Sponsor: +20 USDT</Typography>
                 </Box>
               </Box>
 
@@ -105,15 +105,15 @@ export const ReferralOverview: React.FC = () => {
               <Box sx={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
                 <Box>
                   <Typography variant="caption" sx={{ color: '#a78bfa', fontWeight: 700 }}>Tier A</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#fff' }}>1.0%</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#fff' }}>0.1%</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: '#60a5fa', fontWeight: 700 }}>Tier B</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#fff' }}>0.5%</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#fff' }}>0.05%</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 700 }}>Tier C</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#fff' }}>0.5%</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#fff' }}>0.025%</Typography>
                 </Box>
               </Box>
             </Box>

@@ -118,8 +118,12 @@ export async function runWalletServiceTests(runner: TestRunner) {
     assert.strictEqual(submitted.status, 'PENDING');
     assert.strictEqual(submitted.fullName, 'John Doe');
 
-    const verified = walletService.adminVerifyKyc('VERIFIED', 'All documents match ID');
+    const verified = walletService.adminVerifyKyc('VERIFIED', 'All documents match ID', 'user-A');
     assert.strictEqual(verified.status, 'VERIFIED');
     assert.strictEqual(verified.adminNotes, 'All documents match ID');
+
+    // User B (brand new user) must NOT be auto-verified
+    const newUserKyc = walletService.getKycStatus('user-B');
+    assert.strictEqual(newUserKyc.status, 'NOT_SUBMITTED');
   });
 }

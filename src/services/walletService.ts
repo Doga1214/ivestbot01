@@ -987,27 +987,26 @@ export const walletService = {
         const userSpecific = localStorage.getItem(`ivestbot_kyc_${activeId}`);
         if (userSpecific) {
           const parsed: KycSubmission = JSON.parse(userSpecific);
-          if (activeUser && activeUser.id === activeId && activeUser.kycStatus === 'VERIFIED') {
-            parsed.status = 'VERIFIED';
+          if (activeUser && activeUser.id === activeId && activeUser.kycStatus) {
+            parsed.status = activeUser.kycStatus;
           }
           return parsed;
         }
-      }
-      const stored = localStorage.getItem(KYC_STORAGE_KEY);
-      if (stored) {
-        const parsed: KycSubmission = JSON.parse(stored);
-        if (activeUser && activeUser.kycStatus === 'VERIFIED') {
-          parsed.status = 'VERIFIED';
+        if (activeUser && activeUser.id === activeId && activeUser.kycStatus && activeUser.kycStatus !== 'NOT_SUBMITTED') {
+          return {
+            userId: activeUser.id,
+            fullName: activeUser.name || '',
+            documentType: 'PASSPORT',
+            documentNumber: '',
+            status: activeUser.kycStatus
+          };
         }
-        return parsed;
-      }
-      if (activeUser && activeUser.kycStatus && activeUser.kycStatus !== 'NOT_SUBMITTED') {
         return {
-          userId: activeUser.id,
-          fullName: activeUser.name || '',
+          userId: activeId,
+          fullName: (activeUser && activeUser.id === activeId ? activeUser.name : '') || '',
           documentType: 'PASSPORT',
           documentNumber: '',
-          status: activeUser.kycStatus
+          status: 'NOT_SUBMITTED'
         };
       }
     } catch {

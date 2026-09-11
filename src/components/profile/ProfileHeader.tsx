@@ -359,6 +359,23 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onOpenKyc }) => {
                     px: 0.5
                   }}
                 />
+
+                {/* Email Verified Badge */}
+                <Chip
+                  icon={<CheckCircleIcon sx={{ fontSize: '13px !important', color: '#38bdf8 !important' }} />}
+                  label="Email Verified"
+                  size="small"
+                  sx={{
+                    bgcolor: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.35)',
+                    color: '#38bdf8',
+                    fontWeight: 700,
+                    fontSize: '0.78rem',
+                    height: 26,
+                    borderRadius: 2,
+                    px: 0.5
+                  }}
+                />
               </Box>
             </Box>
           </Box>
