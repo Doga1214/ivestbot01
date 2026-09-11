@@ -290,18 +290,31 @@ export const walletService = {
       const totalPendingDep = (pendingDeposits || []).reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
 
       const local = this.getWalletForUser(userId);
-      let availableBalance = parseFloat(walletData?.available_balance) || 0;
-      let totalBalance = parseFloat(walletData?.total_balance) || 0;
-      let pendingBalance = totalPendingDep;
-
-      // Auto-Healing Ledger Integrity:
-      // If approved deposits exist, user's balance must NEVER drop below approved deposits minus approved withdrawals
+      const rawDbAvailable = parseFloat(walletData?.available_balance);
+      const rawDbTotal = parseFloat(walletData?.total_balance);
+      const localAvailable = local?.availableBalance || 0;
+      const localTotal = local?.totalBalance || 0;
       const minimumExpectedAvailable = Math.max(0, Number((totalApprovedDep - totalApprovedWth).toFixed(4)));
-      if (minimumExpectedAvailable > 0 && availableBalance < minimumExpectedAvailable) {
-        availableBalance = minimumExpectedAvailable;
-        totalBalance = Math.max(totalBalance, Number((availableBalance + pendingBalance).toFixed(4)));
 
-        // Persist healed balance back to Supabase PostgreSQL database
+      // Retain the highest valid available balance across DB, Ledger, and Local Wallet
+      let availableBalance = 0;
+      if (!isNaN(rawDbAvailable) && rawDbAvailable > 0) {
+        availableBalance = Math.max(rawDbAvailable, minimumExpectedAvailable, localAvailable);
+      } else if (minimumExpectedAvailable > 0) {
+        availableBalance = Math.max(minimumExpectedAvailable, localAvailable);
+      } else {
+        availableBalance = localAvailable;
+      }
+
+      let pendingBalance = pendingDeposits && pendingDeposits.length > 0 ? totalPendingDep : (local?.pendingBalance || 0);
+      let totalBalance = Math.max(
+        !isNaN(rawDbTotal) ? rawDbTotal : 0,
+        localTotal,
+        Number((availableBalance + pendingBalance).toFixed(4))
+      );
+
+      // Auto-heal & persist to Supabase if DB balance was lower or missing
+      if (availableBalance > 0 && (!walletData || isNaN(rawDbAvailable) || rawDbAvailable < availableBalance)) {
         await supabase.from('wallets').upsert({
           user_id: userId,
           available_balance: availableBalance,
@@ -314,10 +327,10 @@ export const walletService = {
 
       const syncedWallet: WalletState = {
         ...local,
-        totalBalance: totalBalance > 0 ? totalBalance : Number((availableBalance + pendingBalance).toFixed(4)),
+        totalBalance,
         availableBalance,
         pendingBalance,
-        currency: walletData?.currency || 'USDT',
+        currency: walletData?.currency || local.currency || 'USDT',
         status: (local.status === 'FROZEN' ? 'FROZEN' : 'ACTIVE'),
         updatedAt: walletData?.updated_at || new Date().toISOString()
       };

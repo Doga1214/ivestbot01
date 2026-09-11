@@ -117,13 +117,12 @@ export const adminService = {
           const approvedWthSum = userApprovedWths.reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
 
           const userTxCount = txList.filter(t => t.user_id === p.id).length;
-          const kycRec = kycMap.get(p.id);
-
+          const localW = walletService.getWalletForUser(p.id);
           const rawAvailable = parseFloat(w?.available_balance) || 0;
           const rawPending = parseFloat(w?.pending_balance) || depSum;
           const minAvailable = Math.max(0, Number((approvedDepSum - approvedWthSum).toFixed(4)));
-          const effectiveAvailable = minAvailable > 0 && rawAvailable < minAvailable ? minAvailable : rawAvailable;
-          const effectiveTotal = Math.max(parseFloat(w?.total_balance) || 0, Number((effectiveAvailable + rawPending).toFixed(4)));
+          const effectiveAvailable = Math.max(rawAvailable, minAvailable, localW.availableBalance || 0);
+          const effectiveTotal = Math.max(parseFloat(w?.total_balance) || 0, localW.totalBalance || 0, Number((effectiveAvailable + rawPending).toFixed(4)));
 
           const walletState: WalletState = {
             totalBalance: effectiveTotal,
