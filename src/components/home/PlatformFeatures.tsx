@@ -48,7 +48,7 @@ export const PlatformFeatures: React.FC = () => {
       icon: <TrendingUpIcon sx={{ fontSize: 28, color: '#f43f5e' }} />,
       badge: 'Tiered VIP',
       title: 'Multi-Tier Referral Growth',
-      desc: 'Earn up to 0.1% daily lifetime team overrides across 3 tiers (A, B, C) plus instant cash sponsor bonuses up to 20 USDT per deposit.',
+      desc: 'Earn up to 0.1% daily lifetime team overrides across 3 tiers (A: 0.1%, B: 0.05%, C: 0.025%) on all completed 24-hour reservations.',
       color: '#f43f5e',
       bgGlow: 'rgba(244, 63, 94, 0.12)'
     },

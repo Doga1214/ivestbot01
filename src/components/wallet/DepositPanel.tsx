@@ -90,44 +90,6 @@ export const DepositPanel: React.FC = () => {
         </Alert>
       )}
 
-      {/* Deposit Milestone Reward Banner */}
-      <Paper
-        sx={{
-          p: 2.5,
-          mb: 3.5,
-          borderRadius: 3,
-          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(59, 130, 246, 0.08) 100%)',
-          border: '1px solid rgba(139, 92, 246, 0.25)',
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          alignItems: { xs: 'flex-start', sm: 'center' },
-          justifyContent: 'space-between',
-          gap: 2
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(139, 92, 246, 0.2)', color: '#a78bfa' }}>
-            <CardGiftcardIcon />
-          </Box>
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-              Deposit Milestone Referral Reward (50 USDT – 1,000 USDT)
-            </Typography>
-            <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-              Every 50 USDT deposited awards <strong>+5 USDT</strong> direct referral reward credited to your sponsor's active balance!
-            </Typography>
-          </Box>
-        </Box>
-
-        {numAmount >= 50 && estimatedSponsorBonus > 0 && (
-          <Chip
-            label={`Sponsor Referral Reward: +${estimatedSponsorBonus} USDT`}
-            color="primary"
-            sx={{ fontWeight: 800, flexShrink: 0 }}
-          />
-        )}
-      </Paper>
-
       {/* Configured Deposit Addresses */}
       <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
         Official Deposit Addresses (USDT)
@@ -250,11 +212,7 @@ export const DepositPanel: React.FC = () => {
                   type="number"
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}
-                  helperText={
-                    numAmount >= 50
-                      ? `Qualifies for +${estimatedUserBonus} USDT Welcome Bonus & +${estimatedSponsorBonus} USDT Sponsor Bonus`
-                      : 'Min 50 USDT for referral milestone bonuses'
-                  }
+                  helperText="Minimum deposit: 50 USDT"
                   required
                 />
               </Grid>

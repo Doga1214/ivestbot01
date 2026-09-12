@@ -118,10 +118,10 @@ export const ReservationCard: React.FC = () => {
           </Typography>
           <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
             <Typography variant="caption" sx={{ color: '#c4b5fd', fontWeight: 700, display: 'block' }}>
-              🎁 Milestone Referral Rewards Active:
+              ⚡ Automated 2.22% Daily Returns:
             </Typography>
             <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-              Deposits from 50 USDT to 1,000 USDT award instant direct referral rewards to your sponsor's active balance!
+              Participate in 24-hour doubling cycles designed to double your principal amount in 45 days.
             </Typography>
           </Box>
         </DialogContent>

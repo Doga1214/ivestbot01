@@ -6,7 +6,7 @@ import {
   PeopleAltOutlinedIcon,
   MonetizationOnOutlinedIcon,
   ShareOutlinedIcon,
-  CardGiftcardIcon,
+  MilitaryTechIcon,
   ArrowForwardIcon
 } from '../common/Icons';
 
@@ -50,10 +50,10 @@ export const ReferralOverview: React.FC = () => {
                   mb: 2
                 }}
               >
-                3-Tier Referral & Milestone Bonuses
+                3-Tier Multi-Level Referral Commissions
               </Typography>
               <Typography variant="body1" sx={{ color: '#9CA3AF', lineHeight: 1.7, mb: 3.5 }}>
-                Build your crypto team. Earn lifetime daily commissions on all downline 24-hour reservations plus instant cash bonuses on invited member deposits.
+                Build your crypto team. Earn lifetime daily commissions on all downline 24-hour reservation cycles with instant automated profit distribution.
               </Typography>
 
               <Stack spacing={2.2} sx={{ mb: 4 }}>
@@ -126,40 +126,45 @@ export const ReferralOverview: React.FC = () => {
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, justifyContent: 'center' }}>
-                  <CardGiftcardIcon sx={{ color: '#FFD700' }} />
+                  <MilitaryTechIcon sx={{ color: '#a78bfa' }} />
                   <Typography variant="h6" sx={{ fontWeight: 800, textAlign: 'center', color: '#ffffff' }}>
-                    Instant Sponsor Milestone Rewards
+                    Lifetime Daily Commission Rates
                   </Typography>
                 </Box>
 
                 <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', textAlign: 'center', mb: 2.5 }}>
-                  Credited directly to sponsor wallet upon downline member deposit
+                  Automatically calculated and credited upon each 24-hour cycle completion
                 </Typography>
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.18)' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#e2e8f0' }}>50 USDT Deposit</Typography>
-                    <Chip label="+1.00 USDT Instant" size="small" sx={{ bgcolor: 'rgba(52, 211, 153, 0.15)', color: '#34d399', fontWeight: 900 }} />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#a78bfa' }}>Tier A (Direct)</Typography>
+                      <Chip label="0.10% / 24H" size="small" sx={{ bgcolor: 'rgba(139, 92, 246, 0.2)', color: '#a78bfa', fontWeight: 900 }} />
+                    </Box>
+                    <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
+                      Example: 1,000 USDT downline reservation = <strong>+1.00 USDT daily</strong> profit
+                    </Typography>
                   </Box>
 
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.18)' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#e2e8f0' }}>100 USDT Deposit</Typography>
-                    <Chip label="+2.00 USDT Instant" size="small" sx={{ bgcolor: 'rgba(52, 211, 153, 0.15)', color: '#34d399', fontWeight: 900 }} />
+                  <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#60a5fa' }}>Tier B (Secondary)</Typography>
+                      <Chip label="0.05% / 24H" size="small" sx={{ bgcolor: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', fontWeight: 900 }} />
+                    </Box>
+                    <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
+                      Example: 1,000 USDT downline reservation = <strong>+0.50 USDT daily</strong> profit
+                    </Typography>
                   </Box>
 
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.18)' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#e2e8f0' }}>200 USDT Deposit</Typography>
-                    <Chip label="+4.00 USDT Instant" size="small" sx={{ bgcolor: 'rgba(52, 211, 153, 0.15)', color: '#34d399', fontWeight: 900 }} />
-                  </Box>
-
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.18)' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#e2e8f0' }}>500 USDT Deposit</Typography>
-                    <Chip label="+10.00 USDT Instant" size="small" sx={{ bgcolor: 'rgba(52, 211, 153, 0.15)', color: '#34d399', fontWeight: 900 }} />
-                  </Box>
-
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(255, 215, 0, 0.12)', border: '1px solid rgba(255, 215, 0, 0.35)' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 900, color: '#FFD700' }}>1,000 USDT Deposit</Typography>
-                    <Chip label="+20.00 USDT Top Tier" size="small" sx={{ bgcolor: '#FFD700', color: '#000', fontWeight: 900 }} />
+                  <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: 'rgba(52, 211, 153, 0.08)', border: '1px solid rgba(52, 211, 153, 0.25)' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#34d399' }}>Tier C (Tertiary)</Typography>
+                      <Chip label="0.025% / 24H" size="small" sx={{ bgcolor: 'rgba(52, 211, 153, 0.2)', color: '#34d399', fontWeight: 900 }} />
+                    </Box>
+                    <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
+                      Example: 1,000 USDT downline reservation = <strong>+0.25 USDT daily</strong> profit
+                    </Typography>
                   </Box>
                 </Box>
 
@@ -167,15 +172,15 @@ export const ReferralOverview: React.FC = () => {
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
                   <Box>
-                    <Typography variant="caption" sx={{ color: '#a78bfa', fontWeight: 800 }}>Tier A Override</Typography>
+                    <Typography variant="caption" sx={{ color: '#a78bfa', fontWeight: 800 }}>Tier A</Typography>
                     <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#fff' }}>0.1%</Typography>
                   </Box>
                   <Box>
-                    <Typography variant="caption" sx={{ color: '#60a5fa', fontWeight: 800 }}>Tier B Override</Typography>
+                    <Typography variant="caption" sx={{ color: '#60a5fa', fontWeight: 800 }}>Tier B</Typography>
                     <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#fff' }}>0.05%</Typography>
                   </Box>
                   <Box>
-                    <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 800 }}>Tier C Override</Typography>
+                    <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 800 }}>Tier C</Typography>
                     <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#fff' }}>0.025%</Typography>
                   </Box>
                 </Box>

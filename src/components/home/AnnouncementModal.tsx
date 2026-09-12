@@ -110,7 +110,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ open: exte
       </DialogTitle>
 
       <DialogContent sx={{ pt: 1.5 }}>
-        {/* Highlight Banner: Deposit Referral Bonus Event */}
+        {/* Highlight Banner: 3-Tier Referral Commissions */}
         <Paper
           sx={{
             p: 2.5,
@@ -121,31 +121,27 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ open: exte
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <CardGiftcardIcon sx={{ color: '#a78bfa' }} />
+            <GroupsIcon sx={{ color: '#a78bfa' }} />
             <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#ffffff' }}>
-              🎁 Exclusive Deposit Referral Milestone Rewards
+              ⚡ 3-Tier Lifetime Daily Referral Commissions
             </Typography>
           </Box>
           <Typography variant="body2" sx={{ color: '#d1d5db', lineHeight: 1.6, mb: 1.5 }}>
-            Invite friends to join with your referral link! When they deposit between <strong>50 USDT</strong> and <strong>1,000 USDT</strong>, instant referral rewards are credited directly to your active Main Balance:
+            Invite friends with your referral link and earn lifetime daily passive commissions on every 24-hour reservation cycle completed by your downline:
           </Typography>
 
           <Stack spacing={1} sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)', p: 1.5, borderRadius: 2 }}>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' }, gap: 0.3 }}>
-              <span style={{ color: '#9CA3AF' }}>50 USDT Deposit:</span>
-              <strong style={{ color: '#34d399' }}>Sponsor Referral Reward: +5 USDT</strong>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
+              <span style={{ color: '#a78bfa', fontWeight: 700 }}>Tier A (Direct Friends):</span>
+              <strong style={{ color: '#34d399' }}>0.10% Daily Lifetime</strong>
             </Box>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' }, gap: 0.3 }}>
-              <span style={{ color: '#9CA3AF' }}>100 USDT Deposit:</span>
-              <strong style={{ color: '#34d399' }}>Sponsor Referral Reward: +10 USDT</strong>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
+              <span style={{ color: '#60a5fa', fontWeight: 700 }}>Tier B (Secondary Team):</span>
+              <strong style={{ color: '#34d399' }}>0.05% Daily Lifetime</strong>
             </Box>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' }, gap: 0.3 }}>
-              <span style={{ color: '#9CA3AF' }}>500 USDT Deposit:</span>
-              <strong style={{ color: '#34d399' }}>Sponsor Referral Reward: +50 USDT</strong>
-            </Box>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' }, gap: 0.3 }}>
-              <span style={{ color: '#9CA3AF' }}>1,000 USDT Deposit:</span>
-              <strong style={{ color: '#34d399' }}>Sponsor Referral Reward: +100 USDT</strong>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
+              <span style={{ color: '#34d399', fontWeight: 700 }}>Tier C (Tertiary Team):</span>
+              <strong style={{ color: '#34d399' }}>0.025% Daily Lifetime</strong>
             </Box>
           </Stack>
         </Paper>

@@ -895,57 +895,11 @@ export const walletService = {
       adminRemarks: adminRemarks || 'Deposit verified and credited by Admin'
     };
 
-    // Calculate Sponsor Milestone Bonus
-    let sponsorBonus = 0;
-    try {
-      const allUsers = authService.getAllUsers();
-      const depositUser = allUsers.find(u => u.id === depositUserId);
-      if (depositUser?.referredBy) {
-        const cleanRef = depositUser.referredBy.trim().toLowerCase();
-        const sponsor = allUsers.find(
-          u => (u.referralCode && u.referralCode.toLowerCase() === cleanRef) ||
-               (u.username && u.username.toLowerCase() === cleanRef) ||
-               (u.id && u.id.toLowerCase() === cleanRef)
-        );
-
-        if (sponsor && sponsor.id !== depositUserId) {
-          if (depositAmount >= 1000) sponsorBonus = 20;
-          else if (depositAmount >= 500) sponsorBonus = 10;
-          else if (depositAmount >= 200) sponsorBonus = 4;
-          else if (depositAmount >= 100) sponsorBonus = 2;
-          else if (depositAmount >= 50) sponsorBonus = 1;
-
-          if (sponsorBonus > 0) {
-            const sponsorWallet = this.getWalletForUser(sponsor.id);
-            const updatedSponsorWallet = {
-              ...sponsorWallet,
-              totalBalance: Number((sponsorWallet.totalBalance + sponsorBonus).toFixed(4)),
-              availableBalance: Number((sponsorWallet.availableBalance + sponsorBonus).toFixed(4))
-            };
-            this.saveWalletForUser(sponsor.id, updatedSponsorWallet);
-
-            this.addTransaction({
-              userId: sponsor.id,
-              userName: sponsor.username,
-              type: 'WELCOME_BONUS',
-              amount: sponsorBonus,
-              currency: 'USDT',
-              status: 'COMPLETED',
-              referenceId: `REF-BONUS-${Date.now().toString().slice(-6)}`,
-              description: `Instant Sponsor Milestone Bonus (+${sponsorBonus} USDT) from @${depositUser.username}'s ${depositAmount} USDT deposit`
-            });
-          }
-        }
-      }
-    } catch {
-      // safe fallback
-    }
-
     return {
       updatedWallet: syncedWallet,
       approvedTx,
       welcomeBonus: rpcResData?.welcomeBonus || 0,
-      sponsorBonus
+      sponsorBonus: 0
     };
   },
 
