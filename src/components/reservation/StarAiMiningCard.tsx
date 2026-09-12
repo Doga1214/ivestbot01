@@ -473,7 +473,7 @@ export const StarAiMiningCard: React.FC = () => {
             </Typography>
             <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', lineHeight: 1.5 }}>
               1. Each user can start <strong>only 1 mining cycle per 24 hours</strong>. <br />
-              2. When you click Stop Mining, the yield is calculated pro-rata based on active duration (e.g. 12h = 1.29%, 6h = 0.645%). <br />
+              2. When you click Stop Mining, the yield is calculated pro-rata based on active duration (e.g. 12h = 0.50%, 6h = 0.25%). <br />
               3. You must click <strong>Execute Reservation</strong> in the section below to finalize and credit your yield into the wallet ledger!
             </Typography>
           </Paper>

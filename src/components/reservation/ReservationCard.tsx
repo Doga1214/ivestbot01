@@ -412,19 +412,10 @@ export const ReservationCard: React.FC = () => {
 
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-                      Cycle Duration:
+                       Cycle Duration:
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 700, color: '#ffffff' }}>
-                      24 Hours (Strict 1X Lock)
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-                      45-Day Double Target:
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#a78bfa' }}>
-                      2X (100% in 45 Days)
+                       24 Hours (Strict 1X Lock)
                     </Typography>
                   </Box>
 

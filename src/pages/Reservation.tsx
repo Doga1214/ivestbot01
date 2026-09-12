@@ -192,7 +192,7 @@ export const Reservation: React.FC = () => {
         Reserve once a day to earn passive USDT income.
       </Typography>
 
-      {/* Badges: Level & Daily Rate */}
+      {/* Badges: Level */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: 3 }}>
         <Box
           sx={{
@@ -211,25 +211,6 @@ export const Reservation: React.FC = () => {
         >
           <EmojiEventsIcon sx={{ fontSize: 16, color: '#a78bfa' }} />
           Level {userLevel}
-        </Box>
-
-        <Box
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 0.7,
-            px: 1.8,
-            py: 0.6,
-            borderRadius: '999px',
-            background: 'rgba(6, 182, 212, 0.12)',
-            border: '1px solid rgba(6, 182, 212, 0.4)',
-            color: '#67e8f9',
-            fontSize: '0.85rem',
-            fontWeight: 800
-          }}
-        >
-          <TrendingUpIcon sx={{ fontSize: 16, color: '#22d3ee' }} />
-          Daily {rateRange.label}
         </Box>
       </Box>
 
