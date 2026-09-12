@@ -77,7 +77,7 @@ export const BottomCtaBanner: React.FC = () => {
               fontSize: { xs: '0.95rem', sm: '1.05rem' }
             }}
           >
-            Create your free account, select your preferred crypto yield reservation pool, and start receiving 2.22% automated daily returns.
+            Create your free account, select your preferred crypto yield reservation pool, and start receiving 1.00% automated daily returns.
           </Typography>
 
           {/* Buttons */}

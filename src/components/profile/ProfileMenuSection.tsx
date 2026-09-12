@@ -489,7 +489,7 @@ export const ProfileMenuSection: React.FC = () => {
                 1. 24-Hour Cycle Doubling
               </Typography>
               <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-                Reserve funds for a 24-hour cycle. The system yields 2.222% daily return, compounding to double your full principal in 45 active cycles.
+                Reserve funds for a 24-hour cycle. The system yields 1.000% daily return credited automatically upon settlement.
               </Typography>
             </Paper>
 

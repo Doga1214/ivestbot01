@@ -14,16 +14,16 @@ export const PlatformFeatures: React.FC = () => {
   const features = [
     {
       icon: <RocketLaunchIcon sx={{ fontSize: 28, color: '#a78bfa' }} />,
-      badge: '45-Day Protocol',
+      badge: '100-Day Protocol',
       title: 'Algorithmic Doubling Cycles',
-      desc: 'Exclusive 24-hour algorithmic liquidity doubling cycles designed to double your principal amount in 45 days at 2.2222% daily compound yield.',
+      desc: 'Exclusive 24-hour algorithmic liquidity doubling cycles designed to double your principal amount at 1.000% daily compound yield.',
       color: '#8b5cf6',
       bgGlow: 'rgba(139, 92, 246, 0.12)'
     },
     {
       icon: <MonetizationOnIcon sx={{ fontSize: 28, color: '#FFD700' }} />,
       badge: 'Daily Rewards',
-      title: '2.22% Automated Daily Yield',
+      title: '1.00% Automated Daily Yield',
       desc: 'Continuous real-time profit settlement calculated per 24-hour reservation cycle with automated 20-second order confirmation.',
       color: '#FFD700',
       bgGlow: 'rgba(255, 215, 0, 0.1)'

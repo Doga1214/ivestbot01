@@ -18,7 +18,6 @@ import {
 import {
   CloseIcon,
   ElectricBoltIcon,
-  CardGiftcardIcon,
   TrendingUpIcon,
   GroupsIcon,
   CheckCircleIcon
@@ -152,10 +151,10 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ open: exte
             <TrendingUpIcon sx={{ color: '#8b5cf6', fontSize: 22, mt: 0.3 }} />
             <Box>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#fff' }}>
-                2.22% Daily (45-Day Principle 2X Doubling)
+                1.00% Daily Algorithmic Returns
               </Typography>
               <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-                Participate with your available USDT balance in one reservation every 24 hours. Your principle doubles in 45 days (100% total profit).
+                Participate with your available USDT balance in one reservation every 24 hours. Enjoy steady 1.000% daily returns credited directly to your balance.
               </Typography>
             </Box>
           </Box>

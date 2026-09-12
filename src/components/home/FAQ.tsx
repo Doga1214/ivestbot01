@@ -9,8 +9,8 @@ export const FAQ: React.FC = () => {
       a: 'Each user is eligible to initiate one reservation every 24 hours. The reservation uses your available USDT balance to participate in automated daily algorithmic settlement with a 20-second processing period.'
     },
     {
-      q: 'What is the daily configured yield rate and 45-day doubling rule?',
-      a: 'The platform operates with a daily yield rate of 2.2222% (approx 2.22%). At this rate, executing one reservation every 24 hours doubles your principal amount in exactly 45 days (45 days × 2.2222% = 100% net profit). The yield is credited directly to your available wallet balance upon completion of the 20-second processing window.'
+      q: 'What is the daily configured yield rate and return model?',
+      a: 'The platform operates with a daily yield rate of 1.000% (approx 1.00%). At this rate, executing one reservation every 24 hours provides consistent 1.000% daily profit (100 days = 100% net profit). The yield is credited directly to your available wallet balance upon completion of the 20-second processing window.'
     },
     {
       q: 'How do multi-tier referral commissions work?',

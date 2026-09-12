@@ -56,7 +56,6 @@ export const RegisterModal: React.FC = () => {
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [resendCooldown, setResendCooldown] = useState(60);
-  const [isResendActive, setIsResendActive] = useState(false);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
@@ -71,7 +70,7 @@ export const RegisterModal: React.FC = () => {
 
   // Resend Countdown Timer
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setInterval>;
     if (step === 'OTP' && resendCooldown > 0) {
       timer = setInterval(() => {
         setResendCooldown((prev) => prev - 1);
@@ -117,7 +116,6 @@ export const RegisterModal: React.FC = () => {
       const res = await sendEmailOtp(cleanEmail, password, { name: cleanName, username: cleanUsername });
       setStep('OTP');
       setResendCooldown(60);
-      setIsResendActive(true);
       setInfoMessage(res.message);
       setOtpDigits(['', '', '', '', '', '']);
       // Auto-focus first OTP digit box after state transition
@@ -503,7 +501,9 @@ export const RegisterModal: React.FC = () => {
               {otpDigits.map((digit, idx) => (
                 <input
                   key={idx}
-                  ref={(el) => (otpInputRefs.current[idx] = el)}
+                  ref={(el) => {
+                    otpInputRefs.current[idx] = el;
+                  }}
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"

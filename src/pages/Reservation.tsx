@@ -73,9 +73,9 @@ export const Reservation: React.FC = () => {
   const userLevel = user?.level || 1;
   const reservableBalance = Math.max(0, wallet.availableBalance);
   
-  // Daily rate: 2.2222% per 24H reservation (Full 100% principal doubling in 45 days)
+  // Daily rate: 1.000% per 24H reservation
   const rateRange = useMemo(() => {
-    return { min: 2.2222, max: 2.2222, label: '2.222% (Doubles in 45 Days)' };
+    return { min: 1.0, max: 1.0, label: '1.000% Daily ROI' };
   }, []);
 
   // Reservation range based on level (Starting from 10 USDT)

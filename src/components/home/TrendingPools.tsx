@@ -35,11 +35,11 @@ export const TrendingPools: React.FC = () => {
   };
 
   const topRankedPools = [
-    { rank: 1, name: 'Genesis Alpha Vault', dailyROI: '+2.22%', volume: '142.5K USDT', capacity: 94, color: '#FFD700' },
-    { rank: 2, name: 'Apex Quantum Matrix', dailyROI: '+2.22%', volume: '98.2K USDT', capacity: 88, color: '#E2E8F0' },
-    { rank: 3, name: 'Cyber Node Arbitrage', dailyROI: '+2.22%', volume: '64.1K USDT', capacity: 79, color: '#F59E0B' },
-    { rank: 4, name: 'Titan Core Liquidity', dailyROI: '+2.22%', volume: '45.8K USDT', capacity: 82, color: '#38bdf8' },
-    { rank: 5, name: 'Mystic Pulse Yield', dailyROI: '+2.22%', volume: '29.3K USDT', capacity: 91, color: '#a78bfa' }
+    { rank: 1, name: 'Genesis Alpha Vault', dailyROI: '+1.00%', volume: '142.5K USDT', capacity: 94, color: '#FFD700' },
+    { rank: 2, name: 'Apex Quantum Matrix', dailyROI: '+1.00%', volume: '98.2K USDT', capacity: 88, color: '#E2E8F0' },
+    { rank: 3, name: 'Cyber Node Arbitrage', dailyROI: '+1.00%', volume: '64.1K USDT', capacity: 79, color: '#F59E0B' },
+    { rank: 4, name: 'Titan Core Liquidity', dailyROI: '+1.00%', volume: '45.8K USDT', capacity: 82, color: '#38bdf8' },
+    { rank: 5, name: 'Mystic Pulse Yield', dailyROI: '+1.00%', volume: '29.3K USDT', capacity: 91, color: '#a78bfa' }
   ];
 
   const poolCards = [
@@ -47,7 +47,7 @@ export const TrendingPools: React.FC = () => {
       id: 'n1',
       name: 'Titan Alpha Node',
       badge: 'Level 1 Pool',
-      dailyROI: '2.22%',
+      dailyROI: '1.00%',
       floor: '10 USDT',
       capacity: 94,
       volume: '$142.5K',
@@ -58,7 +58,7 @@ export const TrendingPools: React.FC = () => {
       id: 'n2',
       name: 'Cyber Pulse Matrix',
       badge: 'Level 2 Pool',
-      dailyROI: '2.22%',
+      dailyROI: '1.00%',
       floor: '50 USDT',
       capacity: 88,
       volume: '$98.2K',
@@ -69,7 +69,7 @@ export const TrendingPools: React.FC = () => {
       id: 'n3',
       name: 'Aurora Quantum Realm',
       badge: 'Level 3 Pool',
-      dailyROI: '2.22%',
+      dailyROI: '1.00%',
       floor: '100 USDT',
       capacity: 81,
       volume: '$64.1K',
@@ -80,7 +80,7 @@ export const TrendingPools: React.FC = () => {
       id: 'n4',
       name: 'Genesis Apex Vault',
       badge: 'Level 4 Pool',
-      dailyROI: '2.22%',
+      dailyROI: '1.00%',
       floor: '250 USDT',
       capacity: 96,
       volume: '$210.4K',
@@ -189,7 +189,7 @@ export const TrendingPools: React.FC = () => {
                   }}
                 >
                   <Typography variant="h5" sx={{ fontWeight: 900, color: '#fff' }}>
-                    +2.22%
+                    +1.00%
                   </Typography>
                 </Box>
               </Box>
@@ -209,7 +209,7 @@ export const TrendingPools: React.FC = () => {
                     24h Settlement Rate
                   </Typography>
                   <Typography variant="h6" sx={{ fontWeight: 900, color: '#34d399' }}>
-                    2.2222% / Cycle
+                    1.000% / Cycle
                   </Typography>
                 </Box>
                 <Box>

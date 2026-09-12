@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Container, Typography, Card, CardContent, Chip, Stack } from '@mui/material';
 import Grid from '@mui/material/Grid2';
-import { MilitaryTechIcon, CheckCircleOutlineIcon } from '../common/Icons';
+import { MilitaryTechIcon } from '../common/Icons';
 import { levelService } from '../../services/levelService';
 
 export const LevelOverview: React.FC = () => {

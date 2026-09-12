@@ -140,10 +140,10 @@ export const StarAiMiningCard: React.FC = () => {
           </Typography>
           <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
             <Typography variant="caption" sx={{ color: '#c4b5fd', fontWeight: 700, display: 'block' }}>
-              ⚡ 2.22% Daily Yield Protocol:
+              ⚡ 1.00% Daily Yield Protocol:
             </Typography>
             <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-              Participate in 24-hour doubling cycles designed to double your principal amount in 45 days.
+              Participate in 24-hour cycles designed to generate steady 1.000% daily compound yield.
             </Typography>
           </Box>
         </DialogContent>

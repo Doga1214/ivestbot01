@@ -34,10 +34,10 @@ export const HowItWorks: React.FC = () => {
     {
       num: '03',
       title: 'Earn & Instant Payout',
-      desc: 'Receive automated 2.22% daily profit directly into your wallet. Double your principal in 45 days and withdraw anytime.',
+      desc: 'Receive automated 1.00% daily profit directly into your wallet. Compound your principal and withdraw anytime.',
       icon: <AutoAwesomeIcon sx={{ fontSize: 28, color: '#34d399' }} />,
       accentColor: '#34d399',
-      tag: 'Step 3 • 2.22% Daily'
+      tag: 'Step 3 • 1.00% Daily'
     }
   ];
 

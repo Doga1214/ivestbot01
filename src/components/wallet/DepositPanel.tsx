@@ -10,15 +10,13 @@ import {
   IconButton,
   Tooltip,
   MenuItem,
-  Alert,
-  Chip
+  Alert
 } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import {
   ContentCopyIcon,
   QrCode2Icon,
-  SendIcon,
-  CardGiftcardIcon
+  SendIcon
 } from '../common/Icons';
 import { WALLET_CONFIG } from '../../config/walletConfig';
 import { useApp } from '../../context/AppContext';
@@ -41,11 +39,6 @@ export const DepositPanel: React.FC = () => {
     (wallet.status === 'FROZEN'
       ? 'Your wallet is frozen. Deposit operations are currently locked.'
       : 'Deposits have been restricted on your wallet by the administrator.');
-
-  const numAmount = parseFloat(depositAmount) || 0;
-  const units = Math.floor(Math.min(numAmount, WALLET_CONFIG.depositBonusRatio.maxDeposit) / WALLET_CONFIG.depositBonusRatio.unitDeposit);
-  const estimatedUserBonus = units * WALLET_CONFIG.depositBonusRatio.newUserBonusPerUnit;
-  const estimatedSponsorBonus = units * WALLET_CONFIG.depositBonusRatio.sponsorBonusPerUnit;
 
   const handleCopy = (address: string, network: string) => {
     navigator.clipboard.writeText(address);

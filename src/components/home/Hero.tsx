@@ -29,7 +29,7 @@ export const Hero: React.FC = () => {
       name: 'Titan Alpha Node',
       badge: 'Level 1 VIP',
       badgeColor: '#f59e0b',
-      dailyRate: '2.22%',
+      dailyRate: '1.00%',
       floorUSDT: 10,
       gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
       accentColor: '#f59e0b',
@@ -41,7 +41,7 @@ export const Hero: React.FC = () => {
       name: 'Cyber Pulse Matrix',
       badge: 'Level 2 VIP',
       badgeColor: '#10b981',
-      dailyRate: '2.22%',
+      dailyRate: '1.00%',
       floorUSDT: 50,
       gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
       accentColor: '#10b981',
@@ -53,7 +53,7 @@ export const Hero: React.FC = () => {
       name: 'Aurora Quantum Node',
       badge: 'Level 3 VIP',
       badgeColor: '#a78bfa',
-      dailyRate: '2.22%',
+      dailyRate: '1.00%',
       floorUSDT: 100,
       gradient: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
       accentColor: '#8b5cf6',
@@ -65,7 +65,7 @@ export const Hero: React.FC = () => {
       name: 'Genesis Apex Vault',
       badge: 'Level 4 Diamond',
       badgeColor: '#38bdf8',
-      dailyRate: '2.22%',
+      dailyRate: '1.00%',
       floorUSDT: 250,
       gradient: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
       accentColor: '#38bdf8',
@@ -174,7 +174,7 @@ export const Hero: React.FC = () => {
             px: { xs: 1, sm: 0 }
           }}
         >
-          The premier Web3 automated crypto yield platform. Automated 24h AI reservation cycles, continuous 2.22% daily returns, and 3-tier multi-level passive affiliate commissions.
+          The premier Web3 automated crypto yield platform. Automated 24h AI reservation cycles, continuous 1.00% daily returns, and 3-tier multi-level passive affiliate commissions.
         </Typography>
 
         {/* Dual CTA Buttons */}

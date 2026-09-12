@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Container, Typography, Paper, Chip, Button, LinearProgress, Stack } from '@mui/material';
+import { Box, Container, Typography, Paper, Chip, Button, LinearProgress } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import {
   ElectricBoltIcon,
   PlayArrowIcon,
-  CheckCircleOutlineIcon,
-  AutoAwesomeIcon,
   RefreshIcon
 } from '../common/Icons';
 
@@ -15,10 +14,9 @@ export const LiveActionDemo: React.FC = () => {
   const [profit, setProfit] = useState<number>(0);
 
   const poolAmount = 500;
-  const targetProfit = poolAmount * 0.022222; // $11.11
+  const targetProfit = poolAmount * 0.01; // $5.00 (1.00% daily)
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
     if (isRunning) {
       const interval = setInterval(() => {
         setProgress((prev) => {
@@ -52,8 +50,8 @@ export const LiveActionDemo: React.FC = () => {
   const stepsInfo = [
     { label: 'Selecting Node Liquidity', desc: 'Locking 500 USDT into 24H algorithmic pool...' },
     { label: 'Smart Contract Matching', desc: 'Arbitrage routing across multi-chain liquidity vaults...' },
-    { label: '20s Instant Settlement', desc: 'Verifying cryptographic proof & calculating 2.22% yield...' },
-    { label: 'Settlement Completed', desc: 'Yield credited: +$11.11 USDT directly to balance!' }
+    { label: '20s Instant Settlement', desc: 'Verifying cryptographic proof & calculating 1.00% yield...' },
+    { label: 'Settlement Completed', desc: 'Yield credited: +$5.00 USDT directly to balance!' }
   ];
 
   return (

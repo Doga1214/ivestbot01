@@ -25,7 +25,7 @@ export const YieldCalculator: React.FC = () => {
 
   const presets = [50, 100, 200, 500, 1000, 2500, 5000];
 
-  const dailyProfit = Number((amount * 0.022222).toFixed(2));
+  const dailyProfit = Number((amount * 0.01).toFixed(2));
   const weeklyProfit = Number((dailyProfit * 7).toFixed(2));
   const monthlyProfit = Number((dailyProfit * 30).toFixed(2));
   const cycle45Profit = Number((dailyProfit * 45).toFixed(2));
@@ -78,7 +78,7 @@ export const YieldCalculator: React.FC = () => {
 
             <Chip
               icon={<VerifiedIcon sx={{ fontSize: 14, color: '#34d399 !important' }} />}
-              label="Standard 2.2222% Daily Rate"
+              label="Standard 1.000% Daily Rate"
               size="small"
               sx={{
                 bgcolor: 'rgba(16, 185, 129, 0.1)',
@@ -187,7 +187,7 @@ export const YieldCalculator: React.FC = () => {
                       +{dailyProfit} USDT
                     </Typography>
                     <Typography variant="caption" sx={{ color: '#6B7280' }}>
-                      2.22% daily yield
+                      1.00% daily yield
                     </Typography>
                   </Paper>
                 </Grid>
@@ -201,7 +201,7 @@ export const YieldCalculator: React.FC = () => {
                       +{weeklyProfit} USDT
                     </Typography>
                     <Typography variant="caption" sx={{ color: '#6B7280' }}>
-                      15.54% cumulative
+                      7.00% cumulative
                     </Typography>
                   </Paper>
                 </Grid>
@@ -215,7 +215,7 @@ export const YieldCalculator: React.FC = () => {
                       +{monthlyProfit} USDT
                     </Typography>
                     <Typography variant="caption" sx={{ color: '#6B7280' }}>
-                      66.6% cumulative
+                      30.0% cumulative
                     </Typography>
                   </Paper>
                 </Grid>

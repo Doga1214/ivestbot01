@@ -32,7 +32,7 @@ export const PlatformStatsBar: React.FC = () => {
       glow: 'rgba(255, 215, 0, 0.15)'
     },
     {
-      value: '2.2222%',
+      value: '1.000%',
       label: 'Algorithmic Daily APY',
       color: '#a78bfa',
       icon: <ElectricBoltIcon sx={{ fontSize: 22, color: '#a78bfa' }} />,
