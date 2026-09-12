@@ -379,6 +379,8 @@ export const walletService = {
             const amt = parseFloat(t.amount) || 0;
             if (t.type === 'DAILY_PROFIT' || t.type === 'WELCOME_BONUS' || t.type === 'REFERRAL_BONUS' || t.type === 'ADMIN_CREDIT') {
               totalProfits += amt;
+            } else if (t.type === 'ADMIN_DEBIT') {
+              totalProfits -= amt;
             }
           });
         }
@@ -401,21 +403,21 @@ export const walletService = {
 
       if (dbWalletData && !isNaN(rawDbAvailable)) {
         // Supabase DB is primary source of truth
-        availableBalance = rawDbAvailable;
-        pendingBalance = !isNaN(rawDbPending) ? rawDbPending : totalPendingDep;
-        totalBalance = !isNaN(rawDbTotal) && rawDbTotal > 0
+        availableBalance = Math.max(0, rawDbAvailable);
+        pendingBalance = !isNaN(rawDbPending) ? Math.max(0, rawDbPending) : totalPendingDep;
+        totalBalance = !isNaN(rawDbTotal) && rawDbTotal >= availableBalance
           ? rawDbTotal
           : Number((availableBalance + pendingBalance).toFixed(4));
-      } else if (ledgerAvailable > 0 || totalPendingDep > 0) {
+      } else if (local && typeof local.availableBalance === 'number' && !isNaN(local.availableBalance)) {
+        // Fallback to local cache
+        availableBalance = Math.max(0, local.availableBalance);
+        pendingBalance = local.pendingBalance || totalPendingDep;
+        totalBalance = local.totalBalance || Number((availableBalance + pendingBalance).toFixed(4));
+      } else {
         // Fallback to ledger computation
         availableBalance = ledgerAvailable;
         pendingBalance = totalPendingDep;
         totalBalance = Number((availableBalance + pendingBalance).toFixed(4));
-      } else {
-        // Fallback to local cache
-        availableBalance = local?.availableBalance || 0;
-        pendingBalance = local?.pendingBalance || 0;
-        totalBalance = local?.totalBalance || Number((availableBalance + pendingBalance).toFixed(4));
       }
 
       const targetPersistId = canonicalId || userId;
@@ -1220,9 +1222,26 @@ export const walletService = {
     tx: WalletTransaction;
   }> {
     const userId = userMeta?.id;
-    const wallet = userId ? this.getWalletForUser(userId) : this.getWallet();
+    let wallet = userId ? this.getWalletForUser(userId) : this.getWallet();
+
+    if (userId && isValidUuid(userId)) {
+      try {
+        const { data: dbW } = await supabase.from('wallets').select('*').eq('user_id', userId).maybeSingle();
+        if (dbW && !isNaN(parseFloat(dbW.available_balance))) {
+          wallet = {
+            ...wallet,
+            availableBalance: parseFloat(dbW.available_balance),
+            totalBalance: parseFloat(dbW.total_balance) || parseFloat(dbW.available_balance),
+            pendingBalance: parseFloat(dbW.pending_balance) || 0
+          };
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     const newAvailable = Number((wallet.availableBalance + amount).toFixed(4));
-    const newTotal = Number((wallet.totalBalance + amount).toFixed(4));
+    const newTotal = Number((newAvailable + (wallet.pendingBalance || 0)).toFixed(4));
 
     const updatedWallet: WalletState = {
       ...wallet,
@@ -1308,9 +1327,26 @@ export const walletService = {
     tx: WalletTransaction;
   }> {
     const userId = userMeta?.id;
-    const wallet = userId ? this.getWalletForUser(userId) : this.getWallet();
+    let wallet = userId ? this.getWalletForUser(userId) : this.getWallet();
+
+    if (userId && isValidUuid(userId)) {
+      try {
+        const { data: dbW } = await supabase.from('wallets').select('*').eq('user_id', userId).maybeSingle();
+        if (dbW && !isNaN(parseFloat(dbW.available_balance))) {
+          wallet = {
+            ...wallet,
+            availableBalance: parseFloat(dbW.available_balance),
+            totalBalance: parseFloat(dbW.total_balance) || parseFloat(dbW.available_balance),
+            pendingBalance: parseFloat(dbW.pending_balance) || 0
+          };
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     const newAvailable = Math.max(0, Number((wallet.availableBalance - amount).toFixed(4)));
-    const newTotal = Math.max(0, Number((wallet.totalBalance - amount).toFixed(4)));
+    const newTotal = Number((newAvailable + (wallet.pendingBalance || 0)).toFixed(4));
 
     const updatedWallet: WalletState = {
       ...wallet,

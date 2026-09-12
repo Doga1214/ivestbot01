@@ -135,17 +135,17 @@ export const adminService = {
           const minAvailable = Math.max(0, Number((approvedDepSum - approvedWthSum).toFixed(4)));
 
           let effectiveAvailable = 0;
-          if (!isNaN(rawAvailable) && rawAvailable > 0) {
-            effectiveAvailable = Math.max(rawAvailable, localW.availableBalance || 0);
-          } else if (localW.availableBalance > 0) {
-            effectiveAvailable = localW.availableBalance;
+          if (w && !isNaN(rawAvailable)) {
+            effectiveAvailable = Math.max(0, rawAvailable);
+          } else if (localW && typeof localW.availableBalance === 'number' && !isNaN(localW.availableBalance)) {
+            effectiveAvailable = Math.max(0, localW.availableBalance);
           } else {
             effectiveAvailable = minAvailable;
           }
 
-          let effectivePending = !isNaN(rawPending) && rawPending >= 0 ? rawPending : (localW.pendingBalance || depSum);
-          let effectiveTotal = !isNaN(rawTotal) && rawTotal > 0
-            ? Math.max(rawTotal, Number((effectiveAvailable + effectivePending).toFixed(4)), localW.totalBalance || 0)
+          let effectivePending = (w && !isNaN(rawPending)) ? Math.max(0, rawPending) : (localW.pendingBalance ?? depSum);
+          let effectiveTotal = (w && !isNaN(rawTotal) && rawTotal >= effectiveAvailable)
+            ? rawTotal
             : Number((effectiveAvailable + effectivePending).toFixed(4));
 
           const walletState: WalletState = {
@@ -157,6 +157,7 @@ export const adminService = {
             restrictions: localW.restrictions || { canDeposit: true, canWithdraw: true, canReserve: true, canTrade: true },
             updatedAt: w?.updated_at || localW.updatedAt
           };
+          walletService.saveWalletForUser(p.id, walletState);
 
           const userProfile: UserProfile = {
             id: p.id,
@@ -283,21 +284,28 @@ export const adminService = {
         const rawTot = parseFloat(walletData?.total_balance);
         const rawPend = parseFloat(walletData?.pending_balance);
 
-        const effectiveAvail = !isNaN(rawAvail) && rawAvail > 0 ? Math.max(rawAvail, localW.availableBalance || 0) : (localW.availableBalance || 0);
-        const effectivePend = !isNaN(rawPend) && rawPend >= 0 ? rawPend : (localW.pendingBalance || 0);
-        const effectiveTot = !isNaN(rawTot) && rawTot > 0
-          ? Math.max(rawTot, Number((effectiveAvail + effectivePend).toFixed(4)), localW.totalBalance || 0)
+        const effectiveAvail = (walletData && !isNaN(rawAvail))
+          ? Math.max(0, rawAvail)
+          : (localW && typeof localW.availableBalance === 'number' && !isNaN(localW.availableBalance) ? Math.max(0, localW.availableBalance) : 0);
+
+        const effectivePend = (walletData && !isNaN(rawPend))
+          ? Math.max(0, rawPend)
+          : (localW?.pendingBalance || 0);
+
+        const effectiveTot = (walletData && !isNaN(rawTot) && rawTot >= effectiveAvail)
+          ? rawTot
           : Number((effectiveAvail + effectivePend).toFixed(4));
 
         const walletState: WalletState = {
           totalBalance: effectiveTot,
           availableBalance: effectiveAvail,
           pendingBalance: effectivePend,
-          currency: walletData?.currency || localW.currency || 'USDT',
-          status: (user.status === 'INACTIVE' ? 'INACTIVE' : (localW.status || 'ACTIVE')) as WalletStatus,
-          restrictions: localW.restrictions || { canDeposit: true, canWithdraw: true, canReserve: true, canTrade: true },
-          updatedAt: walletData?.updated_at || localW.updatedAt
+          currency: walletData?.currency || localW?.currency || 'USDT',
+          status: (user.status === 'INACTIVE' ? 'INACTIVE' : (localW?.status || 'ACTIVE')) as WalletStatus,
+          restrictions: localW?.restrictions || { canDeposit: true, canWithdraw: true, canReserve: true, canTrade: true },
+          updatedAt: walletData?.updated_at || localW?.updatedAt
         };
+        walletService.saveWalletForUser(userId, walletState);
 
         return {
           profile: userProfile,
