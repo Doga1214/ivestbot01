@@ -116,7 +116,7 @@ export const adminService = {
         const approvedWthList = (allWithdrawals || []).filter(w => w.status === 'APPROVED');
         const txList = txs || [];
 
-        return cleanProfiles.map(p => {
+        const mappedList = cleanProfiles.map(p => {
           const w = walletMap.get(p.id);
           const kycRec = kycMap.get(p.id);
           const userPendingDeps = depList.filter(d => d.user_id === p.id);
@@ -134,8 +134,13 @@ export const adminService = {
           const rawTotal = parseFloat(w?.total_balance);
           const minAvailable = Math.max(0, Number((approvedDepSum - approvedWthSum).toFixed(4)));
 
+          const localTime = localW?.updatedAt ? new Date(localW.updatedAt).getTime() : 0;
+          const remoteTime = w?.updated_at ? new Date(w.updated_at).getTime() : 0;
+
           let effectiveAvailable = 0;
-          if (w && !isNaN(rawAvailable)) {
+          if (localTime > remoteTime && typeof localW?.availableBalance === 'number' && !isNaN(localW.availableBalance)) {
+            effectiveAvailable = Math.max(0, localW.availableBalance);
+          } else if (w && !isNaN(rawAvailable)) {
             effectiveAvailable = Math.max(0, rawAvailable);
           } else if (localW && typeof localW.availableBalance === 'number' && !isNaN(localW.availableBalance)) {
             effectiveAvailable = Math.max(0, localW.availableBalance);
@@ -143,7 +148,7 @@ export const adminService = {
             effectiveAvailable = minAvailable;
           }
 
-          let effectivePending = (w && !isNaN(rawPending)) ? Math.max(0, rawPending) : (localW.pendingBalance ?? depSum);
+          let effectivePending = (w && !isNaN(rawPending)) ? Math.max(0, rawPending) : (localW?.pendingBalance ?? depSum);
           let effectiveTotal = (w && !isNaN(rawTotal) && rawTotal >= effectiveAvailable)
             ? rawTotal
             : Number((effectiveAvailable + effectivePending).toFixed(4));
@@ -152,12 +157,11 @@ export const adminService = {
             totalBalance: effectiveTotal,
             availableBalance: effectiveAvailable,
             pendingBalance: effectivePending,
-            currency: w?.currency || localW.currency || 'USDT',
-            status: (p.status === 'INACTIVE' ? 'INACTIVE' : (localW.status || 'ACTIVE')) as WalletStatus,
-            restrictions: localW.restrictions || { canDeposit: true, canWithdraw: true, canReserve: true, canTrade: true },
-            updatedAt: w?.updated_at || localW.updatedAt
+            currency: w?.currency || localW?.currency || 'USDT',
+            status: (p.status === 'INACTIVE' ? 'INACTIVE' : (localW?.status || 'ACTIVE')) as WalletStatus,
+            restrictions: localW?.restrictions || { canDeposit: true, canWithdraw: true, canReserve: true, canTrade: true },
+            updatedAt: localTime > remoteTime ? localW.updatedAt : (w?.updated_at || localW?.updatedAt)
           };
-          walletService.saveWalletForUser(p.id, walletState);
 
           const userProfile: UserProfile = {
             id: p.id,
@@ -203,6 +207,26 @@ export const adminService = {
             kycSubmission
           };
         });
+
+        // Merge any local test users not yet in remote database
+        const remoteIds = new Set(cleanProfiles.map(p => p.id));
+        const extraLocalUsers = authService.getAllUsers()
+          .filter(u => !remoteIds.has(u.id) && !deleted.has(u.id) && !deleted.has(u.email) && !deleted.has(u.username))
+          .map(u => {
+            const wallet = walletService.getWalletForUser(u.id);
+            const kyc = walletService.getKycStatus(u.id);
+            const userPendingDeps = walletService.getTransactions().filter(t => t.userId === u.id && t.type === 'DEPOSIT' && t.status === 'PENDING');
+            return {
+              profile: u,
+              wallet,
+              pendingDepositsCount: userPendingDeps.length,
+              pendingDepositsSum: userPendingDeps.reduce((sum, d) => sum + d.amount, 0),
+              totalTransactionsCount: walletService.getTransactions().filter(t => t.userId === u.id).length,
+              kycSubmission: (kyc.status && kyc.status !== 'NOT_SUBMITTED') ? kyc : undefined
+            };
+          });
+
+        return [...mappedList, ...extraLocalUsers];
       }
     } catch {
       // fallback
@@ -284,9 +308,19 @@ export const adminService = {
         const rawTot = parseFloat(walletData?.total_balance);
         const rawPend = parseFloat(walletData?.pending_balance);
 
-        const effectiveAvail = (walletData && !isNaN(rawAvail))
-          ? Math.max(0, rawAvail)
-          : (localW && typeof localW.availableBalance === 'number' && !isNaN(localW.availableBalance) ? Math.max(0, localW.availableBalance) : 0);
+        const localTime = localW?.updatedAt ? new Date(localW.updatedAt).getTime() : 0;
+        const remoteTime = walletData?.updated_at ? new Date(walletData.updated_at).getTime() : 0;
+
+        let effectiveAvail = 0;
+        if (localTime > remoteTime && typeof localW?.availableBalance === 'number' && !isNaN(localW.availableBalance)) {
+          effectiveAvail = Math.max(0, localW.availableBalance);
+        } else if (walletData && !isNaN(rawAvail)) {
+          effectiveAvail = Math.max(0, rawAvail);
+        } else if (localW && typeof localW.availableBalance === 'number' && !isNaN(localW.availableBalance)) {
+          effectiveAvail = Math.max(0, localW.availableBalance);
+        } else {
+          effectiveAvail = 0;
+        }
 
         const effectivePend = (walletData && !isNaN(rawPend))
           ? Math.max(0, rawPend)
@@ -303,9 +337,8 @@ export const adminService = {
           currency: walletData?.currency || localW?.currency || 'USDT',
           status: (user.status === 'INACTIVE' ? 'INACTIVE' : (localW?.status || 'ACTIVE')) as WalletStatus,
           restrictions: localW?.restrictions || { canDeposit: true, canWithdraw: true, canReserve: true, canTrade: true },
-          updatedAt: walletData?.updated_at || localW?.updatedAt
+          updatedAt: localTime > remoteTime ? localW.updatedAt : (walletData?.updated_at || localW?.updatedAt)
         };
-        walletService.saveWalletForUser(userId, walletState);
 
         return {
           profile: userProfile,

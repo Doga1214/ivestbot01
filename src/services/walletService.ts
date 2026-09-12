@@ -1228,12 +1228,16 @@ export const walletService = {
       try {
         const { data: dbW } = await supabase.from('wallets').select('*').eq('user_id', userId).maybeSingle();
         if (dbW && !isNaN(parseFloat(dbW.available_balance))) {
-          wallet = {
-            ...wallet,
-            availableBalance: parseFloat(dbW.available_balance),
-            totalBalance: parseFloat(dbW.total_balance) || parseFloat(dbW.available_balance),
-            pendingBalance: parseFloat(dbW.pending_balance) || 0
-          };
+          const dbTime = dbW.updated_at ? new Date(dbW.updated_at).getTime() : 0;
+          const localTime = wallet.updatedAt ? new Date(wallet.updatedAt).getTime() : 0;
+          if (dbTime >= localTime) {
+            wallet = {
+              ...wallet,
+              availableBalance: parseFloat(dbW.available_balance),
+              totalBalance: parseFloat(dbW.total_balance) || parseFloat(dbW.available_balance),
+              pendingBalance: parseFloat(dbW.pending_balance) || 0
+            };
+          }
         }
       } catch {
         // ignore
@@ -1333,12 +1337,16 @@ export const walletService = {
       try {
         const { data: dbW } = await supabase.from('wallets').select('*').eq('user_id', userId).maybeSingle();
         if (dbW && !isNaN(parseFloat(dbW.available_balance))) {
-          wallet = {
-            ...wallet,
-            availableBalance: parseFloat(dbW.available_balance),
-            totalBalance: parseFloat(dbW.total_balance) || parseFloat(dbW.available_balance),
-            pendingBalance: parseFloat(dbW.pending_balance) || 0
-          };
+          const dbTime = dbW.updated_at ? new Date(dbW.updated_at).getTime() : 0;
+          const localTime = wallet.updatedAt ? new Date(wallet.updatedAt).getTime() : 0;
+          if (dbTime >= localTime) {
+            wallet = {
+              ...wallet,
+              availableBalance: parseFloat(dbW.available_balance),
+              totalBalance: parseFloat(dbW.total_balance) || parseFloat(dbW.available_balance),
+              pendingBalance: parseFloat(dbW.pending_balance) || 0
+            };
+          }
         }
       } catch {
         // ignore
