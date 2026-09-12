@@ -1215,10 +1215,10 @@ export const walletService = {
   /**
    * Admin Manual Credit
    */
-  adminCredit(amount: number, reason: string, userMeta?: { id?: string; name?: string; email?: string }): {
+  async adminCredit(amount: number, reason: string, userMeta?: { id?: string; name?: string; email?: string }): Promise<{
     updatedWallet: WalletState;
     tx: WalletTransaction;
-  } {
+  }> {
     const userId = userMeta?.id;
     const wallet = userId ? this.getWalletForUser(userId) : this.getWallet();
     const newAvailable = Number((wallet.availableBalance + amount).toFixed(4));
@@ -1227,13 +1227,41 @@ export const walletService = {
     const updatedWallet: WalletState = {
       ...wallet,
       availableBalance: newAvailable,
-      totalBalance: newTotal
+      totalBalance: newTotal,
+      updatedAt: new Date().toISOString()
     };
 
     if (userId) {
       this.saveWalletForUser(userId, updatedWallet);
     } else {
       this.saveWallet(updatedWallet);
+    }
+
+    // Persist immediately to Supabase database so Admin and User live data match 100%
+    if (userId && isValidUuid(userId)) {
+      try {
+        await supabase.from('wallets').upsert({
+          user_id: userId,
+          available_balance: newAvailable,
+          total_balance: newTotal,
+          pending_balance: updatedWallet.pendingBalance || 0,
+          currency: 'USDT',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+
+        await supabase.from('wallet_transactions').insert({
+          user_id: userId,
+          type: 'ADMIN_CREDIT',
+          amount,
+          currency: 'USDT',
+          status: 'COMPLETED',
+          description: `Admin Manual Credit (+${amount.toFixed(2)} USDT) — Reason: ${reason}`,
+          reference_id: `ADM-CR-${Date.now().toString().slice(-6)}`,
+          created_at: new Date().toISOString()
+        });
+      } catch (err) {
+        console.warn('Supabase adminCredit sync:', err);
+      }
     }
 
     if (userId) {
@@ -1262,16 +1290,23 @@ export const walletService = {
       adminRemarks: reason
     });
 
+    try {
+      window.dispatchEvent(new CustomEvent('ivestbot_wallet_updated', { detail: { userId, wallet: updatedWallet } }));
+      window.dispatchEvent(new Event('storage'));
+    } catch {
+      // ignore
+    }
+
     return { updatedWallet, tx };
   },
 
   /**
    * Admin Manual Debit
    */
-  adminDebit(amount: number, reason: string, userMeta?: { id?: string; name?: string; email?: string }): {
+  async adminDebit(amount: number, reason: string, userMeta?: { id?: string; name?: string; email?: string }): Promise<{
     updatedWallet: WalletState;
     tx: WalletTransaction;
-  } {
+  }> {
     const userId = userMeta?.id;
     const wallet = userId ? this.getWalletForUser(userId) : this.getWallet();
     const newAvailable = Math.max(0, Number((wallet.availableBalance - amount).toFixed(4)));
@@ -1280,13 +1315,41 @@ export const walletService = {
     const updatedWallet: WalletState = {
       ...wallet,
       availableBalance: newAvailable,
-      totalBalance: newTotal
+      totalBalance: newTotal,
+      updatedAt: new Date().toISOString()
     };
 
     if (userId) {
       this.saveWalletForUser(userId, updatedWallet);
     } else {
       this.saveWallet(updatedWallet);
+    }
+
+    // Persist immediately to Supabase database so Admin and User live data match 100%
+    if (userId && isValidUuid(userId)) {
+      try {
+        await supabase.from('wallets').upsert({
+          user_id: userId,
+          available_balance: newAvailable,
+          total_balance: newTotal,
+          pending_balance: updatedWallet.pendingBalance || 0,
+          currency: 'USDT',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+
+        await supabase.from('wallet_transactions').insert({
+          user_id: userId,
+          type: 'ADMIN_DEBIT',
+          amount,
+          currency: 'USDT',
+          status: 'COMPLETED',
+          description: `Admin Manual Debit (-${amount.toFixed(2)} USDT) — Reason: ${reason}`,
+          reference_id: `ADM-DB-${Date.now().toString().slice(-6)}`,
+          created_at: new Date().toISOString()
+        });
+      } catch (err) {
+        console.warn('Supabase adminDebit sync:', err);
+      }
     }
 
     if (userId) {
@@ -1314,6 +1377,13 @@ export const walletService = {
       referenceId: `ADM-DB-${Date.now().toString().slice(-6)}`,
       adminRemarks: reason
     });
+
+    try {
+      window.dispatchEvent(new CustomEvent('ivestbot_wallet_updated', { detail: { userId, wallet: updatedWallet } }));
+      window.dispatchEvent(new Event('storage'));
+    } catch {
+      // ignore
+    }
 
     return { updatedWallet, tx };
   },

@@ -151,10 +151,10 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
     }
 
     if (adjustType === 'CREDIT') {
-      adminService.creditUserWallet(data.profile.id, amt, adjustReason);
+      await adminService.creditUserWallet(data.profile.id, amt, adjustReason);
       showSnackbar(`Credited +${amt.toFixed(2)} USDT to ${data.profile.name}!`, 'success');
     } else {
-      adminService.debitUserWallet(data.profile.id, amt, adjustReason);
+      await adminService.debitUserWallet(data.profile.id, amt, adjustReason);
       showSnackbar(`Debited -${amt.toFixed(2)} USDT from ${data.profile.name}!`, 'info');
     }
     setAdjustAmount('');

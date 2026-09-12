@@ -172,13 +172,13 @@ export const Admin: React.FC = () => {
     }
   };
 
-  const handleAdjustBalance = (userId: string, type: 'CREDIT' | 'DEBIT', amount: number, reason: string) => {
+  const handleAdjustBalance = async (userId: string, type: 'CREDIT' | 'DEBIT', amount: number, reason: string) => {
     if (type === 'CREDIT') {
-      adminCreditUser(userId, amount, reason);
+      await adminCreditUser(userId, amount, reason);
     } else {
-      adminDebitUser(userId, amount, reason);
+      await adminDebitUser(userId, amount, reason);
     }
-    loadAdminData();
+    await loadAdminData();
   };
 
   const handleUpdateRestrictions = (

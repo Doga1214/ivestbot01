@@ -52,8 +52,8 @@ interface AppContextType {
   adminRejectDeposit: (txId: string, remarks?: string) => Promise<void>;
   adminApproveWithdrawal: (txId: string, remarks?: string) => Promise<void>;
   adminRejectWithdrawal: (txId: string, remarks?: string) => Promise<void>;
-  adminCreditUser: (userId: string, amount: number, reason: string) => void;
-  adminDebitUser: (userId: string, amount: number, reason: string) => void;
+  adminCreditUser: (userId: string, amount: number, reason: string) => Promise<any>;
+  adminDebitUser: (userId: string, amount: number, reason: string) => Promise<any>;
   adminUpdateWalletRestrictions: (userId: string, status: WalletStatus, restrictions: WalletRestrictions, reason?: string) => void;
   adminVerifyKyc: (userId: string, status: 'VERIFIED' | 'REJECTED', notes?: string) => void;
   adminDeleteUser: (userId: string) => Promise<void>;
@@ -536,15 +536,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const adminCreditUser = (userId: string, amount: number, reason: string) => {
-    const res = adminService.creditUserWallet(userId, amount, reason);
+  const adminCreditUser = async (userId: string, amount: number, reason: string) => {
+    const res = await adminService.creditUserWallet(userId, amount, reason);
     refreshWallet();
     showSnackbar(`Successfully credited +${amount.toFixed(2)} USDT to user wallet!`, 'success');
     return res;
   };
 
-  const adminDebitUser = (userId: string, amount: number, reason: string) => {
-    const res = adminService.debitUserWallet(userId, amount, reason);
+  const adminDebitUser = async (userId: string, amount: number, reason: string) => {
+    const res = await adminService.debitUserWallet(userId, amount, reason);
     refreshWallet();
     showSnackbar(`Successfully debited -${amount.toFixed(2)} USDT from user wallet!`, 'info');
     return res;

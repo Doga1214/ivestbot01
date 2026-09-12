@@ -135,20 +135,18 @@ export const adminService = {
           const minAvailable = Math.max(0, Number((approvedDepSum - approvedWthSum).toFixed(4)));
 
           let effectiveAvailable = 0;
-          let effectivePending = !isNaN(rawPending) ? rawPending : depSum;
-          let effectiveTotal = 0;
-
-          if (w && !isNaN(rawAvailable)) {
-            effectiveAvailable = rawAvailable;
-            effectiveTotal = !isNaN(rawTotal) && rawTotal > 0
-              ? rawTotal
-              : Number((effectiveAvailable + effectivePending).toFixed(4));
+          if (!isNaN(rawAvailable) && rawAvailable > 0) {
+            effectiveAvailable = Math.max(rawAvailable, localW.availableBalance || 0);
+          } else if (localW.availableBalance > 0) {
+            effectiveAvailable = localW.availableBalance;
           } else {
-            effectiveAvailable = minAvailable > 0 ? minAvailable : (localW.availableBalance || 0);
-            effectiveTotal = !isNaN(rawTotal) && rawTotal > 0
-              ? rawTotal
-              : Number((effectiveAvailable + effectivePending).toFixed(4));
+            effectiveAvailable = minAvailable;
           }
+
+          let effectivePending = !isNaN(rawPending) && rawPending >= 0 ? rawPending : (localW.pendingBalance || depSum);
+          let effectiveTotal = !isNaN(rawTotal) && rawTotal > 0
+            ? Math.max(rawTotal, Number((effectiveAvailable + effectivePending).toFixed(4)), localW.totalBalance || 0)
+            : Number((effectiveAvailable + effectivePending).toFixed(4));
 
           const walletState: WalletState = {
             totalBalance: effectiveTotal,
@@ -280,14 +278,25 @@ export const adminService = {
           createdAt: user.created_at
         };
 
+        const localW = walletService.getWalletForUser(userId);
+        const rawAvail = parseFloat(walletData?.available_balance);
+        const rawTot = parseFloat(walletData?.total_balance);
+        const rawPend = parseFloat(walletData?.pending_balance);
+
+        const effectiveAvail = !isNaN(rawAvail) && rawAvail > 0 ? Math.max(rawAvail, localW.availableBalance || 0) : (localW.availableBalance || 0);
+        const effectivePend = !isNaN(rawPend) && rawPend >= 0 ? rawPend : (localW.pendingBalance || 0);
+        const effectiveTot = !isNaN(rawTot) && rawTot > 0
+          ? Math.max(rawTot, Number((effectiveAvail + effectivePend).toFixed(4)), localW.totalBalance || 0)
+          : Number((effectiveAvail + effectivePend).toFixed(4));
+
         const walletState: WalletState = {
-          totalBalance: parseFloat(walletData?.total_balance) || 0,
-          availableBalance: parseFloat(walletData?.available_balance) || 0,
-          pendingBalance: parseFloat(walletData?.pending_balance) || 0,
-          currency: walletData?.currency || 'USDT',
-          status: (user.status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE') as WalletStatus,
-          restrictions: { canDeposit: true, canWithdraw: true, canReserve: true, canTrade: true },
-          updatedAt: walletData?.updated_at
+          totalBalance: effectiveTot,
+          availableBalance: effectiveAvail,
+          pendingBalance: effectivePend,
+          currency: walletData?.currency || localW.currency || 'USDT',
+          status: (user.status === 'INACTIVE' ? 'INACTIVE' : (localW.status || 'ACTIVE')) as WalletStatus,
+          restrictions: localW.restrictions || { canDeposit: true, canWithdraw: true, canReserve: true, canTrade: true },
+          updatedAt: walletData?.updated_at || localW.updatedAt
         };
 
         return {
@@ -612,16 +621,16 @@ export const adminService = {
     return await walletService.rejectWithdrawal(txId, remarks);
   },
 
-  creditUserWallet(userId: string, amount: number, reason: string): { updatedWallet: WalletState; tx: WalletTransaction } {
+  async creditUserWallet(userId: string, amount: number, reason: string): Promise<{ updatedWallet: WalletState; tx: WalletTransaction }> {
     const user = authService.getAllUsers().find(u => u.id === userId);
-    const userMeta = user ? { id: user.id, name: user.name, email: user.email } : undefined;
-    return walletService.adminCredit(amount, reason, userMeta);
+    const userMeta = user ? { id: user.id, name: user.name, email: user.email } : { id: userId };
+    return await walletService.adminCredit(amount, reason, userMeta);
   },
 
-  debitUserWallet(userId: string, amount: number, reason: string): { updatedWallet: WalletState; tx: WalletTransaction } {
+  async debitUserWallet(userId: string, amount: number, reason: string): Promise<{ updatedWallet: WalletState; tx: WalletTransaction }> {
     const user = authService.getAllUsers().find(u => u.id === userId);
-    const userMeta = user ? { id: user.id, name: user.name, email: user.email } : undefined;
-    return walletService.adminDebit(amount, reason, userMeta);
+    const userMeta = user ? { id: user.id, name: user.name, email: user.email } : { id: userId };
+    return await walletService.adminDebit(amount, reason, userMeta);
   },
 
   updateUserWalletRestrictions(
