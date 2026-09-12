@@ -4,7 +4,9 @@ import Grid from '@mui/material/Grid2';
 import {
   AccountBalanceWalletIcon,
   CheckCircleOutlineIcon,
-  PendingActionsIcon
+  PendingActionsIcon,
+  ShieldIcon,
+  AutoAwesomeIcon
 } from '../common/Icons';
 import { useApp } from '../../context/AppContext';
 import { formatUSDT } from '../../utils/formatters';
@@ -18,7 +20,7 @@ export const WalletSummary: React.FC = () => {
         background: 'linear-gradient(145deg, #111522 0%, #171B2A 100%)',
         border: '1px solid rgba(139, 92, 246, 0.25)',
         boxShadow: '0 16px 40px rgba(0, 0, 0, 0.4)',
-        mb: 4
+        mb: 3.5
       }}
     >
       <CardContent sx={{ p: { xs: 2, sm: 3, md: 3.5 } }}>
@@ -40,16 +42,26 @@ export const WalletSummary: React.FC = () => {
               <AccountBalanceWalletIcon fontSize="medium" />
             </Box>
             <Box>
-              <Typography variant="h5" sx={{ fontWeight: 800, fontSize: { xs: '1.15rem', sm: '1.4rem' } }}>
-                USDT Financial Wallet
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="h5" sx={{ fontWeight: 800, fontSize: { xs: '1.15rem', sm: '1.4rem' } }}>
+                  USDT Financial Wallet
+                </Typography>
+                <Box sx={{ display: { xs: 'none', md: 'inline-flex' }, alignItems: 'center', gap: 0.5, px: 1, py: 0.2, borderRadius: 1.5, bgcolor: 'rgba(139, 92, 246, 0.15)', border: '1px solid rgba(139, 92, 246, 0.3)', color: '#c084fc', fontSize: '0.7rem', fontWeight: 800 }}>
+                  <AutoAwesomeIcon sx={{ fontSize: 12 }} />
+                  <span>AI SHIELDED</span>
+                </Box>
+              </Box>
               <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: { xs: '0.72rem', sm: '0.78rem' } }}>
-                Multi-network asset balance tracking with admin transaction verification
+                Multi-network asset balance tracking with immutable audit trail and real-time verification
               </Typography>
             </Box>
           </Box>
 
-          <Box sx={{ alignSelf: { xs: 'flex-start', sm: 'center' } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, alignSelf: { xs: 'flex-start', sm: 'center' } }}>
+            <Box sx={{ px: 1.5, py: 0.5, borderRadius: 2, bgcolor: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#34d399', fontWeight: 800, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 0.6 }}>
+              <ShieldIcon sx={{ fontSize: 14 }} />
+              <span>FAIL-SAFE ACTIVE</span>
+            </Box>
             {wallet.status === 'INACTIVE' && (
               <Box sx={{ px: 1.5, py: 0.5, borderRadius: 2, bgcolor: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', color: '#f87171', fontWeight: 800, fontSize: '0.75rem' }}>
                 WALLET INACTIVE

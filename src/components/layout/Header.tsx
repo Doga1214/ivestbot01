@@ -17,7 +17,8 @@ import {
 import {
   NotificationsNoneIcon,
   LogoutIcon,
-  PersonOutlineIcon
+  PersonOutlineIcon,
+  TetherIcon
 } from '../common/Icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
@@ -157,19 +158,21 @@ export const Header: React.FC = () => {
                   sx={{
                     display: { xs: 'none', sm: 'flex' },
                     alignItems: 'center',
-                    gap: 1,
+                    gap: 0.8,
                     px: 1.8,
                     py: 0.7,
                     borderRadius: 3,
-                    bgcolor: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    bgcolor: 'rgba(16, 185, 129, 0.08)',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
                     cursor: 'pointer',
-                    '&:hover': { borderColor: '#8b5cf6' }
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      borderColor: '#10b981',
+                      bgcolor: 'rgba(16, 185, 129, 0.15)'
+                    }
                   }}
                 >
-                  <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>
-                    USDT:
-                  </Typography>
+                  <TetherIcon sx={{ fontSize: 16 }} />
                   <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#34d399' }}>
                     {formatUSDT(wallet.availableBalance)}
                   </Typography>

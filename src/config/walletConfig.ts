@@ -22,14 +22,14 @@ export const WALLET_CONFIG = {
   reservationLockHours: 24, // 24-hour cycle (1 reservation per 24 hours)
 
   // Multi-network withdrawal options and limits
-  minWithdrawalUSDT: 100,
+  minWithdrawalUSDT: 50,
   maxWithdrawalUSDT: 50000,
   withdrawalNetworks: [
     {
       id: 'TRC20',
       name: 'Tron (TRC20)',
       fee: 1.0,
-      minWithdrawal: 100,
+      minWithdrawal: 50,
       currency: 'USDT',
       badgeColor: '#EF4444',
       explorerTxUrl: 'https://tronscan.org/#/transaction/',
@@ -40,7 +40,7 @@ export const WALLET_CONFIG = {
       id: 'BEP20',
       name: 'BNB Smart Chain (BEP20)',
       fee: 0.8,
-      minWithdrawal: 100,
+      minWithdrawal: 50,
       currency: 'USDT',
       badgeColor: '#F59E0B',
       explorerTxUrl: 'https://bscscan.com/tx/',
@@ -51,7 +51,7 @@ export const WALLET_CONFIG = {
       id: 'ERC20',
       name: 'Ethereum (ERC20)',
       fee: 4.5,
-      minWithdrawal: 100,
+      minWithdrawal: 50,
       currency: 'USDT',
       badgeColor: '#6366F1',
       explorerTxUrl: 'https://etherscan.io/tx/',
@@ -62,7 +62,7 @@ export const WALLET_CONFIG = {
       id: 'POLYGON',
       name: 'Polygon (POS)',
       fee: 0.5,
-      minWithdrawal: 100,
+      minWithdrawal: 50,
       currency: 'USDT',
       badgeColor: '#8B5CF6',
       explorerTxUrl: 'https://polygonscan.com/tx/',
@@ -73,7 +73,7 @@ export const WALLET_CONFIG = {
 
   // Multi-Tier Referral System Configuration (All values in USDT)
   referralSystem: {
-    minWithdrawalUSDT: 100,
+    minWithdrawalUSDT: 50,
     minAccountAgeDays: 0,
     requireKycForWithdrawal: false,
     baseRewardUSDT: 1, // 1 USDT per qualified referral

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Typography, Tabs, Tab, Paper } from '@mui/material';
 import { WalletSummary } from '../components/wallet/WalletSummary';
+import { AiWalletGuardianCard } from '../components/wallet/AiWalletGuardianCard';
 import { DepositPanel } from '../components/wallet/DepositPanel';
 import { WithdrawalPanel } from '../components/wallet/WithdrawalPanel';
 import { KycPanel } from '../components/wallet/KycPanel';
@@ -9,7 +10,8 @@ import {
   ArrowDownwardIcon,
   ArrowUpwardIcon,
   VerifiedUserIcon,
-  ReceiptLongIcon
+  ReceiptLongIcon,
+  AutoAwesomeIcon
 } from '../components/common/Icons';
 
 export const Wallet: React.FC = () => {
@@ -22,12 +24,15 @@ export const Wallet: React.FC = () => {
           USDT Financial Wallet
         </Typography>
         <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-          Manage your deposits, withdrawals, identity compliance, and ledger transactions.
+          Real-time AI balance shield, instant multi-network deposits, withdrawals, compliance, and ledger audits.
         </Typography>
       </Box>
 
       {/* Top Balances */}
       <WalletSummary />
+
+      {/* Star AI Balance Guardian & Predictive Forecaster */}
+      <AiWalletGuardianCard />
 
       {/* Navigation Tabs */}
       <Paper

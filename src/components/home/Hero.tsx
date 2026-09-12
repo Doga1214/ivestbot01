@@ -7,7 +7,8 @@ import {
   RocketLaunchIcon,
   ShieldOutlinedIcon,
   ElectricBoltIcon,
-  VerifiedIcon
+  VerifiedIcon,
+  MonetizationOnIcon
 } from '../common/Icons';
 
 export const Hero: React.FC = () => {
@@ -22,43 +23,54 @@ export const Hero: React.FC = () => {
     }
   };
 
-  // 4 Hero Showcase Asset Cards matching the screenshot
   const heroCards = [
     {
       id: 'h1',
-      name: 'Titan Alpha',
-      badge: 'Level 1',
+      name: 'Titan Alpha Node',
+      badge: 'Level 1 VIP',
+      badgeColor: '#f59e0b',
       dailyRate: '2.22%',
       floorUSDT: 50,
-      avatarColor: 'linear-gradient(135deg, #f59e0b, #d97706)',
-      svgType: 'ape_gold'
+      gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+      accentColor: '#f59e0b',
+      activeUsers: 1420,
+      fillPercent: 92
     },
     {
       id: 'h2',
-      name: 'Cyber Pulse',
-      badge: 'Level 2',
+      name: 'Cyber Pulse Matrix',
+      badge: 'Level 2 VIP',
+      badgeColor: '#10b981',
       dailyRate: '2.22%',
       floorUSDT: 200,
-      avatarColor: 'linear-gradient(135deg, #10b981, #059669)',
-      svgType: 'ape_green'
+      gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+      accentColor: '#10b981',
+      activeUsers: 840,
+      fillPercent: 86
     },
     {
       id: 'h3',
-      name: 'Aurora Realm',
-      badge: 'Level 3',
+      name: 'Aurora Quantum Node',
+      badge: 'Level 3 VIP',
+      badgeColor: '#a78bfa',
       dailyRate: '2.22%',
       floorUSDT: 500,
-      avatarColor: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
-      svgType: 'ape_purple'
+      gradient: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+      accentColor: '#8b5cf6',
+      activeUsers: 512,
+      fillPercent: 78
     },
     {
       id: 'h4',
-      name: 'Genesis Node',
-      badge: 'Level 4',
+      name: 'Genesis Apex Vault',
+      badge: 'Level 4 Diamond',
+      badgeColor: '#38bdf8',
       dailyRate: '2.22%',
       floorUSDT: 1000,
-      avatarColor: 'linear-gradient(135deg, #38bdf8, #0284c7)',
-      svgType: 'ape_blue'
+      gradient: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
+      accentColor: '#38bdf8',
+      activeUsers: 328,
+      fillPercent: 95
     }
   ];
 
@@ -70,24 +82,53 @@ export const Hero: React.FC = () => {
         textAlign: 'center',
         position: 'relative',
         overflow: 'hidden',
-        background: 'radial-gradient(ellipse 80% 50% at 50% -10%, rgba(139, 92, 246, 0.25), rgba(8, 10, 18, 0) 70%)'
+        background: 'radial-gradient(ellipse 90% 60% at 50% -10%, rgba(139, 92, 246, 0.28), rgba(8, 10, 18, 0) 75%)'
       }}
     >
-      <Container maxWidth="lg">
+      {/* Background ambient orbs */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: '15%',
+          left: '5%',
+          width: 300,
+          height: 300,
+          borderRadius: '50%',
+          bgcolor: 'rgba(139, 92, 246, 0.08)',
+          filter: 'blur(80px)',
+          pointerEvents: 'none'
+        }}
+      />
+      <Box
+        sx={{
+          position: 'absolute',
+          top: '20%',
+          right: '5%',
+          width: 320,
+          height: 320,
+          borderRadius: '50%',
+          bgcolor: 'rgba(56, 189, 248, 0.08)',
+          filter: 'blur(80px)',
+          pointerEvents: 'none'
+        }}
+      />
+
+      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2 }}>
         {/* Top Tag Pill */}
         <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, mb: 2.5 }}>
           <Chip
             icon={<ElectricBoltIcon style={{ color: '#FFD700', fontSize: 16 }} />}
-            label="Next-Generation Automated Crypto Yield Protocol"
+            label="Star AI 2.0 • Next-Gen Algorithmic Yield Protocol"
             sx={{
               bgcolor: 'rgba(255, 215, 0, 0.08)',
-              border: '1px solid rgba(255, 215, 0, 0.3)',
+              border: '1px solid rgba(255, 215, 0, 0.35)',
               color: '#FFD700',
               fontWeight: 800,
               fontSize: { xs: '0.75rem', sm: '0.85rem' },
-              py: 0.5,
+              py: 0.6,
               px: 1,
-              borderRadius: 3
+              borderRadius: 3,
+              boxShadow: '0 0 20px rgba(255, 215, 0, 0.15)'
             }}
           />
         </Box>
@@ -97,26 +138,26 @@ export const Hero: React.FC = () => {
           variant="h1"
           sx={{
             fontWeight: 900,
-            fontSize: { xs: '1.85rem', sm: '2.9rem', md: '4.2rem' },
+            fontSize: { xs: '2rem', sm: '3.2rem', md: '4.5rem' },
             letterSpacing: '-0.03em',
-            lineHeight: { xs: 1.2, md: 1.1 },
+            lineHeight: { xs: 1.18, md: 1.1 },
             color: '#ffffff',
-            maxWidth: 900,
+            maxWidth: 950,
             mx: 'auto',
             mb: 2.5,
             px: { xs: 0.5, sm: 0 }
           }}
         >
-          Collect, stake & earn from{' '}
+          Collect, Stake & Earn from{' '}
           <span
             style={{
               background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              textShadow: '0 0 40px rgba(255, 215, 0, 0.3)'
+              textShadow: '0 0 40px rgba(255, 215, 0, 0.35)'
             }}
           >
-            digital legends
+            Digital Legends
           </span>
         </Typography>
 
@@ -125,15 +166,15 @@ export const Hero: React.FC = () => {
           variant="body1"
           sx={{
             color: '#9CA3AF',
-            fontSize: { xs: '0.88rem', sm: '1.05rem', md: '1.15rem' },
-            maxWidth: 720,
+            fontSize: { xs: '0.92rem', sm: '1.1rem', md: '1.2rem' },
+            maxWidth: 740,
             mx: 'auto',
             lineHeight: 1.6,
-            mb: { xs: 3, md: 4 },
+            mb: { xs: 3.5, md: 4.5 },
             px: { xs: 1, sm: 0 }
           }}
         >
-          The all-in-one Web3 crypto yield platform. Automated 24h reservations, continuous 2.22% daily returns, and multi-tier passive commissions.
+          The premier Web3 automated crypto yield platform. Automated 24h AI reservation cycles, continuous 2.22% daily returns, and 3-tier multi-level passive affiliate commissions.
         </Typography>
 
         {/* Dual CTA Buttons */}
@@ -143,8 +184,8 @@ export const Hero: React.FC = () => {
             flexDirection: { xs: 'column', sm: 'row' },
             justifyContent: 'center',
             alignItems: 'center',
-            gap: { xs: 1.5, sm: 2 },
-            mb: { xs: 3, md: 4 },
+            gap: { xs: 1.5, sm: 2.5 },
+            mb: { xs: 3.5, md: 4.5 },
             px: { xs: 2, sm: 0 }
           }}
         >
@@ -156,21 +197,24 @@ export const Hero: React.FC = () => {
             endIcon={<RocketLaunchIcon />}
             sx={{
               width: { xs: '100%', sm: 'auto' },
-              px: { xs: 3, sm: 4.5 },
-              py: { xs: 1.4, sm: 1.6 },
+              px: { xs: 3.5, sm: 5 },
+              py: { xs: 1.5, sm: 1.7 },
               borderRadius: 3,
-              fontWeight: 800,
-              fontSize: { xs: '0.95rem', sm: '1rem' },
+              fontWeight: 900,
+              fontSize: { xs: '1rem', sm: '1.05rem' },
               background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-              boxShadow: '0 8px 30px rgba(139, 92, 246, 0.45)',
+              boxShadow: '0 8px 30px rgba(139, 92, 246, 0.5)',
               textTransform: 'none',
+              letterSpacing: '0.01em',
               '&:hover': {
                 background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
-                boxShadow: '0 12px 35px rgba(139, 92, 246, 0.6)'
-              }
+                boxShadow: '0 12px 40px rgba(139, 92, 246, 0.7)',
+                transform: 'translateY(-2px)'
+              },
+              transition: 'all 0.25s ease'
             }}
           >
-            Start Reserving →
+            Start Reserving Now →
           </Button>
 
           <Button
@@ -178,52 +222,64 @@ export const Hero: React.FC = () => {
             variant="outlined"
             size="large"
             onClick={() => navigate('/reservation')}
+            startIcon={<MonetizationOnIcon sx={{ color: '#38bdf8' }} />}
             sx={{
               width: { xs: '100%', sm: 'auto' },
-              px: { xs: 3, sm: 4 },
-              py: { xs: 1.4, sm: 1.6 },
+              px: { xs: 3, sm: 4.5 },
+              py: { xs: 1.5, sm: 1.7 },
               borderRadius: 3,
               fontWeight: 800,
               fontSize: { xs: '0.95rem', sm: '1rem' },
               color: '#ffffff',
-              borderColor: 'rgba(255, 255, 255, 0.15)',
-              bgcolor: 'rgba(255, 255, 255, 0.03)',
+              borderColor: 'rgba(255, 255, 255, 0.18)',
+              bgcolor: 'rgba(255, 255, 255, 0.04)',
               textTransform: 'none',
               backdropFilter: 'blur(10px)',
               '&:hover': {
                 borderColor: '#a78bfa',
-                bgcolor: 'rgba(139, 92, 246, 0.1)'
-              }
+                bgcolor: 'rgba(139, 92, 246, 0.12)',
+                transform: 'translateY(-2px)'
+              },
+              transition: 'all 0.25s ease'
             }}
           >
-            View Live Pools
+            Explore Live Pools
           </Button>
         </Box>
 
         {/* Sub-Badges */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: { xs: 1.5, sm: 4 }, flexWrap: 'wrap', mb: { xs: 4, md: 6 } }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: { xs: 2, sm: 4 },
+            flexWrap: 'wrap',
+            mb: { xs: 4.5, md: 6.5 }
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, color: '#9CA3AF' }}>
             <ShieldOutlinedIcon sx={{ color: '#10b981', fontSize: 18 }} />
-            <Typography variant="caption" sx={{ fontWeight: 700, fontSize: { xs: '0.78rem', sm: '0.85rem' } }}>
+            <Typography variant="caption" sx={{ fontWeight: 800, fontSize: { xs: '0.8rem', sm: '0.88rem' }, color: '#D1D5DB' }}>
               100% On-Chain Proof
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, color: '#9CA3AF' }}>
             <ElectricBoltIcon sx={{ color: '#38bdf8', fontSize: 18 }} />
-            <Typography variant="caption" sx={{ fontWeight: 700, fontSize: { xs: '0.78rem', sm: '0.85rem' } }}>
+            <Typography variant="caption" sx={{ fontWeight: 800, fontSize: { xs: '0.8rem', sm: '0.88rem' }, color: '#D1D5DB' }}>
               Instant USDT TRC20 Payouts
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, color: '#9CA3AF' }}>
             <VerifiedIcon sx={{ color: '#a78bfa', fontSize: 18 }} />
-            <Typography variant="caption" sx={{ fontWeight: 700, fontSize: { xs: '0.78rem', sm: '0.85rem' } }}>
+            <Typography variant="caption" sx={{ fontWeight: 800, fontSize: { xs: '0.8rem', sm: '0.88rem' }, color: '#D1D5DB' }}>
               24H Automated Yield Cycles
             </Typography>
           </Box>
         </Box>
 
         {/* ─── 4 FLOATING HERO SHOWCASE ASSET CARDS ───────────── */}
-        <Grid container spacing={{ xs: 1.5, sm: 2.5 }} sx={{ justifyContent: 'center' }}>
+        <Grid container spacing={{ xs: 2, sm: 2.5 }} sx={{ justifyContent: 'center' }}>
           {heroCards.map(card => (
             <Grid key={card.id} size={{ xs: 6, sm: 6, md: 3 }}>
               <Paper
@@ -239,9 +295,9 @@ export const Hero: React.FC = () => {
                   position: 'relative',
                   overflow: 'hidden',
                   '&:hover': {
-                    transform: 'translateY(-6px)',
-                    borderColor: 'rgba(139, 92, 246, 0.5)',
-                    boxShadow: '0 16px 35px rgba(139, 92, 246, 0.25)'
+                    transform: 'translateY(-8px)',
+                    borderColor: card.accentColor,
+                    boxShadow: `0 16px 40px ${card.accentColor}33`
                   }
                 }}
               >
@@ -249,29 +305,29 @@ export const Hero: React.FC = () => {
                 <Box
                   sx={{
                     width: '100%',
-                    height: { xs: 130, sm: 160 },
+                    height: { xs: 135, sm: 165 },
                     borderRadius: 2.5,
-                    background: card.avatarColor,
+                    background: card.gradient,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     position: 'relative',
                     overflow: 'hidden',
-                    mb: 1.5
+                    mb: 1.8
                   }}
                 >
                   {/* Cyber Ape / Asset SVG Illustration */}
-                  <svg width="100" height="100" viewBox="0 0 100 100" fill="none">
-                    <circle cx="50" cy="50" r="40" fill="rgba(0,0,0,0.25)" />
-                    <circle cx="50" cy="46" r="28" fill="#D97706" />
-                    <circle cx="38" cy="42" r="7" fill="#000" />
-                    <circle cx="62" cy="42" r="7" fill="#000" />
-                    <circle cx="40" cy="40" r="2.5" fill="#fff" />
-                    <circle cx="64" cy="40" r="2.5" fill="#fff" />
-                    <ellipse cx="50" cy="56" rx="14" ry="9" fill="#B45309" />
-                    <path d="M42 58 Q50 64 58 58" stroke="#000" strokeWidth="2.5" strokeLinecap="round" />
-                    <rect x="25" y="24" width="50" height="8" rx="4" fill="#1E293B" />
-                    <path d="M22 30 L78 30 L68 18 L32 18 Z" fill="#475569" />
+                  <svg width="105" height="105" viewBox="0 0 100 100" fill="none">
+                    <circle cx="50" cy="50" r="42" fill="rgba(0,0,0,0.3)" />
+                    <circle cx="50" cy="46" r="28" fill="rgba(255,255,255,0.9)" />
+                    <circle cx="38" cy="42" r="7" fill="#0B0E17" />
+                    <circle cx="62" cy="42" r="7" fill="#0B0E17" />
+                    <circle cx="40" cy="40" r="2.5" fill="#38bdf8" />
+                    <circle cx="64" cy="40" r="2.5" fill="#38bdf8" />
+                    <ellipse cx="50" cy="56" rx="14" ry="9" fill="rgba(0,0,0,0.15)" />
+                    <path d="M42 58 Q50 64 58 58" stroke="#0B0E17" strokeWidth="2.5" strokeLinecap="round" />
+                    <rect x="25" y="22" width="50" height="9" rx="4.5" fill="#1E293B" />
+                    <path d="M22 28 L78 28 L68 16 L32 16 Z" fill="#64748B" />
                   </svg>
 
                   {/* Level Pill */}
@@ -282,27 +338,57 @@ export const Hero: React.FC = () => {
                       position: 'absolute',
                       top: 8,
                       right: 8,
-                      bgcolor: 'rgba(0,0,0,0.6)',
+                      bgcolor: 'rgba(0,0,0,0.75)',
                       backdropFilter: 'blur(8px)',
-                      color: '#fff',
-                      fontWeight: 800,
+                      color: card.badgeColor,
+                      border: `1px solid ${card.badgeColor}66`,
+                      fontWeight: 900,
                       fontSize: '0.68rem',
                       height: 22
                     }}
                   />
+
+                  {/* Mini Staking Pulse Dot */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: 8,
+                      left: 8,
+                      bgcolor: 'rgba(0,0,0,0.7)',
+                      borderRadius: 1.5,
+                      px: 1,
+                      py: 0.3,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.6
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        bgcolor: '#10b981',
+                        boxShadow: '0 0 8px #10b981'
+                      }}
+                    />
+                    <Typography variant="caption" sx={{ color: '#fff', fontSize: '0.65rem', fontWeight: 800 }}>
+                      {card.fillPercent}% Active
+                    </Typography>
+                  </Box>
                 </Box>
 
                 {/* Card Meta */}
-                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#ffffff', fontSize: '0.95rem', mb: 0.5 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#ffffff', fontSize: '0.95rem', mb: 0.6 }}>
                   {card.name}
                 </Typography>
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Box>
-                    <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', fontSize: '0.7rem' }}>
+                    <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', fontSize: '0.68rem' }}>
                       Daily Return
                     </Typography>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#34d399', fontSize: '0.88rem' }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#34d399', fontSize: '0.92rem' }}>
                       +{card.dailyRate}
                     </Typography>
                   </Box>
@@ -311,11 +397,12 @@ export const Hero: React.FC = () => {
                     label={`${card.floorUSDT} USDT`}
                     size="small"
                     sx={{
-                      bgcolor: 'rgba(56, 189, 248, 0.15)',
-                      color: '#38bdf8',
+                      bgcolor: `${card.accentColor}22`,
+                      color: card.accentColor,
+                      border: `1px solid ${card.accentColor}55`,
                       fontWeight: 800,
                       fontSize: '0.72rem',
-                      height: 22
+                      height: 24
                     }}
                   />
                 </Box>

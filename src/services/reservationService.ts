@@ -285,9 +285,110 @@ export const reservationService = {
     };
     this.saveReservationState(state);
 
-    // Save to history ledger
-    const history = this.getHistory();
-    this.saveHistory([completedRecord, ...history]);
+    // Distribute Multi-Tier Referral Commissions (Tier A: 0.1%, Tier B: 0.05%, Tier C: 0.025%)
+    try {
+      const allUsers = authService.getAllUsers();
+      const executingUser = allUsers.find(u => u.id === targetUserId || (currentUser && u.id === currentUser.id));
+      const resAmount = completedRecord.amount;
+
+      if (executingUser?.referredBy && resAmount > 0) {
+        // Tier A Sponsor (Direct)
+        const refA = executingUser.referredBy.trim().toLowerCase();
+        const sponsorA = allUsers.find(
+          u => (u.referralCode && u.referralCode.toLowerCase() === refA) ||
+               (u.username && u.username.toLowerCase() === refA) ||
+               (u.id && u.id.toLowerCase() === refA)
+        );
+
+        if (sponsorA && sponsorA.id !== executingUser.id) {
+          const commissionA = Number((resAmount * (WALLET_CONFIG.referralRates.A / 100)).toFixed(4));
+          if (commissionA > 0) {
+            const wA = walletService.getWalletForUser(sponsorA.id);
+            walletService.saveWalletForUser(sponsorA.id, {
+              ...wA,
+              totalBalance: Number((wA.totalBalance + commissionA).toFixed(4)),
+              availableBalance: Number((wA.availableBalance + commissionA).toFixed(4))
+            });
+            walletService.addTransaction({
+              userId: sponsorA.id,
+              userName: sponsorA.username,
+              type: 'REFERRAL_BONUS',
+              amount: commissionA,
+              currency: 'USDT',
+              status: 'COMPLETED',
+              referenceId: `REF-COMM-A-${Date.now().toString().slice(-5)}`,
+              description: `Tier-A Daily Reservation Commission (${WALLET_CONFIG.referralRates.A}%) from @${executingUser.username}`
+            });
+          }
+
+          // Tier B Sponsor (Secondary)
+          if (sponsorA.referredBy) {
+            const refB = sponsorA.referredBy.trim().toLowerCase();
+            const sponsorB = allUsers.find(
+              u => (u.referralCode && u.referralCode.toLowerCase() === refB) ||
+                   (u.username && u.username.toLowerCase() === refB) ||
+                   (u.id && u.id.toLowerCase() === refB)
+            );
+
+            if (sponsorB && sponsorB.id !== executingUser.id && sponsorB.id !== sponsorA.id) {
+              const commissionB = Number((resAmount * (WALLET_CONFIG.referralRates.B / 100)).toFixed(4));
+              if (commissionB > 0) {
+                const wB = walletService.getWalletForUser(sponsorB.id);
+                walletService.saveWalletForUser(sponsorB.id, {
+                  ...wB,
+                  totalBalance: Number((wB.totalBalance + commissionB).toFixed(4)),
+                  availableBalance: Number((wB.availableBalance + commissionB).toFixed(4))
+                });
+                walletService.addTransaction({
+                  userId: sponsorB.id,
+                  userName: sponsorB.username,
+                  type: 'REFERRAL_BONUS',
+                  amount: commissionB,
+                  currency: 'USDT',
+                  status: 'COMPLETED',
+                  referenceId: `REF-COMM-B-${Date.now().toString().slice(-5)}`,
+                  description: `Tier-B Daily Reservation Commission (${WALLET_CONFIG.referralRates.B}%) from @${executingUser.username}`
+                });
+              }
+
+              // Tier C Sponsor (Tertiary)
+              if (sponsorB.referredBy) {
+                const refC = sponsorB.referredBy.trim().toLowerCase();
+                const sponsorC = allUsers.find(
+                  u => (u.referralCode && u.referralCode.toLowerCase() === refC) ||
+                       (u.username && u.username.toLowerCase() === refC) ||
+                       (u.id && u.id.toLowerCase() === refC)
+                );
+
+                if (sponsorC && sponsorC.id !== executingUser.id && sponsorC.id !== sponsorA.id && sponsorC.id !== sponsorB.id) {
+                  const commissionC = Number((resAmount * (WALLET_CONFIG.referralRates.C / 100)).toFixed(4));
+                  if (commissionC > 0) {
+                    const wC = walletService.getWalletForUser(sponsorC.id);
+                    walletService.saveWalletForUser(sponsorC.id, {
+                      ...wC,
+                      totalBalance: Number((wC.totalBalance + commissionC).toFixed(4)),
+                      availableBalance: Number((wC.availableBalance + commissionC).toFixed(4))
+                    });
+                    walletService.addTransaction({
+                      userId: sponsorC.id,
+                      userName: sponsorC.username,
+                      type: 'REFERRAL_BONUS',
+                      amount: commissionC,
+                      currency: 'USDT',
+                      status: 'COMPLETED',
+                      referenceId: `REF-COMM-C-${Date.now().toString().slice(-5)}`,
+                      description: `Tier-C Daily Reservation Commission (${WALLET_CONFIG.referralRates.C}%) from @${executingUser.username}`
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch {
+      // safe fallback
+    }
 
     return { updatedWallet, completedRecord };
   },

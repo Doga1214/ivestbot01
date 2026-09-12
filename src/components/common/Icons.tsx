@@ -332,3 +332,29 @@ export const MarkEmailReadIcon: React.FC<SvgIconProps> = (props) => (
   <SvgIcon {...props}><path d="M12 19c0-3.87 3.13-7 7-7 .7 0 1.37.1 2 .29V6c0-1.1-.9-2-2-2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h9.09c-.06-.33-.09-.66-.09-1zm-9-13l8 5 8-5v2l-8 5-8-5V6zm14.34 16l-3.54-3.54 1.41-1.41 2.12 2.12 4.24-4.24 1.41 1.41L17.34 22z"/></SvgIcon>
 );
 
+export const ShieldIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props}><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></SvgIcon>
+);
+
+export const DownloadIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props}><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></SvgIcon>
+);
+
+export const CalculateIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props}><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-6 2h5v2h-5V5zm0 3h5v2h-5V8zM6 6h5v2H6V6zm0 3h5v2H6V9zm0 4h3v2H6v-2zm0 3h3v2H6v-2zm4-3h2v2h-2v-2zm0 3h2v2h-2v-2zm3-3h5v2h-5v-2zm0 3h5v2h-5v-2z"/></SvgIcon>
+);
+
+export const LockResetIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props}><path d="M13 3c-4.97 0-9 4.03-9 9H1l4 4 4-4H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 8v-1.5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5V11h1v6h-7v-6h1zm1.5-1.5c0-.55.45-1 1-1s1 .45 1 1V11h-2v-1.5z"/></SvgIcon>
+);
+
+export const ArrowForwardIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props}><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></SvgIcon>
+);
+
+export const HelpOutlineIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props}><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></SvgIcon>
+);
+
+
+

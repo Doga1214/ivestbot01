@@ -126,4 +126,54 @@ export async function runWalletServiceTests(runner: TestRunner) {
     const newUserKyc = walletService.getKycStatus('user-B');
     assert.strictEqual(newUserKyc.status, 'NOT_SUBMITTED');
   });
+
+  await runner.test('WalletSnapshot & Restore: creates checkpoints and executes rollback safely', () => {
+    localStorage.clear();
+    const userId = 'user-snapshot-test';
+
+    walletService.saveWalletForUser(userId, {
+      totalBalance: 500,
+      availableBalance: 500,
+      pendingBalance: 0,
+      currency: 'USDT',
+      status: 'ACTIVE',
+      restrictions: { canDeposit: true, canWithdraw: true, canReserve: true, canTrade: true }
+    });
+
+    const snp = walletService.recordSnapshot({
+      userId,
+      userName: 'Bob',
+      before: { available: 500, total: 500, pending: 0 },
+      after: { available: 600, total: 600, pending: 0 },
+      actionType: 'BONUS_CREDIT',
+      reason: 'VIP Promotion Deposit',
+      actor: 'ADMIN'
+    });
+
+    assert.ok(snp.id);
+    assert.ok(snp.integrityHash.startsWith('AI-SHIELD-'));
+    assert.strictEqual(snp.afterBalance.available, 600);
+
+    const snapshots = walletService.getSnapshots(userId);
+    assert.strictEqual(snapshots.length, 1);
+    assert.strictEqual(snapshots[0].id, snp.id);
+
+    // Rollback test
+    const rollback = walletService.restoreSnapshot(snp.id, 'Rolling back to 600 checkpoint');
+    assert.strictEqual(rollback.restoredWallet.availableBalance, 600);
+    assert.strictEqual(rollback.restoredWallet.totalBalance, 600);
+  });
+
+  await runner.test('AI Yield Forecaster & Balance Integrity: returns accurate multi-horizon predictions', () => {
+    const forecast = walletService.calculateAiYieldForecast(1000);
+    assert.strictEqual(forecast.dailyRatePercent, 2.58);
+    assert.strictEqual(forecast.projected24hProfit, 25.8);
+    assert.ok(forecast.projected7dProfit > 180);
+    assert.ok(forecast.projected30dProfit > 1000);
+    assert.strictEqual(forecast.shieldStatus, 'ARMED');
+
+    const scan = walletService.verifyBalanceIntegrity('user-clean');
+    assert.strictEqual(scan.isClean, true);
+    assert.strictEqual(scan.healthScore, 100);
+  });
 }

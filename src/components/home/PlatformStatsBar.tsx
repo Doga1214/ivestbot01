@@ -1,56 +1,112 @@
 import React from 'react';
 import { Box, Container, Paper, Typography } from '@mui/material';
 import Grid from '@mui/material/Grid2';
+import {
+  GroupsIcon,
+  EventAvailableIcon,
+  MonetizationOnIcon,
+  ElectricBoltIcon
+} from '../common/Icons';
 
 export const PlatformStatsBar: React.FC = () => {
   const stats = [
-    { value: '10K+', label: 'Active Traders', color: '#ffffff' },
-    { value: '5K+', label: 'Daily Reservations', color: '#38bdf8' },
-    { value: '$2M+', label: 'Total Volume Locked', color: '#34d399' },
-    { value: '24/7', label: 'Automated Yield Engine', color: '#a78bfa' }
+    {
+      value: '14,850+',
+      label: 'Active Traders',
+      color: '#38bdf8',
+      icon: <GroupsIcon sx={{ fontSize: 22, color: '#38bdf8' }} />,
+      glow: 'rgba(56, 189, 248, 0.15)'
+    },
+    {
+      value: '8,420+',
+      label: 'Daily 24h Cycles',
+      color: '#34d399',
+      icon: <EventAvailableIcon sx={{ fontSize: 22, color: '#34d399' }} />,
+      glow: 'rgba(52, 211, 153, 0.15)'
+    },
+    {
+      value: '$3.45M+',
+      label: 'Total Volume Locked',
+      color: '#FFD700',
+      icon: <MonetizationOnIcon sx={{ fontSize: 22, color: '#FFD700' }} />,
+      glow: 'rgba(255, 215, 0, 0.15)'
+    },
+    {
+      value: '2.2222%',
+      label: 'Algorithmic Daily APY',
+      color: '#a78bfa',
+      icon: <ElectricBoltIcon sx={{ fontSize: 22, color: '#a78bfa' }} />,
+      glow: 'rgba(167, 139, 250, 0.15)'
+    }
   ];
 
   return (
-    <Box sx={{ py: 4 }}>
+    <Box sx={{ py: { xs: 3, md: 4 } }}>
       <Container maxWidth="lg">
-        <Paper
-          sx={{
-            p: { xs: 2.5, sm: 3.5 },
-            bgcolor: '#111522',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: 4,
-            boxShadow: '0 12px 35px rgba(0, 0, 0, 0.4)'
-          }}
-        >
-          <Grid container spacing={3} sx={{ textAlign: 'center' }}>
-            {stats.map((s, idx) => (
-              <Grid key={idx} size={{ xs: 6, md: 3 }}>
-                <Typography
-                  variant="h3"
+        <Grid container spacing={{ xs: 2, sm: 2.5 }}>
+          {stats.map((s, idx) => (
+            <Grid key={idx} size={{ xs: 6, md: 3 }}>
+              <Paper
+                sx={{
+                  p: { xs: 2, sm: 3 },
+                  bgcolor: '#111522',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: 3.5,
+                  boxShadow: `0 10px 30px ${s.glow}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    borderColor: 'rgba(255, 255, 255, 0.2)'
+                  }
+                }}
+              >
+                <Box
                   sx={{
-                    fontWeight: 900,
-                    color: s.color,
-                    letterSpacing: '-0.02em',
-                    fontSize: { xs: '1.8rem', sm: '2.4rem' },
-                    mb: 0.5
+                    width: 46,
+                    height: 46,
+                    borderRadius: 2.5,
+                    bgcolor: s.glow,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
                   }}
                 >
-                  {s.value}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: '#9CA3AF',
-                    fontWeight: 600,
-                    fontSize: { xs: '0.8rem', sm: '0.9rem' }
-                  }}
-                >
-                  {s.label}
-                </Typography>
-              </Grid>
-            ))}
-          </Grid>
-        </Paper>
+                  {s.icon}
+                </Box>
+                <Box>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: 900,
+                      color: s.color,
+                      letterSpacing: '-0.02em',
+                      fontSize: { xs: '1.25rem', sm: '1.55rem' },
+                      lineHeight: 1.1
+                    }}
+                  >
+                    {s.value}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: '#9CA3AF',
+                      fontWeight: 700,
+                      fontSize: { xs: '0.72rem', sm: '0.8rem' },
+                      display: 'block',
+                      mt: 0.3
+                    }}
+                  >
+                    {s.label}
+                  </Typography>
+                </Box>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
       </Container>
     </Box>
   );

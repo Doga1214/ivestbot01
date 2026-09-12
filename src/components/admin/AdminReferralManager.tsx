@@ -62,6 +62,7 @@ export const AdminReferralManager: React.FC<AdminReferralManagerProps> = ({ show
   const [selectedUserId, setSelectedUserId] = useState<string>('');
 
   useEffect(() => {
+    authService.syncAllUsersFromSupabase().then(() => refresh()).catch(() => {});
     const handleUpdate = () => refresh();
     window.addEventListener('ivestbot_referral_withdrawals_updated', handleUpdate);
     window.addEventListener('ivestbot_fraud_logs_updated', handleUpdate);

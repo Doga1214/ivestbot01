@@ -1,125 +1,189 @@
 import React from 'react';
-import { Box, Typography, Paper, Stack, Divider } from '@mui/material';
+import { Box, Container, Typography, Paper, Stack, Divider, Chip, Button } from '@mui/material';
 import Grid from '@mui/material/Grid2';
+import { useNavigate } from 'react-router-dom';
 import {
   PeopleAltOutlinedIcon,
   MonetizationOnOutlinedIcon,
   ShareOutlinedIcon,
-  CardGiftcardIcon
+  CardGiftcardIcon,
+  ArrowForwardIcon
 } from '../common/Icons';
 
 export const ReferralOverview: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
-    <Box sx={{ py: 6 }}>
-      <Paper
-        sx={{
-          p: { xs: 3, md: 5 },
-          borderRadius: 4,
-          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%)',
-          border: '1px solid rgba(139, 92, 246, 0.2)'
-        }}
-      >
-        <Grid container spacing={4} sx={{ alignItems: 'center' }}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Typography variant="overline" sx={{ color: '#a78bfa', fontWeight: 700, letterSpacing: '0.05em' }}>
-              COMMUNITY GROWTH
-            </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
-              A/B/C Multi-Tier Referral & Deposit Bonuses
-            </Typography>
-            <Typography variant="body1" sx={{ color: '#9CA3AF', lineHeight: 1.6, mb: 3 }}>
-              Invite new members with your referral link. Earn lifetime daily commissions on reservations and instant cash bonuses whenever invited members make deposits!
-            </Typography>
-
-            <Stack spacing={2}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <ShareOutlinedIcon sx={{ color: '#8b5cf6' }} />
-                <Typography variant="body2" sx={{ color: '#ffffff' }}>
-                  <strong>A Members (Direct)</strong>: 0.1% Lifetime Daily Reservation Commission
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <PeopleAltOutlinedIcon sx={{ color: '#3b82f6' }} />
-                <Typography variant="body2" sx={{ color: '#ffffff' }}>
-                  <strong>B Members (Secondary)</strong>: 0.05% Lifetime Daily Reservation Commission
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <MonetizationOnOutlinedIcon sx={{ color: '#10b981' }} />
-                <Typography variant="body2" sx={{ color: '#ffffff' }}>
-                  <strong>C Members (Tertiary)</strong>: 0.025% Lifetime Daily Reservation Commission
-                </Typography>
-              </Box>
-            </Stack>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Box
-              sx={{
-                p: 3,
-                borderRadius: 3,
-                backgroundColor: '#111522',
-                border: '1px solid rgba(255, 255, 255, 0.08)'
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, justifyContent: 'center' }}>
-                <CardGiftcardIcon sx={{ color: '#8b5cf6' }} />
-                <Typography variant="subtitle1" sx={{ fontWeight: 800, textAlign: 'center' }}>
-                  Deposit Referral Milestone Bonus Table
-                </Typography>
-              </Box>
-
-              <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', textAlign: 'center', mb: 2 }}>
-                Earned instantly when a new member registers & deposits via sponsor link
+    <Box sx={{ py: 8, position: 'relative' }}>
+      <Container maxWidth="lg">
+        <Paper
+          sx={{
+            p: { xs: 3.5, sm: 5 },
+            borderRadius: 5,
+            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(59, 130, 246, 0.06) 50%, rgba(17, 21, 34, 0.95) 100%)',
+            border: '1px solid rgba(139, 92, 246, 0.25)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)'
+          }}
+        >
+          <Grid container spacing={5} sx={{ alignItems: 'center' }}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Chip
+                label="COMMUNITY & AFFILIATES"
+                size="small"
+                sx={{
+                  bgcolor: 'rgba(139, 92, 246, 0.15)',
+                  color: '#a78bfa',
+                  fontWeight: 800,
+                  fontSize: '0.75rem',
+                  letterSpacing: '0.08em',
+                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  mb: 1.5
+                }}
+              />
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 900,
+                  fontSize: { xs: '1.8rem', sm: '2.4rem' },
+                  color: '#ffffff',
+                  letterSpacing: '-0.02em',
+                  mb: 2
+                }}
+              >
+                3-Tier Referral & Milestone Bonuses
+              </Typography>
+              <Typography variant="body1" sx={{ color: '#9CA3AF', lineHeight: 1.7, mb: 3.5 }}>
+                Build your crypto team. Earn lifetime daily commissions on all downline 24-hour reservations plus instant cash bonuses on invited member deposits.
               </Typography>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1.2, borderRadius: 2, bgcolor: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#e2e8f0' }}>50 USDT Deposit</Typography>
-                  <Typography variant="body2" sx={{ color: '#34d399', fontWeight: 800 }}>Sponsor: +1 USDT</Typography>
+              <Stack spacing={2.2} sx={{ mb: 4 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1.5, borderRadius: 3, bgcolor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                  <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(139, 92, 246, 0.15)' }}>
+                    <ShareOutlinedIcon sx={{ color: '#a78bfa' }} />
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#ffffff' }}>
+                      Tier A (Direct Referrals) — <span style={{ color: '#a78bfa' }}>0.1% Lifetime Daily</span>
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Earn on every reservation executed by direct friends</Typography>
+                  </Box>
                 </Box>
 
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1.2, borderRadius: 2, bgcolor: 'rgba(139, 92, 246, 0.06)', border: '1px solid rgba(139, 92, 246, 0.15)' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#e2e8f0' }}>100 USDT Deposit</Typography>
-                  <Typography variant="body2" sx={{ color: '#34d399', fontWeight: 800 }}>Sponsor: +2 USDT</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1.5, borderRadius: 3, bgcolor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                  <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(59, 130, 246, 0.15)' }}>
+                    <PeopleAltOutlinedIcon sx={{ color: '#60a5fa' }} />
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#ffffff' }}>
+                      Tier B (Secondary Referrals) — <span style={{ color: '#60a5fa' }}>0.05% Lifetime Daily</span>
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Earn on reservations from members invited by your A-tier</Typography>
+                  </Box>
                 </Box>
 
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1.2, borderRadius: 2, bgcolor: 'rgba(139, 92, 246, 0.06)', border: '1px solid rgba(139, 92, 246, 0.15)' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#e2e8f0' }}>200 USDT Deposit</Typography>
-                  <Typography variant="body2" sx={{ color: '#34d399', fontWeight: 800 }}>Sponsor: +4 USDT</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1.5, borderRadius: 3, bgcolor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                  <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(52, 211, 153, 0.15)' }}>
+                    <MonetizationOnOutlinedIcon sx={{ color: '#34d399' }} />
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#ffffff' }}>
+                      Tier C (Tertiary Referrals) — <span style={{ color: '#34d399' }}>0.025% Lifetime Daily</span>
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Network leverage across your 3rd level downline</Typography>
+                  </Box>
+                </Box>
+              </Stack>
+
+              <Button
+                variant="outlined"
+                onClick={() => navigate('/referrals')}
+                endIcon={<ArrowForwardIcon />}
+                sx={{
+                  borderRadius: 3,
+                  borderColor: 'rgba(139, 92, 246, 0.5)',
+                  color: '#a78bfa',
+                  fontWeight: 800,
+                  px: 3,
+                  py: 1.2,
+                  '&:hover': {
+                    borderColor: '#a78bfa',
+                    bgcolor: 'rgba(139, 92, 246, 0.1)'
+                  }
+                }}
+              >
+                View Referral Dashboard
+              </Button>
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Box
+                sx={{
+                  p: { xs: 2.5, sm: 3.5 },
+                  borderRadius: 4,
+                  backgroundColor: '#111522',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.4)'
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, justifyContent: 'center' }}>
+                  <CardGiftcardIcon sx={{ color: '#FFD700' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 800, textAlign: 'center', color: '#ffffff' }}>
+                    Instant Sponsor Milestone Rewards
+                  </Typography>
                 </Box>
 
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1.2, borderRadius: 2, bgcolor: 'rgba(139, 92, 246, 0.06)', border: '1px solid rgba(139, 92, 246, 0.15)' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#e2e8f0' }}>500 USDT Deposit</Typography>
-                  <Typography variant="body2" sx={{ color: '#34d399', fontWeight: 800 }}>Sponsor: +10 USDT</Typography>
+                <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', textAlign: 'center', mb: 2.5 }}>
+                  Credited directly to sponsor wallet upon downline member deposit
+                </Typography>
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.18)' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#e2e8f0' }}>50 USDT Deposit</Typography>
+                    <Chip label="+1.00 USDT Instant" size="small" sx={{ bgcolor: 'rgba(52, 211, 153, 0.15)', color: '#34d399', fontWeight: 900 }} />
+                  </Box>
+
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.18)' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#e2e8f0' }}>100 USDT Deposit</Typography>
+                    <Chip label="+2.00 USDT Instant" size="small" sx={{ bgcolor: 'rgba(52, 211, 153, 0.15)', color: '#34d399', fontWeight: 900 }} />
+                  </Box>
+
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.18)' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#e2e8f0' }}>200 USDT Deposit</Typography>
+                    <Chip label="+4.00 USDT Instant" size="small" sx={{ bgcolor: 'rgba(52, 211, 153, 0.15)', color: '#34d399', fontWeight: 900 }} />
+                  </Box>
+
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.18)' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#e2e8f0' }}>500 USDT Deposit</Typography>
+                    <Chip label="+10.00 USDT Instant" size="small" sx={{ bgcolor: 'rgba(52, 211, 153, 0.15)', color: '#34d399', fontWeight: 900 }} />
+                  </Box>
+
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(255, 215, 0, 0.12)', border: '1px solid rgba(255, 215, 0, 0.35)' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 900, color: '#FFD700' }}>1,000 USDT Deposit</Typography>
+                    <Chip label="+20.00 USDT Top Tier" size="small" sx={{ bgcolor: '#FFD700', color: '#000', fontWeight: 900 }} />
+                  </Box>
                 </Box>
 
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1.2, borderRadius: 2, bgcolor: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#34d399' }}>1,000 USDT Deposit</Typography>
-                  <Typography variant="body2" sx={{ color: '#34d399', fontWeight: 900 }}>Sponsor: +20 USDT</Typography>
+                <Divider sx={{ my: 2, borderColor: 'rgba(255, 255, 255, 0.08)' }} />
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
+                  <Box>
+                    <Typography variant="caption" sx={{ color: '#a78bfa', fontWeight: 800 }}>Tier A Override</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#fff' }}>0.1%</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" sx={{ color: '#60a5fa', fontWeight: 800 }}>Tier B Override</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#fff' }}>0.05%</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 800 }}>Tier C Override</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#fff' }}>0.025%</Typography>
+                  </Box>
                 </Box>
               </Box>
-
-              <Divider sx={{ my: 1.5, borderColor: 'rgba(255, 255, 255, 0.06)' }} />
-
-              <Box sx={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
-                <Box>
-                  <Typography variant="caption" sx={{ color: '#a78bfa', fontWeight: 700 }}>Tier A</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#fff' }}>0.1%</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ color: '#60a5fa', fontWeight: 700 }}>Tier B</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#fff' }}>0.05%</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 700 }}>Tier C</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#fff' }}>0.025%</Typography>
-                </Box>
-              </Box>
-            </Box>
+            </Grid>
           </Grid>
-        </Grid>
-      </Paper>
+        </Paper>
+      </Container>
     </Box>
   );
 };

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, Typography, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
-import { ExpandMoreIcon } from '../common/Icons';
+import { Box, Container, Typography, Accordion, AccordionSummary, AccordionDetails, Chip } from '@mui/material';
+import { ExpandMoreIcon, HelpOutlineIcon } from '../common/Icons';
 
 export const FAQ: React.FC = () => {
   const faqs = [
@@ -9,58 +9,92 @@ export const FAQ: React.FC = () => {
       a: 'Each user is eligible to initiate one reservation every 24 hours. The reservation uses your available USDT balance to participate in automated daily algorithmic settlement with a 20-second processing period.'
     },
     {
-      q: 'What is the daily configured yield rate?',
-      a: 'The platform operates with a daily yield rate of 2.2222% (approx 2.22%). At this rate, executing one reservation every 24 hours doubles your principle amount in exactly 45 days (45 days × 2.2222% = 100% net profit). The yield is credited directly to your available wallet balance upon completion of the 20-second processing window.'
+      q: 'What is the daily configured yield rate and 45-day doubling rule?',
+      a: 'The platform operates with a daily yield rate of 2.2222% (approx 2.22%). At this rate, executing one reservation every 24 hours doubles your principal amount in exactly 45 days (45 days × 2.2222% = 100% net profit). The yield is credited directly to your available wallet balance upon completion of the 20-second processing window.'
     },
     {
       q: 'How do referral commissions and deposit milestone bonuses work?',
       a: 'When you invite members using your referral link, you earn lifetime commissions on their reservations: 0.1% on direct Tier A members, 0.05% on Tier B members, and 0.025% on Tier C members. In addition, when new invited members deposit between 50 USDT and 1,000 USDT, sponsors earn an instant 1 USDT bonus per 50 USDT deposited (e.g. 50 USDT deposit -> +1 USDT sponsor bonus; 1000 USDT deposit -> +20 USDT sponsor bonus).'
     },
     {
-      q: 'What are the requirements for Level 2, 3, and 4?',
-      a: 'Higher levels require both a minimum wallet balance and team structure milestones (e.g. Level 2 requires 400 USDT, 3 A members, and 4 B+C members). Progression is calculated automatically on the server.'
+      q: 'What are the requirements for Level 2, 3, and 4 VIP tiers?',
+      a: 'Higher VIP levels require both a minimum wallet balance and team structure milestones (e.g. Level 2 requires 400 USDT, 3 A members, and 4 B+C members). Progression is calculated automatically in real-time by the server.'
     },
     {
       q: 'How do deposits and withdrawals affect my balance?',
-      a: 'New accounts start with 0.00 USDT. When you submit a deposit with your transaction hash, funds are immediately added to your wallet available balance. When you request a withdrawal, the amount is instantly deducted and tracked on your ledger.'
+      a: 'When you submit a deposit with your blockchain transaction hash (TxID), funds are verified and credited to your available balance. When you request a withdrawal, the amount is processed to your TRC20/BEP20 address.'
     }
   ];
 
   return (
-    <Box sx={{ py: 6 }}>
-      <Box sx={{ textAlign: 'center', mb: 5 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1.5 }}>
-          Frequently Asked Questions
-        </Typography>
-        <Typography variant="body1" sx={{ color: '#9CA3AF' }}>
-          Everything you need to know about the Ivestbot platform
-        </Typography>
-      </Box>
-
-      <Box sx={{ maxWidth: 800, mx: 'auto', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        {faqs.map((faq, idx) => (
-          <Accordion
-            key={idx}
+    <Box sx={{ py: 8, bgcolor: 'rgba(8, 10, 18, 0.6)', position: 'relative' }}>
+      <Container maxWidth="lg">
+        {/* Header */}
+        <Box sx={{ textAlign: 'center', mb: 6 }}>
+          <Chip
+            icon={<HelpOutlineIcon style={{ color: '#a78bfa' }} />}
+            label="FREQUENTLY ASKED QUESTIONS"
+            size="small"
             sx={{
-              backgroundColor: '#111522',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '12px !important',
-              '&:before': { display: 'none' }
+              bgcolor: 'rgba(139, 92, 246, 0.1)',
+              color: '#a78bfa',
+              fontWeight: 800,
+              fontSize: '0.75rem',
+              letterSpacing: '0.08em',
+              border: '1px solid rgba(139, 92, 246, 0.25)',
+              mb: 1.5
+            }}
+          />
+          <Typography
+            variant="h3"
+            sx={{
+              fontWeight: 900,
+              fontSize: { xs: '1.8rem', sm: '2.4rem', md: '2.8rem' },
+              color: '#ffffff',
+              letterSpacing: '-0.02em'
             }}
           >
-            <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: '#a78bfa' }} />}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                {faq.q}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Typography variant="body2" sx={{ color: '#9CA3AF', lineHeight: 1.6 }}>
-                {faq.a}
-              </Typography>
-            </AccordionDetails>
-          </Accordion>
-        ))}
-      </Box>
+            Got Questions? We Have Answers
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#9CA3AF', maxWidth: 600, mx: 'auto', mt: 1 }}>
+            Everything you need to know about the 45-day doubling protocol, yield rates, and payouts.
+          </Typography>
+        </Box>
+
+        <Box sx={{ maxWidth: 840, mx: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {faqs.map((faq, idx) => (
+            <Accordion
+              key={idx}
+              defaultExpanded={idx === 0 || idx === 1}
+              sx={{
+                backgroundColor: '#111522',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px !important',
+                transition: 'all 0.3s ease',
+                '&:before': { display: 'none' },
+                '&.Mui-expanded': {
+                  borderColor: 'rgba(139, 92, 246, 0.4)',
+                  boxShadow: '0 8px 24px rgba(139, 92, 246, 0.12)'
+                }
+              }}
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon sx={{ color: '#a78bfa' }} />}
+                sx={{ px: 3, py: 1 }}
+              >
+                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#ffffff', fontSize: '1.02rem' }}>
+                  {faq.q}
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails sx={{ px: 3, pb: 3, pt: 0 }}>
+                <Typography variant="body2" sx={{ color: '#9CA3AF', lineHeight: 1.7, fontSize: '0.92rem' }}>
+                  {faq.a}
+                </Typography>
+              </AccordionDetails>
+            </Accordion>
+          ))}
+        </Box>
+      </Container>
     </Box>
   );
 };

@@ -622,19 +622,42 @@ export const WithdrawalPanel: React.FC = () => {
                     3. WITHDRAWAL AMOUNT (USDT)
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-                    Min: {minLimit} USDT | Max: 50,000 USDT
+                    Min: {minLimit} USDT | Max: Full Available Balance
                   </Typography>
                 </Box>
 
                 <TextField
                   fullWidth
                   type="number"
+                  placeholder={`Min ${minLimit} USDT or click MAX`}
                   value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(e.target.value)}
                   required
                   slotProps={{
                     input: {
-                      inputProps: { min: minLimit, step: 'any' }
+                      inputProps: { min: minLimit, step: 'any' },
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={() => handleQuickPercent(100)}
+                            sx={{
+                              bgcolor: '#10b981',
+                              color: '#ffffff',
+                              fontWeight: 900,
+                              fontSize: '0.75rem',
+                              px: 1.5,
+                              py: 0.3,
+                              borderRadius: 1.5,
+                              textTransform: 'none',
+                              '&:hover': { bgcolor: '#059669' }
+                            }}
+                          >
+                            MAX
+                          </Button>
+                        </InputAdornment>
+                      )
                     }
                   }}
                 />
@@ -642,31 +665,37 @@ export const WithdrawalPanel: React.FC = () => {
                 {/* Quick Selection Buttons */}
                 <Box sx={{ display: 'flex', gap: 1, mt: 1.5, flexWrap: 'wrap' }}>
                   <Chip
-                    label="Min (100₮)"
+                    label="50 USDT (Min)"
                     clickable
                     size="small"
-                    onClick={() => handleQuickAmount(minLimit)}
+                    color={withdrawAmount === '50' ? 'success' : 'default'}
+                    onClick={() => handleQuickAmount(50)}
+                    sx={{
+                      fontWeight: 800,
+                      bgcolor: withdrawAmount === '50' ? undefined : 'rgba(16, 185, 129, 0.1)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      color: withdrawAmount === '50' ? '#fff' : '#34d399'
+                    }}
+                  />
+                  <Chip
+                    label="100 USDT"
+                    clickable
+                    size="small"
+                    onClick={() => handleQuickAmount(100)}
                     sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)', fontWeight: 800 }}
                   />
                   <Chip
-                    label="200₮"
+                    label="250 USDT"
                     clickable
                     size="small"
-                    onClick={() => handleQuickAmount(200)}
+                    onClick={() => handleQuickAmount(250)}
                     sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)', fontWeight: 800 }}
                   />
                   <Chip
-                    label="500₮"
+                    label="500 USDT"
                     clickable
                     size="small"
                     onClick={() => handleQuickAmount(500)}
-                    sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)', fontWeight: 800 }}
-                  />
-                  <Chip
-                    label="1,000₮"
-                    clickable
-                    size="small"
-                    onClick={() => handleQuickAmount(1000)}
                     sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)', fontWeight: 800 }}
                   />
                   <Chip
@@ -697,7 +726,7 @@ export const WithdrawalPanel: React.FC = () => {
                     sx={{ fontWeight: 800 }}
                   />
                   <Chip
-                    label="100% (MAX)"
+                    label="MAX (100%)"
                     clickable
                     size="small"
                     color="success"

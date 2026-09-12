@@ -26,7 +26,8 @@ import {
   ShieldOutlinedIcon,
   LockOutlinedIcon,
   VerifiedUserIcon,
-  WarningAmberIcon
+  WarningAmberIcon,
+  RefreshIcon
 } from '../common/Icons';
 import type { WalletTransaction } from '../../services/walletService';
 import { authService } from '../../services/authService';
@@ -36,19 +37,35 @@ interface AdminWithdrawalQueueProps {
   withdrawals: WalletTransaction[];
   onApprove: (txId: string, remarks?: string) => void;
   onReject: (txId: string, remarks?: string) => void;
+  onRefresh?: () => void;
+  showSnackbar?: (message: string, severity?: 'success' | 'info' | 'warning' | 'error') => void;
 }
 
 export const AdminWithdrawalQueue: React.FC<AdminWithdrawalQueueProps> = ({
   withdrawals,
   onApprove,
-  onReject
+  onReject,
+  onRefresh,
+  showSnackbar
 }) => {
   const [selectedTx, setSelectedTx] = useState<WalletTransaction | null>(null);
   const [actionType, setActionType] = useState<'APPROVE' | 'REJECT' | null>(null);
   const [adminRemarks, setAdminRemarks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const allUsers = authService.getAllUsers();
+
+  const handleManualRefresh = async () => {
+    if (!onRefresh || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+      if (showSnackbar) showSnackbar('Withdrawal queue refreshed!', 'info');
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
 
   const handleOpenAction = (tx: WalletTransaction, type: 'APPROVE' | 'REJECT') => {
     setSelectedTx(tx);
@@ -88,7 +105,7 @@ export const AdminWithdrawalQueue: React.FC<AdminWithdrawalQueueProps> = ({
       }}
     >
       <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 800 }}>
               Withdrawal Verification Queue
@@ -97,11 +114,29 @@ export const AdminWithdrawalQueue: React.FC<AdminWithdrawalQueueProps> = ({
               Review pending user withdrawal requests, inspect risk flags, and approve payout or refund.
             </Typography>
           </Box>
-          <Chip
-            label={`${withdrawals.length} PENDING`}
-            color={withdrawals.length > 0 ? 'warning' : 'default'}
-            sx={{ fontWeight: 800 }}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            {onRefresh && (
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                startIcon={!isRefreshing && <RefreshIcon fontSize="small" />}
+                sx={{
+                  borderColor: 'rgba(255, 255, 255, 0.15)',
+                  color: '#9CA3AF',
+                  '&:hover': { borderColor: '#a78bfa', color: '#a78bfa' }
+                }}
+              >
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            )}
+            <Chip
+              label={`${withdrawals.length} PENDING`}
+              color={withdrawals.length > 0 ? 'warning' : 'default'}
+              sx={{ fontWeight: 800 }}
+            />
+          </Box>
         </Box>
 
         {withdrawals.length === 0 ? (

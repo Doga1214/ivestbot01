@@ -431,6 +431,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const logout = () => {
     authService.logout();
     setUser(null);
+    setWallet(walletService.getWallet(''));
+    setTransactions([]);
     setKyc(walletService.getKycStatus(''));
     showSnackbar('Logged out successfully.', 'info');
   };

@@ -15,13 +15,15 @@ import { AdminKycQueue } from '../components/admin/AdminKycQueue';
 import { AdminGlobalLedger } from '../components/admin/AdminGlobalLedger';
 import { AdminBroadcastModal } from '../components/admin/AdminBroadcastModal';
 import { AdminReferralManager } from '../components/admin/AdminReferralManager';
+import { AdminBackupRestore } from '../components/admin/AdminBackupRestore';
 import {
   ArrowDownwardIcon,
   ArrowUpwardIcon,
   GroupsIcon,
   VerifiedUserIcon,
   ReceiptLongIcon,
-  MonetizationOnIcon
+  MonetizationOnIcon,
+  ShieldIcon
 } from '../components/common/Icons';
 
 export const Admin: React.FC = () => {
@@ -317,6 +319,12 @@ export const Admin: React.FC = () => {
             iconPosition="start"
             label="Referrals & Payouts"
           />
+
+          <Tab
+            icon={<ShieldIcon />}
+            iconPosition="start"
+            label="Balance Safety & Backups"
+          />
         </Tabs>
       </Paper>
 
@@ -347,6 +355,8 @@ export const Admin: React.FC = () => {
           withdrawals={pendingWithdrawals}
           onApprove={handleApproveWithdrawal}
           onReject={handleRejectWithdrawal}
+          onRefresh={loadAdminData}
+          showSnackbar={showSnackbar}
         />
       )}
 
@@ -370,6 +380,10 @@ export const Admin: React.FC = () => {
         <AdminReferralManager
           showSnackbar={showSnackbar}
         />
+      )}
+
+      {activeTab === 6 && (
+        <AdminBackupRestore />
       )}
 
       {/* Broadcast Announcement Modal */}

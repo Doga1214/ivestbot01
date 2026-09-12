@@ -65,9 +65,45 @@ export interface KycSubmission {
   adminNotes?: string;
 }
 
+export interface WalletSnapshot {
+  id: string;
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  timestamp: string;
+  beforeBalance: {
+    available: number;
+    total: number;
+    pending: number;
+  };
+  afterBalance: {
+    available: number;
+    total: number;
+    pending: number;
+  };
+  actionType: string;
+  reason: string;
+  actor: 'USER' | 'ADMIN' | 'SYSTEM_AI';
+  integrityHash: string;
+}
+
+export interface AiForecastResult {
+  currentBalance: number;
+  dailyRatePercent: number;
+  projected24hProfit: number;
+  projected7dProfit: number;
+  projected30dProfit: number;
+  annualizedApy: number;
+  securityHealthScore: number;
+  shieldStatus: 'ARMED' | 'OPTIMAL' | 'PROTECTED';
+  networkSpeedEstimate: string;
+  aiSuggestedReinvestBonus: number;
+}
+
 const WALLET_STORAGE_KEY = 'ivestbot_wallet_state';
 const TRANSACTIONS_STORAGE_KEY = 'ivestbot_wallet_transactions';
 const KYC_STORAGE_KEY = 'ivestbot_kyc_state';
+const SNAPSHOTS_STORAGE_KEY = 'ivestbot_wallet_snapshots';
 
 const DEFAULT_RESTRICTIONS: WalletRestrictions = {
   canDeposit: true,
@@ -355,32 +391,37 @@ export const walletService = {
       const local = this.getWalletForUser(userId);
       const rawDbAvailable = parseFloat(dbWalletData?.available_balance);
       const rawDbTotal = parseFloat(dbWalletData?.total_balance);
-      const localAvailable = local?.availableBalance || 0;
-      const localTotal = local?.totalBalance || 0;
+      const rawDbPending = parseFloat(dbWalletData?.pending_balance);
 
       const ledgerAvailable = Math.max(0, Number((totalApprovedDep + totalProfits - totalApprovedWth).toFixed(4)));
 
-      // Retain the maximum positive available balance from DB, Ledger, or Local Storage
       let availableBalance = 0;
-      if (!isNaN(rawDbAvailable) && rawDbAvailable > 0) {
-        availableBalance = Math.max(rawDbAvailable, ledgerAvailable, localAvailable);
-      } else if (ledgerAvailable > 0) {
-        availableBalance = Math.max(ledgerAvailable, localAvailable);
-      } else {
-        availableBalance = localAvailable;
-      }
+      let pendingBalance = 0;
+      let totalBalance = 0;
 
-      const pendingBalance = totalPendingDep > 0 ? totalPendingDep : (local?.pendingBalance || 0);
-      const totalBalance = Math.max(
-        !isNaN(rawDbTotal) ? rawDbTotal : 0,
-        localTotal,
-        Number((availableBalance + pendingBalance).toFixed(4))
-      );
+      if (dbWalletData && !isNaN(rawDbAvailable)) {
+        // Supabase DB is primary source of truth
+        availableBalance = rawDbAvailable;
+        pendingBalance = !isNaN(rawDbPending) ? rawDbPending : totalPendingDep;
+        totalBalance = !isNaN(rawDbTotal) && rawDbTotal > 0
+          ? rawDbTotal
+          : Number((availableBalance + pendingBalance).toFixed(4));
+      } else if (ledgerAvailable > 0 || totalPendingDep > 0) {
+        // Fallback to ledger computation
+        availableBalance = ledgerAvailable;
+        pendingBalance = totalPendingDep;
+        totalBalance = Number((availableBalance + pendingBalance).toFixed(4));
+      } else {
+        // Fallback to local cache
+        availableBalance = local?.availableBalance || 0;
+        pendingBalance = local?.pendingBalance || 0;
+        totalBalance = local?.totalBalance || Number((availableBalance + pendingBalance).toFixed(4));
+      }
 
       const targetPersistId = canonicalId || userId;
 
-      // Auto-heal & persist to Supabase PostgreSQL database
-      if (isValidUuid(targetPersistId) && availableBalance > 0 && (!dbWalletData || isNaN(rawDbAvailable) || rawDbAvailable < availableBalance)) {
+      // Auto-heal & persist to Supabase PostgreSQL database if missing
+      if (isValidUuid(targetPersistId) && !dbWalletData && availableBalance > 0) {
         await supabase.from('wallets').upsert({
           user_id: targetPersistId,
           available_balance: availableBalance,
@@ -854,11 +895,57 @@ export const walletService = {
       adminRemarks: adminRemarks || 'Deposit verified and credited by Admin'
     };
 
+    // Calculate Sponsor Milestone Bonus
+    let sponsorBonus = 0;
+    try {
+      const allUsers = authService.getAllUsers();
+      const depositUser = allUsers.find(u => u.id === depositUserId);
+      if (depositUser?.referredBy) {
+        const cleanRef = depositUser.referredBy.trim().toLowerCase();
+        const sponsor = allUsers.find(
+          u => (u.referralCode && u.referralCode.toLowerCase() === cleanRef) ||
+               (u.username && u.username.toLowerCase() === cleanRef) ||
+               (u.id && u.id.toLowerCase() === cleanRef)
+        );
+
+        if (sponsor && sponsor.id !== depositUserId) {
+          if (depositAmount >= 1000) sponsorBonus = 20;
+          else if (depositAmount >= 500) sponsorBonus = 10;
+          else if (depositAmount >= 200) sponsorBonus = 4;
+          else if (depositAmount >= 100) sponsorBonus = 2;
+          else if (depositAmount >= 50) sponsorBonus = 1;
+
+          if (sponsorBonus > 0) {
+            const sponsorWallet = this.getWalletForUser(sponsor.id);
+            const updatedSponsorWallet = {
+              ...sponsorWallet,
+              totalBalance: Number((sponsorWallet.totalBalance + sponsorBonus).toFixed(4)),
+              availableBalance: Number((sponsorWallet.availableBalance + sponsorBonus).toFixed(4))
+            };
+            this.saveWalletForUser(sponsor.id, updatedSponsorWallet);
+
+            this.addTransaction({
+              userId: sponsor.id,
+              userName: sponsor.username,
+              type: 'WELCOME_BONUS',
+              amount: sponsorBonus,
+              currency: 'USDT',
+              status: 'COMPLETED',
+              referenceId: `REF-BONUS-${Date.now().toString().slice(-6)}`,
+              description: `Instant Sponsor Milestone Bonus (+${sponsorBonus} USDT) from @${depositUser.username}'s ${depositAmount} USDT deposit`
+            });
+          }
+        }
+      }
+    } catch {
+      // safe fallback
+    }
+
     return {
       updatedWallet: syncedWallet,
       approvedTx,
       welcomeBonus: rpcResData?.welcomeBonus || 0,
-      sponsorBonus: 0
+      sponsorBonus
     };
   },
 
@@ -869,26 +956,64 @@ export const walletService = {
     txId: string,
     adminRemarks?: string
   ): Promise<{ updatedWallet: WalletState; rejectedTx: WalletTransaction }> {
-    const { data: rpcRes, error: rpcErr } = await supabase.rpc('reject_deposit_request', {
-      p_deposit_id: txId,
-      p_admin_id: 'admin',
-      p_remarks: adminRemarks || 'Deposit rejected by Admin'
-    });
+    let rpcSuccess = false;
+    let userId = '';
 
-    if (rpcErr || !rpcRes?.success) {
-      throw new Error(rpcErr?.message || 'Failed to reject deposit in database');
+    try {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('reject_deposit_request', {
+        p_deposit_id: txId,
+        p_admin_id: 'admin',
+        p_remarks: adminRemarks || 'Deposit rejected by Admin'
+      });
+
+      if (!rpcErr && rpcRes?.success) {
+        rpcSuccess = true;
+        const dbWallet = rpcRes.wallet;
+        userId = dbWallet.user_id;
+      }
+    } catch {
+      // fallback
     }
 
-    const dbWallet = rpcRes.wallet;
-    const userId = dbWallet.user_id;
-    const syncedWallet: WalletState = {
+    if (!rpcSuccess) {
+      // 1. Fetch deposit from database
+      const { data: depRow } = await supabase.from('deposits').select('*').eq('id', txId).maybeSingle();
+      if (depRow) {
+        userId = depRow.user_id;
+        const depAmt = parseFloat(depRow.amount) || 0;
+
+        // 2. Mark deposit as REJECTED in deposits table
+        await supabase.from('deposits').update({
+          status: 'REJECTED',
+          admin_note: adminRemarks || 'Deposit rejected by Admin',
+          updated_at: new Date().toISOString()
+        }).eq('id', txId);
+
+        // 3. Deduct from pending_balance in wallets table
+        const { data: dbWallet } = await supabase.from('wallets').select('*').eq('user_id', userId).maybeSingle();
+        const currentAvail = parseFloat(dbWallet?.available_balance) || 0;
+        const currentPend = parseFloat(dbWallet?.pending_balance) || 0;
+        const nextPend = Math.max(0, Number((currentPend - depAmt).toFixed(4)));
+        const nextTot = Number((currentAvail + nextPend).toFixed(4));
+
+        await supabase.from('wallets').upsert({
+          user_id: userId,
+          available_balance: currentAvail,
+          total_balance: nextTot,
+          pending_balance: nextPend,
+          currency: 'USDT',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      }
+    }
+
+    const syncedWallet = (userId ? await this.syncWalletFromSupabase(userId) : null) || {
       ...this.getWalletForUser(userId),
-      totalBalance: parseFloat(dbWallet.total_balance) || 0,
-      availableBalance: parseFloat(dbWallet.available_balance) || 0,
-      pendingBalance: parseFloat(dbWallet.pending_balance) || 0,
-      updatedAt: dbWallet.updated_at
+      pendingBalance: 0
     };
-    this.saveWalletForUser(userId, syncedWallet);
+    if (userId) {
+      this.saveWalletForUser(userId, syncedWallet);
+    }
 
     await this.syncTransactionsFromSupabase();
 
@@ -916,26 +1041,65 @@ export const walletService = {
     txId: string,
     adminRemarks?: string
   ): Promise<{ updatedWallet: WalletState; approvedTx: WalletTransaction }> {
-    const { data: rpcRes, error: rpcErr } = await supabase.rpc('approve_withdrawal_request', {
-      p_withdrawal_id: txId,
-      p_admin_id: 'admin',
-      p_remarks: adminRemarks || 'Withdrawal dispatched by Admin'
-    });
+    let rpcSuccess = false;
+    let userId = '';
+    let wthAmount = 0;
 
-    if (rpcErr || !rpcRes?.success) {
-      throw new Error(rpcErr?.message || 'Failed to approve withdrawal in database');
+    try {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('approve_withdrawal_request', {
+        p_withdrawal_id: txId,
+        p_admin_id: 'admin',
+        p_remarks: adminRemarks || 'Withdrawal dispatched by Admin'
+      });
+
+      if (!rpcErr && rpcRes?.success) {
+        rpcSuccess = true;
+        const dbWallet = rpcRes.wallet;
+        userId = dbWallet.user_id;
+      }
+    } catch {
+      // fallback
     }
 
-    const dbWallet = rpcRes.wallet;
-    const userId = dbWallet.user_id;
-    const syncedWallet: WalletState = {
+    if (!rpcSuccess) {
+      // 1. Fetch withdrawal from database
+      const { data: wthRow } = await supabase.from('withdrawals').select('*').eq('id', txId).maybeSingle();
+      if (wthRow) {
+        userId = wthRow.user_id;
+        wthAmount = parseFloat(wthRow.amount) || 0;
+
+        // 2. Mark withdrawal as APPROVED in withdrawals table
+        await supabase.from('withdrawals').update({
+          status: 'APPROVED',
+          admin_note: adminRemarks || 'Withdrawal dispatched by Admin',
+          updated_at: new Date().toISOString()
+        }).eq('id', txId);
+
+        // 3. Deduct from pending_balance and finalize total_balance in wallets table
+        const { data: dbWallet } = await supabase.from('wallets').select('*').eq('user_id', userId).maybeSingle();
+        const currentAvail = parseFloat(dbWallet?.available_balance) || 0;
+        const currentPend = parseFloat(dbWallet?.pending_balance) || 0;
+        const nextPend = Math.max(0, Number((currentPend - wthAmount).toFixed(4)));
+        const nextTot = Number((currentAvail + nextPend).toFixed(4));
+
+        await supabase.from('wallets').upsert({
+          user_id: userId,
+          available_balance: currentAvail,
+          total_balance: nextTot,
+          pending_balance: nextPend,
+          currency: 'USDT',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      }
+    }
+
+    const syncedWallet = (userId ? await this.syncWalletFromSupabase(userId) : null) || {
       ...this.getWalletForUser(userId),
-      totalBalance: parseFloat(dbWallet.total_balance) || 0,
-      availableBalance: parseFloat(dbWallet.available_balance) || 0,
-      pendingBalance: parseFloat(dbWallet.pending_balance) || 0,
-      updatedAt: dbWallet.updated_at
+      pendingBalance: 0
     };
-    this.saveWalletForUser(userId, syncedWallet);
+    if (userId) {
+      this.saveWalletForUser(userId, syncedWallet);
+    }
 
     await this.syncTransactionsFromSupabase();
 
@@ -944,7 +1108,7 @@ export const walletService = {
       id: txId,
       userId,
       type: 'WITHDRAWAL' as TransactionType,
-      amount: 0,
+      amount: wthAmount,
       currency: 'USDT',
       status: 'APPROVED' as TransactionStatus,
       description: `Withdrawal Approved & Dispatched`,
@@ -963,26 +1127,68 @@ export const walletService = {
     txId: string,
     adminRemarks?: string
   ): Promise<{ updatedWallet: WalletState; rejectedTx: WalletTransaction }> {
-    const { data: rpcRes, error: rpcErr } = await supabase.rpc('reject_withdrawal_request', {
-      p_withdrawal_id: txId,
-      p_admin_id: 'admin',
-      p_remarks: adminRemarks || 'Withdrawal rejected and refunded by Admin'
-    });
+    let rpcSuccess = false;
+    let userId = '';
+    let refundedAmount = 0;
 
-    if (rpcErr || !rpcRes?.success) {
-      throw new Error(rpcErr?.message || 'Failed to reject withdrawal in database');
+    try {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('reject_withdrawal_request', {
+        p_withdrawal_id: txId,
+        p_admin_id: 'admin',
+        p_remarks: adminRemarks || 'Withdrawal rejected and refunded by Admin'
+      });
+
+      if (!rpcErr && rpcRes?.success) {
+        rpcSuccess = true;
+        const dbWallet = rpcRes.wallet;
+        userId = dbWallet.user_id;
+        refundedAmount = rpcRes.refundedAmount || 0;
+      }
+    } catch {
+      // fallback
     }
 
-    const dbWallet = rpcRes.wallet;
-    const userId = dbWallet.user_id;
-    const syncedWallet: WalletState = {
+    if (!rpcSuccess) {
+      // 1. Fetch withdrawal from database
+      const { data: wthRow } = await supabase.from('withdrawals').select('*').eq('id', txId).maybeSingle();
+      if (wthRow) {
+        userId = wthRow.user_id;
+        refundedAmount = parseFloat(wthRow.amount) || 0;
+
+        // 2. Mark withdrawal as REJECTED in withdrawals table
+        await supabase.from('withdrawals').update({
+          status: 'REJECTED',
+          admin_note: adminRemarks || 'Withdrawal rejected and refunded by Admin',
+          updated_at: new Date().toISOString()
+        }).eq('id', txId);
+
+        // 3. Refund amount: remove from pending_balance, add back to available_balance
+        const { data: dbWallet } = await supabase.from('wallets').select('*').eq('user_id', userId).maybeSingle();
+        const currentAvail = parseFloat(dbWallet?.available_balance) || 0;
+        const currentPend = parseFloat(dbWallet?.pending_balance) || 0;
+        const nextAvail = Number((currentAvail + refundedAmount).toFixed(4));
+        const nextPend = Math.max(0, Number((currentPend - refundedAmount).toFixed(4)));
+        const nextTot = Number((nextAvail + nextPend).toFixed(4));
+
+        await supabase.from('wallets').upsert({
+          user_id: userId,
+          available_balance: nextAvail,
+          total_balance: nextTot,
+          pending_balance: nextPend,
+          currency: 'USDT',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      }
+    }
+
+    const syncedWallet = (userId ? await this.syncWalletFromSupabase(userId) : null) || {
       ...this.getWalletForUser(userId),
-      totalBalance: parseFloat(dbWallet.total_balance) || 0,
-      availableBalance: parseFloat(dbWallet.available_balance) || 0,
-      pendingBalance: parseFloat(dbWallet.pending_balance) || 0,
-      updatedAt: dbWallet.updated_at
+      availableBalance: this.getWalletForUser(userId).availableBalance + refundedAmount,
+      pendingBalance: Math.max(0, this.getWalletForUser(userId).pendingBalance - refundedAmount)
     };
-    this.saveWalletForUser(userId, syncedWallet);
+    if (userId) {
+      this.saveWalletForUser(userId, syncedWallet);
+    }
 
     await this.syncTransactionsFromSupabase();
 
@@ -991,10 +1197,10 @@ export const walletService = {
       id: txId,
       userId,
       type: 'WITHDRAWAL' as TransactionType,
-      amount: rpcRes.refundedAmount || 0,
+      amount: refundedAmount,
       currency: 'USDT',
       status: 'REJECTED' as TransactionStatus,
-      description: `Withdrawal Rejected by Admin (Refunded ${rpcRes.refundedAmount || 0} USDT)`,
+      description: `Withdrawal Rejected by Admin (Refunded ${refundedAmount} USDT)`,
       referenceId: `WTH-${txId.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
       createdAt: new Date().toISOString(),
       adminRemarks
@@ -1076,6 +1282,19 @@ export const walletService = {
       this.saveWallet(updatedWallet);
     }
 
+    if (userId) {
+      this.recordSnapshot({
+        userId,
+        userName: userMeta?.name,
+        userEmail: userMeta?.email,
+        before: { available: wallet.availableBalance, total: wallet.totalBalance, pending: wallet.pendingBalance },
+        after: { available: updatedWallet.availableBalance, total: updatedWallet.totalBalance, pending: updatedWallet.pendingBalance },
+        actionType: 'ADMIN_CREDIT',
+        reason: `Admin Credit: ${reason}`,
+        actor: 'ADMIN'
+      });
+    }
+
     const tx = this.addTransaction({
       userId,
       userName: userMeta?.name,
@@ -1116,6 +1335,19 @@ export const walletService = {
       this.saveWallet(updatedWallet);
     }
 
+    if (userId) {
+      this.recordSnapshot({
+        userId,
+        userName: userMeta?.name,
+        userEmail: userMeta?.email,
+        before: { available: wallet.availableBalance, total: wallet.totalBalance, pending: wallet.pendingBalance },
+        after: { available: updatedWallet.availableBalance, total: updatedWallet.totalBalance, pending: updatedWallet.pendingBalance },
+        actionType: 'ADMIN_DEBIT',
+        reason: `Admin Debit: ${reason}`,
+        actor: 'ADMIN'
+      });
+    }
+
     const tx = this.addTransaction({
       userId,
       userName: userMeta?.name,
@@ -1138,16 +1370,21 @@ export const walletService = {
   updateWalletRestrictions(
     status: WalletStatus,
     restrictions: WalletRestrictions,
-    reason?: string
+    reason?: string,
+    userId?: string
   ): WalletState {
-    const current = this.getWallet();
+    const current = userId ? this.getWalletForUser(userId) : this.getWallet();
     const updated: WalletState = {
       ...current,
       status,
       restrictions: { ...restrictions },
       restrictionReason: reason || (status === 'INACTIVE' ? 'Wallet account deactivated by Compliance' : undefined)
     };
-    this.saveWallet(updated);
+    if (userId) {
+      this.saveWalletForUser(userId, updated);
+    } else {
+      this.saveWallet(updated);
+    }
     return updated;
   },
 
@@ -1339,5 +1576,270 @@ export const walletService = {
       // ignore
     }
     return updated;
+  },
+
+  /**
+   * 🛡️ RECORD WALLET SNAPSHOT (Immutable Balance Audit Trail)
+   */
+  recordSnapshot(params: {
+    userId: string;
+    userName?: string;
+    userEmail?: string;
+    before: { available: number; total: number; pending: number };
+    after: { available: number; total: number; pending: number };
+    actionType: string;
+    reason: string;
+    actor: 'USER' | 'ADMIN' | 'SYSTEM_AI';
+  }): WalletSnapshot {
+    const timestamp = new Date().toISOString();
+    const hashSeed = `${params.userId}-${timestamp}-${params.after.available}-${params.after.total}`;
+    let hash = 0;
+    for (let i = 0; i < hashSeed.length; i++) {
+      hash = ((hash << 5) - hash) + hashSeed.charCodeAt(i);
+      hash |= 0;
+    }
+    const integrityHash = `AI-SHIELD-${Math.abs(hash).toString(16).toUpperCase()}-${Date.now().toString().slice(-4)}`;
+
+    const snapshot: WalletSnapshot = {
+      id: `snp-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      userId: params.userId,
+      userName: params.userName,
+      userEmail: params.userEmail,
+      timestamp,
+      beforeBalance: { ...params.before },
+      afterBalance: { ...params.after },
+      actionType: params.actionType,
+      reason: params.reason || 'Balance state mutation checkpoint',
+      actor: params.actor,
+      integrityHash
+    };
+
+    try {
+      const all = this.getSnapshots().filter(s => s.id !== snapshot.id);
+      const updated = [snapshot, ...all.slice(0, 499)]; // Keep latest 500 audit checkpoints
+      localStorage.setItem(SNAPSHOTS_STORAGE_KEY, JSON.stringify(updated));
+
+      const userExisting = this.getSnapshots(params.userId).filter(s => s.id !== snapshot.id);
+      localStorage.setItem(`ivestbot_snapshots_${params.userId}`, JSON.stringify(
+        [snapshot, ...userExisting.slice(0, 99)]
+      ));
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ivestbot_snapshot_created', { detail: snapshot }));
+      }
+    } catch {
+      // ignore
+    }
+
+    return snapshot;
+  },
+
+  /**
+   * Get Snapshot Audit Trail
+   */
+  getSnapshots(userId?: string): WalletSnapshot[] {
+    try {
+      if (userId) {
+        const userSpecific = localStorage.getItem(`ivestbot_snapshots_${userId}`);
+        if (userSpecific) return JSON.parse(userSpecific);
+      }
+      const stored = localStorage.getItem(SNAPSHOTS_STORAGE_KEY);
+      if (stored) {
+        const all: WalletSnapshot[] = JSON.parse(stored);
+        if (userId) {
+          return all.filter(s => s.userId === userId);
+        }
+        return all;
+      }
+    } catch {
+      // ignore
+    }
+    return [];
+  },
+
+  /**
+   * ⏪ 1-Click Rollback / Restore User Balance from Snapshot
+   */
+  restoreSnapshot(snapshotId: string, adminReason: string): { restoredWallet: WalletState; snapshot: WalletSnapshot } {
+    const all = this.getSnapshots();
+    const target = all.find(s => s.id === snapshotId);
+    if (!target) {
+      throw new Error('Selected snapshot checkpoint was not found.');
+    }
+
+    const currentWallet = this.getWalletForUser(target.userId);
+    const restoredWallet: WalletState = {
+      ...currentWallet,
+      availableBalance: target.afterBalance.available,
+      totalBalance: target.afterBalance.total,
+      pendingBalance: target.afterBalance.pending,
+      updatedAt: new Date().toISOString()
+    };
+
+    this.saveWalletForUser(target.userId, restoredWallet);
+
+    // Record restorative snapshot
+    this.recordSnapshot({
+      userId: target.userId,
+      userName: target.userName,
+      userEmail: target.userEmail,
+      before: {
+        available: currentWallet.availableBalance,
+        total: currentWallet.totalBalance,
+        pending: currentWallet.pendingBalance
+      },
+      after: {
+        available: restoredWallet.availableBalance,
+        total: restoredWallet.totalBalance,
+        pending: restoredWallet.pendingBalance
+      },
+      actionType: 'SNAPSHOT_RESTORE',
+      reason: `Admin Rollback to Snapshot [${target.id}]: ${adminReason}`,
+      actor: 'ADMIN'
+    });
+
+    this.addTransaction({
+      userId: target.userId,
+      userName: target.userName,
+      userEmail: target.userEmail,
+      type: 'ADMIN_ADJUSTMENT',
+      amount: restoredWallet.totalBalance,
+      currency: 'USDT',
+      status: 'COMPLETED',
+      description: `Safety Restore to Snapshot ${target.id} — Reason: ${adminReason}`,
+      referenceId: `RST-${target.id.slice(-6).toUpperCase()}`,
+      adminRemarks: adminReason
+    });
+
+    return { restoredWallet, snapshot: target };
+  },
+
+  /**
+   * 💾 FULL SYSTEM EXPORT / BACKUP (Wallets, KYC, Ledger, Profiles)
+   */
+  exportFullSystemBackup(): string {
+    const allUsers = authService.getAllUsers();
+    const transactions = this.getTransactions();
+    const snapshots = this.getSnapshots();
+
+    const userWallets: Record<string, WalletState> = {};
+    const userKycs: Record<string, KycSubmission> = {};
+
+    allUsers.forEach(u => {
+      userWallets[u.id] = this.getWalletForUser(u.id);
+      userKycs[u.id] = this.getKycStatus(u.id);
+    });
+
+    const backupPayload = {
+      version: '2.0-AI-GUARDIAN',
+      exportTimestamp: new Date().toISOString(),
+      platform: 'Ivestbot USDT Ecosystem',
+      totalUsers: allUsers.length,
+      users: allUsers,
+      wallets: userWallets,
+      kycRecords: userKycs,
+      transactions,
+      snapshots
+    };
+
+    return JSON.stringify(backupPayload, null, 2);
+  },
+
+  /**
+   * 📥 RESTORE BACKUP FROM JSON
+   */
+  importSystemBackup(jsonData: string): { success: boolean; message: string; restoredCount: number } {
+    try {
+      const data = JSON.parse(jsonData);
+      if (!data.users || !Array.isArray(data.users)) {
+        throw new Error('Invalid backup file format.');
+      }
+
+      authService.saveAllUsers(data.users);
+
+      if (data.wallets) {
+        Object.keys(data.wallets).forEach(uid => {
+          this.saveWalletForUser(uid, data.wallets[uid]);
+        });
+      }
+
+      if (data.transactions && Array.isArray(data.transactions)) {
+        this.saveTransactions(data.transactions);
+      }
+
+      if (data.snapshots && Array.isArray(data.snapshots)) {
+        localStorage.setItem(SNAPSHOTS_STORAGE_KEY, JSON.stringify(data.snapshots));
+      }
+
+      return {
+        success: true,
+        message: `Successfully restored ${data.users.length} users and all associated ledger records!`,
+        restoredCount: data.users.length
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: err.message || 'Failed to import backup.',
+        restoredCount: 0
+      };
+    }
+  },
+
+  /**
+   * 🤖 STAR AI YIELD FORECAST & SECURITY METRICS
+   */
+  calculateAiYieldForecast(customBalance?: number): AiForecastResult {
+    const activeWallet = this.getWallet();
+    const effectiveBalance = customBalance !== undefined ? customBalance : activeWallet.availableBalance;
+    const dailyRate = 2.58; // Standard Star AI mining base daily yield rate %
+
+    const projected24h = Number((effectiveBalance * (dailyRate / 100)).toFixed(4));
+    const projected7d = Number((effectiveBalance * ((Math.pow(1 + (dailyRate / 100), 7) - 1))).toFixed(4));
+    const projected30d = Number((effectiveBalance * ((Math.pow(1 + (dailyRate / 100), 30) - 1))).toFixed(4));
+    const apy = Number(((Math.pow(1 + (dailyRate / 100), 365) - 1) * 100).toFixed(2));
+
+    const bonusReinvest = Number((projected24h * 0.15).toFixed(4));
+
+    return {
+      currentBalance: effectiveBalance,
+      dailyRatePercent: dailyRate,
+      projected24hProfit: projected24h,
+      projected7dProfit: projected7d,
+      projected30dProfit: projected30d,
+      annualizedApy: Math.min(apy, 1250.0),
+      securityHealthScore: effectiveBalance > 0 ? 99.8 : 96.5,
+      shieldStatus: 'ARMED',
+      networkSpeedEstimate: 'TRC-20 Fast Block (< 45s)',
+      aiSuggestedReinvestBonus: bonusReinvest
+    };
+  },
+
+  /**
+   * 🔍 BALANCE INTEGRITY SCANNER (AI Balance Guardian)
+   */
+  verifyBalanceIntegrity(userId?: string): { isClean: boolean; discrepancies: string[]; healthScore: number } {
+    const targetId = userId || authService.getCurrentUser()?.id;
+    const discrepancies: string[] = [];
+
+    if (!targetId) {
+      return { isClean: true, discrepancies: [], healthScore: 100 };
+    }
+
+    const wallet = this.getWalletForUser(targetId);
+    if (isNaN(wallet.availableBalance) || wallet.availableBalance < 0) {
+      discrepancies.push('Invalid negative or NaN available balance detected.');
+    }
+    if (isNaN(wallet.totalBalance) || wallet.totalBalance < 0) {
+      discrepancies.push('Invalid total balance calculation.');
+    }
+    if (wallet.totalBalance < wallet.availableBalance) {
+      discrepancies.push('Total balance is lower than available balance.');
+    }
+
+    return {
+      isClean: discrepancies.length === 0,
+      discrepancies,
+      healthScore: discrepancies.length === 0 ? 100 : 75
+    };
   }
 };

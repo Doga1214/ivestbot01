@@ -77,8 +77,8 @@ export const ProfileWalletIncomeCard: React.FC = () => {
         </Box>
 
         {/* Large Balance Display */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
-          <TetherIcon sx={{ fontSize: 32 }} />
+        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mb: 1.5 }}>
+          <TetherIcon sx={{ fontSize: 32, alignSelf: 'center' }} />
           <Typography
             variant="h3"
             sx={{
@@ -88,8 +88,47 @@ export const ProfileWalletIncomeCard: React.FC = () => {
               fontSize: { xs: '2rem', sm: '2.5rem' }
             }}
           >
-            {currentBalance.toFixed(2)}
+            {Number(currentBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </Typography>
+          <Typography variant="h6" sx={{ color: '#9CA3AF', fontWeight: 700 }}>
+            USDT
+          </Typography>
+        </Box>
+
+        {/* Available & Pending Breakdown Mini Chips */}
+        <Box sx={{ display: 'flex', gap: 1.5, mb: 2.5, flexWrap: 'wrap' }}>
+          <Box
+            sx={{
+              px: 1.2,
+              py: 0.4,
+              borderRadius: 2,
+              bgcolor: 'rgba(16, 185, 129, 0.1)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.6
+            }}
+          >
+            <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>Available:</Typography>
+            <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 800 }}>{(wallet?.availableBalance || 0).toFixed(2)} USDT</Typography>
+          </Box>
+          {(wallet?.pendingBalance || 0) > 0 && (
+            <Box
+              sx={{
+                px: 1.2,
+                py: 0.4,
+                borderRadius: 2,
+                bgcolor: 'rgba(245, 158, 11, 0.1)',
+                border: '1px solid rgba(245, 158, 11, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.6
+              }}
+            >
+              <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>Pending:</Typography>
+              <Typography variant="caption" sx={{ color: '#fbbf24', fontWeight: 800 }}>{(wallet?.pendingBalance || 0).toFixed(2)} USDT</Typography>
+            </Box>
+          )}
         </Box>
 
         {/* Subtle Horizontal Divider */}
