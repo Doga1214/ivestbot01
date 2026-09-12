@@ -23,6 +23,10 @@ export interface ReferralMember {
   referredBy?: string;
   hasDeposited?: boolean;
   depositAmount?: number;
+  turnoverUSDT?: number;
+  dailyCommissionUSDT?: number;
+  commissionRate?: number;
+  commissionRateText?: string;
   rewardEarnedUSDT?: number;
 }
 
@@ -45,6 +49,8 @@ export interface ReferralSummary {
   totalMembersCount: number;
   activeMembersCount: number;
   inactiveMembersCount: number;
+  totalTurnoverUSDT: number;
+  estimatedDailyCommissionUSDT: number;
   todayEarnings: number;
   totalEarnings: number;
   pendingBonus: number;
@@ -273,7 +279,9 @@ export const referralService = {
         t => (t.userId === u.id || (t.userName && t.userName.toLowerCase() === u.username.toLowerCase())) &&
              t.type === 'DEPOSIT' && (t.status === 'APPROVED' || t.status === 'COMPLETED')
       );
-      return userDeps.reduce((sum, d) => sum + d.amount, 0);
+      const depositSum = userDeps.reduce((sum, d) => sum + d.amount, 0);
+      const w = walletService.getWalletForUser(u.id);
+      return Math.max(depositSum, w.totalDeposit || 0, w.totalBalance || 0);
     };
 
     // User identifier keys for Tier A matching
@@ -282,7 +290,7 @@ export const referralService = {
     if (currentUser?.username) currentUserKeys.add(currentUser.username.trim().toLowerCase());
     if (currentUser?.id) currentUserKeys.add(currentUser.id.trim().toLowerCase());
 
-    // Level A (Direct Referrals)
+    // Level A (Direct Referrals - 0.10% / 24H)
     const tierAUsers = allUsers.filter(u => {
       if (!u || u.id === currentUser?.id) return false;
       const ref = (u.referredBy || '').trim().toLowerCase();
@@ -292,6 +300,8 @@ export const referralService = {
     const tierAMembers: ReferralMember[] = tierAUsers.map(u => {
       const w = walletService.getWalletForUser(u.id);
       const dep = getMemberDeposit(u);
+      const turnover = Math.max(dep, w.totalBalance, w.totalDeposit || 0);
+      const dailyComm = Number((turnover * 0.001).toFixed(4));
       return {
         id: u.id,
         name: u.name,
@@ -301,13 +311,17 @@ export const referralService = {
         walletBalance: w.totalBalance,
         joinedAt: u.createdAt,
         referredBy: u.referredBy,
-        hasDeposited: dep > 0,
-        depositAmount: dep,
-        rewardEarnedUSDT: dep > 0 ? Number((dep * (WALLET_CONFIG.referralRates.A / 100)).toFixed(4)) : 0
+        hasDeposited: turnover > 0,
+        depositAmount: turnover,
+        turnoverUSDT: turnover,
+        dailyCommissionUSDT: dailyComm,
+        commissionRate: 0.10,
+        commissionRateText: '0.10%',
+        rewardEarnedUSDT: turnover > 0 ? Number((turnover * (WALLET_CONFIG.referralRates.A / 100)).toFixed(4)) : 0
       };
     });
 
-    // Level B (Indirect 2nd Tier)
+    // Level B (Indirect 2nd Tier - 0.05% / 24H)
     const tierAKeys = new Set<string>();
     const tierAIds = new Set<string>();
     tierAUsers.forEach(u => {
@@ -326,6 +340,8 @@ export const referralService = {
     const tierBMembers: ReferralMember[] = tierBUsers.map(u => {
       const w = walletService.getWalletForUser(u.id);
       const dep = getMemberDeposit(u);
+      const turnover = Math.max(dep, w.totalBalance, w.totalDeposit || 0);
+      const dailyComm = Number((turnover * 0.0005).toFixed(4));
       return {
         id: u.id,
         name: u.name,
@@ -335,13 +351,17 @@ export const referralService = {
         walletBalance: w.totalBalance,
         joinedAt: u.createdAt,
         referredBy: u.referredBy,
-        hasDeposited: dep > 0,
-        depositAmount: dep,
-        rewardEarnedUSDT: dep > 0 ? Number((dep * (WALLET_CONFIG.referralRates.B / 100)).toFixed(4)) : 0
+        hasDeposited: turnover > 0,
+        depositAmount: turnover,
+        turnoverUSDT: turnover,
+        dailyCommissionUSDT: dailyComm,
+        commissionRate: 0.05,
+        commissionRateText: '0.05%',
+        rewardEarnedUSDT: turnover > 0 ? Number((turnover * (WALLET_CONFIG.referralRates.B / 100)).toFixed(4)) : 0
       };
     });
 
-    // Level C (Indirect 3rd Tier)
+    // Level C (Indirect 3rd Tier - 0.025% / 24H)
     const tierBKeys = new Set<string>();
     const tierBIds = new Set<string>();
     tierBUsers.forEach(u => {
@@ -360,6 +380,8 @@ export const referralService = {
     const tierCMembers: ReferralMember[] = tierCUsers.map(u => {
       const w = walletService.getWalletForUser(u.id);
       const dep = getMemberDeposit(u);
+      const turnover = Math.max(dep, w.totalBalance, w.totalDeposit || 0);
+      const dailyComm = Number((turnover * 0.00025).toFixed(4));
       return {
         id: u.id,
         name: u.name,
@@ -369,9 +391,13 @@ export const referralService = {
         walletBalance: w.totalBalance,
         joinedAt: u.createdAt,
         referredBy: u.referredBy,
-        hasDeposited: dep > 0,
-        depositAmount: dep,
-        rewardEarnedUSDT: dep > 0 ? Number((dep * (WALLET_CONFIG.referralRates.C / 100)).toFixed(4)) : 0
+        hasDeposited: turnover > 0,
+        depositAmount: turnover,
+        turnoverUSDT: turnover,
+        dailyCommissionUSDT: dailyComm,
+        commissionRate: 0.025,
+        commissionRateText: '0.025%',
+        rewardEarnedUSDT: turnover > 0 ? Number((turnover * (WALLET_CONFIG.referralRates.C / 100)).toFixed(4)) : 0
       };
     });
 
@@ -416,6 +442,10 @@ export const referralService = {
     const tierBEarn = earningsHistory.filter(e => e.tier === 'B').reduce((sum, e) => sum + e.amount, 0);
     const tierCEarn = earningsHistory.filter(e => e.tier === 'C').reduce((sum, e) => sum + e.amount, 0);
 
+    const allMembersList = [...tierAMembers, ...tierBMembers, ...tierCMembers];
+    const totalTeamTurnover = allMembersList.reduce((sum, m) => sum + (m.turnoverUSDT || 0), 0);
+    const totalEstimatedDailyCommission = allMembersList.reduce((sum, m) => sum + (m.dailyCommissionUSDT || 0), 0);
+
     // Referral Records for Table View
     const referralRecords: ReferralRecord[] = [
       ...tierAMembers.map(m => ({
@@ -430,6 +460,10 @@ export const referralService = {
         rewardAmountUSDT: m.rewardEarnedUSDT || 0,
         hasDeposited: !!m.hasDeposited,
         depositAmountUSDT: m.depositAmount,
+        turnoverUSDT: m.turnoverUSDT,
+        dailyCommissionUSDT: m.dailyCommissionUSDT,
+        commissionRate: m.commissionRate,
+        commissionRateText: m.commissionRateText,
         hasReserved: m.status === 'ACTIVE',
         createdAt: m.joinedAt,
         completedAt: m.status === 'ACTIVE' ? m.joinedAt : undefined
@@ -446,6 +480,10 @@ export const referralService = {
         rewardAmountUSDT: m.rewardEarnedUSDT || 0,
         hasDeposited: !!m.hasDeposited,
         depositAmountUSDT: m.depositAmount,
+        turnoverUSDT: m.turnoverUSDT,
+        dailyCommissionUSDT: m.dailyCommissionUSDT,
+        commissionRate: m.commissionRate,
+        commissionRateText: m.commissionRateText,
         hasReserved: m.status === 'ACTIVE',
         createdAt: m.joinedAt,
         completedAt: m.status === 'ACTIVE' ? m.joinedAt : undefined
@@ -462,6 +500,10 @@ export const referralService = {
         rewardAmountUSDT: m.rewardEarnedUSDT || 0,
         hasDeposited: !!m.hasDeposited,
         depositAmountUSDT: m.depositAmount,
+        turnoverUSDT: m.turnoverUSDT,
+        dailyCommissionUSDT: m.dailyCommissionUSDT,
+        commissionRate: m.commissionRate,
+        commissionRateText: m.commissionRateText,
         hasReserved: m.status === 'ACTIVE',
         createdAt: m.joinedAt,
         completedAt: m.status === 'ACTIVE' ? m.joinedAt : undefined
@@ -494,6 +536,8 @@ export const referralService = {
       totalMembersCount: total,
       activeMembersCount: active,
       inactiveMembersCount: inactive,
+      totalTurnoverUSDT: Number(totalTeamTurnover.toFixed(2)),
+      estimatedDailyCommissionUSDT: Number(totalEstimatedDailyCommission.toFixed(4)),
       todayEarnings: Number((totalEarn * 0.25).toFixed(2)),
       totalEarnings: Number(totalEarn.toFixed(2)),
       pendingBonus: Number((inactive * 5).toFixed(2)),

@@ -734,6 +734,98 @@ export const Referral: React.FC = () => {
       {activeTab === 2 && (
         <Card>
           <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            {/* ─── DOWNLINE TEAM REAL-TIME KPI HEADER ─────────────── */}
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+              {/* Total Team Turnover */}
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Paper
+                  sx={{
+                    p: 2,
+                    bgcolor: 'rgba(139, 92, 246, 0.08)',
+                    border: '1px solid rgba(139, 92, 246, 0.25)',
+                    borderRadius: 2.5
+                  }}
+                >
+                  <Typography variant="caption" sx={{ color: '#a78bfa', fontWeight: 700, display: 'block', fontSize: '0.72rem' }}>
+                    TOTAL TEAM TURNOVER
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 900, color: '#ffffff', mt: 0.5 }}>
+                    ${summary.totalTurnoverUSDT.toFixed(2)} <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>USDT</span>
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.68rem' }}>
+                    Active Capital in 24H Cycles
+                  </Typography>
+                </Paper>
+              </Grid>
+
+              {/* Real Daily Commission Flow */}
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Paper
+                  sx={{
+                    p: 2,
+                    bgcolor: 'rgba(16, 185, 129, 0.08)',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                    borderRadius: 2.5
+                  }}
+                >
+                  <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 700, display: 'block', fontSize: '0.72rem' }}>
+                    DAILY COMMISSION FLOW
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 900, color: '#34d399', mt: 0.5 }}>
+                    +${summary.estimatedDailyCommissionUSDT.toFixed(4)} <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>/ 24H</span>
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.68rem' }}>
+                    Real 3-Tier Passive Yield
+                  </Typography>
+                </Paper>
+              </Grid>
+
+              {/* Direct Tier A Members */}
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <Paper
+                  sx={{
+                    p: 2,
+                    bgcolor: 'rgba(59, 130, 246, 0.08)',
+                    border: '1px solid rgba(59, 130, 246, 0.25)',
+                    borderRadius: 2.5
+                  }}
+                >
+                  <Typography variant="caption" sx={{ color: '#60a5fa', fontWeight: 700, display: 'block', fontSize: '0.72rem' }}>
+                    DIRECT TIER A (0.10%)
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 900, color: '#ffffff', mt: 0.5 }}>
+                    {summary.aMembersCount} <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>Members</span>
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.68rem' }}>
+                    Direct Invites
+                  </Typography>
+                </Paper>
+              </Grid>
+
+              {/* Network Tier B + C Members */}
+              <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+                <Paper
+                  sx={{
+                    p: 2,
+                    bgcolor: 'rgba(245, 158, 11, 0.08)',
+                    border: '1px solid rgba(245, 158, 11, 0.25)',
+                    borderRadius: 2.5
+                  }}
+                >
+                  <Typography variant="caption" sx={{ color: '#fbbf24', fontWeight: 700, display: 'block', fontSize: '0.72rem' }}>
+                    TIER B (0.05%) & C (0.025%)
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 900, color: '#ffffff', mt: 0.5 }}>
+                    {summary.bMembersCount + summary.cMembersCount} <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>Members</span>
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.68rem' }}>
+                    Indirect Downlines
+                  </Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+
+            {/* ─── FILTERS BAR ────────────────────────────────────── */}
             <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 2, mb: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 800 }}>
                 My Downline Team ({summary.totalMembersCount})
@@ -754,12 +846,12 @@ export const Referral: React.FC = () => {
                   size="small"
                   value={filterTier}
                   onChange={e => setFilterTier(e.target.value)}
-                  sx={{ width: { xs: 'calc(50% - 6px)', sm: 130 } }}
+                  sx={{ width: { xs: 'calc(50% - 6px)', sm: 140 } }}
                 >
                   <MenuItem value="ALL">All Levels</MenuItem>
-                  <MenuItem value="A">Level A (Direct)</MenuItem>
-                  <MenuItem value="B">Level B (2nd Tier)</MenuItem>
-                  <MenuItem value="C">Level C (3rd Tier)</MenuItem>
+                  <MenuItem value="A">Level A (0.10%)</MenuItem>
+                  <MenuItem value="B">Level B (0.05%)</MenuItem>
+                  <MenuItem value="C">Level C (0.025%)</MenuItem>
                 </TextField>
 
                 <TextField
@@ -767,7 +859,7 @@ export const Referral: React.FC = () => {
                   size="small"
                   value={filterStatus}
                   onChange={e => setFilterStatus(e.target.value)}
-                  sx={{ width: { xs: 'calc(50% - 6px)', sm: 140 } }}
+                  sx={{ width: { xs: 'calc(50% - 6px)', sm: 150 } }}
                 >
                   <MenuItem value="ALL">All Status</MenuItem>
                   <MenuItem value="COMPLETED">Active / Deposited</MenuItem>
@@ -785,149 +877,177 @@ export const Referral: React.FC = () => {
                 {/* 1. Mobile Downline Cards (<600px) */}
                 <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                    {filteredRecords.map((r: ReferralRecord) => (
-                      <Paper
-                        key={r.id}
-                        sx={{
-                          p: 1.8,
-                          borderRadius: 2.5,
-                          bgcolor: 'rgba(255, 255, 255, 0.02)',
-                          border: '1px solid rgba(255, 255, 255, 0.06)'
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                            <Avatar sx={{ width: 34, height: 34, bgcolor: '#3b82f6', fontSize: '0.85rem' }}>
-                              {r.refereeUsername.charAt(0).toUpperCase()}
-                            </Avatar>
-                            <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                                @{r.refereeUsername}
-                              </Typography>
-                              <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-                                {r.refereeName}
-                              </Typography>
+                    {filteredRecords.map((r: ReferralRecord) => {
+                      const commRateText = r.commissionRateText || (r.tierLevel === 'A' ? '0.10%' : r.tierLevel === 'B' ? '0.05%' : '0.025%');
+                      const turnover = r.turnoverUSDT !== undefined ? r.turnoverUSDT : (r.depositAmountUSDT || 0);
+                      const rateVal = r.tierLevel === 'A' ? 0.001 : r.tierLevel === 'B' ? 0.0005 : 0.00025;
+                      const dailyComm = r.dailyCommissionUSDT !== undefined ? r.dailyCommissionUSDT : Number((turnover * rateVal).toFixed(4));
+
+                      return (
+                        <Paper
+                          key={r.id}
+                          sx={{
+                            p: 2,
+                            borderRadius: 2.5,
+                            bgcolor: 'rgba(255, 255, 255, 0.02)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)'
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                              <Avatar sx={{ width: 36, height: 36, bgcolor: '#3b82f6', fontSize: '0.9rem', fontWeight: 800 }}>
+                                {r.refereeUsername.charAt(0).toUpperCase()}
+                              </Avatar>
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 800, color: '#ffffff' }}>
+                                  @{r.refereeUsername}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
+                                  {r.refereeName}
+                                </Typography>
+                              </Box>
                             </Box>
+                            <Chip
+                              label={`Level ${r.tierLevel} (${commRateText})`}
+                              size="small"
+                              sx={{
+                                fontWeight: 800,
+                                fontSize: '0.7rem',
+                                bgcolor: r.tierLevel === 'A' ? 'rgba(139, 92, 246, 0.2)' : r.tierLevel === 'B' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                                color: r.tierLevel === 'A' ? '#a78bfa' : r.tierLevel === 'B' ? '#60a5fa' : '#34d399'
+                              }}
+                            />
                           </Box>
-                          <Chip
-                            label={`Level ${r.tierLevel}`}
-                            size="small"
-                            sx={{
-                              fontWeight: 800,
-                              bgcolor: r.tierLevel === 'A' ? 'rgba(139, 92, 246, 0.2)' : r.tierLevel === 'B' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(16, 185, 129, 0.2)',
-                              color: r.tierLevel === 'A' ? '#a78bfa' : r.tierLevel === 'B' ? '#60a5fa' : '#34d399'
-                            }}
-                          />
-                        </Box>
 
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, px: 0.5 }}>
-                          <Box>
-                            <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', fontSize: '0.72rem' }}>Deposit Volume</Typography>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: r.hasDeposited ? '#34d399' : '#9CA3AF' }}>
-                              {r.depositAmountUSDT ? `$${r.depositAmountUSDT.toFixed(2)}` : '$0.00'}
-                            </Typography>
-                          </Box>
-                          <Box sx={{ textAlign: 'right' }}>
-                            <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', fontSize: '0.72rem' }}>Commission Earned</Typography>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#34d399' }}>
-                              +${r.rewardAmountUSDT.toFixed(2)} USDT
-                            </Typography>
-                          </Box>
-                        </Box>
+                          {/* 3-Column Metrics Row */}
+                          <Grid container spacing={1} sx={{ mb: 1.5, p: 1, bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 2 }}>
+                            <Grid size={{ xs: 4 }}>
+                              <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', fontSize: '0.68rem' }}>Turnover</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 800, color: turnover > 0 ? '#ffffff' : '#9CA3AF' }}>
+                                ${turnover.toFixed(2)}
+                              </Typography>
+                            </Grid>
+                            <Grid size={{ xs: 4 }} sx={{ textAlign: 'center' }}>
+                              <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', fontSize: '0.68rem' }}>Daily Rate</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 800, color: '#a78bfa' }}>
+                                {commRateText}
+                              </Typography>
+                            </Grid>
+                            <Grid size={{ xs: 4 }} sx={{ textAlign: 'right' }}>
+                              <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', fontSize: '0.68rem' }}>Daily Comm</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 900, color: '#34d399' }}>
+                                +${dailyComm.toFixed(4)}
+                              </Typography>
+                            </Grid>
+                          </Grid>
 
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 0.8, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                          <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.72rem' }}>
-                            Joined: {new Date(r.createdAt).toLocaleDateString()}
-                          </Typography>
-                          <Chip
-                            label={r.status === 'COMPLETED' ? 'ACTIVE' : 'PENDING'}
-                            size="small"
-                            icon={r.status === 'COMPLETED' ? <CheckCircleIcon /> : <PendingActionsIcon />}
-                            sx={{
-                              fontWeight: 800,
-                              fontSize: '0.68rem',
-                              height: 22,
-                              bgcolor: r.status === 'COMPLETED' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                              color: r.status === 'COMPLETED' ? '#34d399' : '#fbbf24'
-                            }}
-                          />
-                        </Box>
-                      </Paper>
-                    ))}
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 1, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                            <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.72rem' }}>
+                              Joined: {new Date(r.createdAt).toLocaleDateString()}
+                            </Typography>
+                            <Chip
+                              label={r.status === 'COMPLETED' ? 'ACTIVE / INVESTING' : 'PENDING ACTIVATION'}
+                              size="small"
+                              icon={r.status === 'COMPLETED' ? <CheckCircleIcon /> : <PendingActionsIcon />}
+                              sx={{
+                                fontWeight: 800,
+                                fontSize: '0.68rem',
+                                height: 22,
+                                bgcolor: r.status === 'COMPLETED' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                                color: r.status === 'COMPLETED' ? '#34d399' : '#fbbf24'
+                              }}
+                            />
+                          </Box>
+                        </Paper>
+                      );
+                    })}
                   </Box>
                 </Box>
 
                 {/* 2. Desktop Full Table (>=600px) */}
                 <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-                  <TableContainer component={Paper} sx={{ bgcolor: 'transparent', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <TableContainer component={Paper} sx={{ bgcolor: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 2 }}>
                     <Table>
                       <TableHead sx={{ bgcolor: 'rgba(255,255,255,0.02)' }}>
                         <TableRow>
                           <TableCell sx={{ fontWeight: 800, color: '#9CA3AF' }}>Downline Member</TableCell>
-                          <TableCell sx={{ fontWeight: 800, color: '#9CA3AF' }}>Tier Level</TableCell>
+                          <TableCell sx={{ fontWeight: 800, color: '#9CA3AF' }}>Tier & Override Rate</TableCell>
+                          <TableCell sx={{ fontWeight: 800, color: '#9CA3AF' }}>Turnover Volume</TableCell>
+                          <TableCell sx={{ fontWeight: 800, color: '#9CA3AF' }}>Daily Commission Flow</TableCell>
                           <TableCell sx={{ fontWeight: 800, color: '#9CA3AF' }}>Joined Date</TableCell>
-                          <TableCell sx={{ fontWeight: 800, color: '#9CA3AF' }}>Deposit Volume</TableCell>
                           <TableCell sx={{ fontWeight: 800, color: '#9CA3AF' }}>Status</TableCell>
                           <TableCell sx={{ fontWeight: 800, color: '#9CA3AF' }} align="right">Earned USDT</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {filteredRecords.map((r: ReferralRecord) => (
-                          <TableRow key={r.id} hover>
-                            <TableCell>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                <Avatar sx={{ width: 32, height: 32, bgcolor: '#3b82f6', fontSize: '0.85rem' }}>
-                                  {r.refereeUsername.charAt(0).toUpperCase()}
-                                </Avatar>
-                                <Box>
-                                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                                    @{r.refereeUsername}
-                                  </Typography>
-                                  <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-                                    {r.refereeName}
-                                  </Typography>
+                        {filteredRecords.map((r: ReferralRecord) => {
+                          const commRateText = r.commissionRateText || (r.tierLevel === 'A' ? '0.10%' : r.tierLevel === 'B' ? '0.05%' : '0.025%');
+                          const turnover = r.turnoverUSDT !== undefined ? r.turnoverUSDT : (r.depositAmountUSDT || 0);
+                          const rateVal = r.tierLevel === 'A' ? 0.001 : r.tierLevel === 'B' ? 0.0005 : 0.00025;
+                          const dailyComm = r.dailyCommissionUSDT !== undefined ? r.dailyCommissionUSDT : Number((turnover * rateVal).toFixed(4));
+
+                          return (
+                            <TableRow key={r.id} hover>
+                              <TableCell>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                  <Avatar sx={{ width: 34, height: 34, bgcolor: '#3b82f6', fontSize: '0.85rem', fontWeight: 800 }}>
+                                    {r.refereeUsername.charAt(0).toUpperCase()}
+                                  </Avatar>
+                                  <Box>
+                                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#ffffff' }}>
+                                      @{r.refereeUsername}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
+                                      {r.refereeName}
+                                    </Typography>
+                                  </Box>
                                 </Box>
-                              </Box>
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                label={`Level ${r.tierLevel}`}
-                                size="small"
-                                sx={{
-                                  fontWeight: 800,
-                                  bgcolor: r.tierLevel === 'A' ? 'rgba(139, 92, 246, 0.2)' : r.tierLevel === 'B' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(16, 185, 129, 0.2)',
-                                  color: r.tierLevel === 'A' ? '#a78bfa' : r.tierLevel === 'B' ? '#60a5fa' : '#34d399'
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell sx={{ color: '#9CA3AF', fontSize: '0.85rem' }}>
-                              {new Date(r.createdAt).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <Typography variant="body2" sx={{ fontWeight: 700, color: r.hasDeposited ? '#34d399' : '#9CA3AF' }}>
-                                {r.depositAmountUSDT ? `$${r.depositAmountUSDT.toFixed(2)} USDT` : '$0.00'}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                label={r.status === 'COMPLETED' ? 'ACTIVE / DEPOSITED' : 'PENDING DEPOSIT'}
-                                size="small"
-                                icon={r.status === 'COMPLETED' ? <CheckCircleIcon /> : <PendingActionsIcon />}
-                                sx={{
-                                  fontWeight: 800,
-                                  fontSize: '0.75rem',
-                                  bgcolor: r.status === 'COMPLETED' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                                  color: r.status === 'COMPLETED' ? '#34d399' : '#fbbf24'
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell align="right">
-                              <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#34d399' }}>
-                                +${r.rewardAmountUSDT.toFixed(2)} USDT
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                              </TableCell>
+                              <TableCell>
+                                <Chip
+                                  label={`Level ${r.tierLevel} (${commRateText})`}
+                                  size="small"
+                                  sx={{
+                                    fontWeight: 800,
+                                    bgcolor: r.tierLevel === 'A' ? 'rgba(139, 92, 246, 0.2)' : r.tierLevel === 'B' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                                    color: r.tierLevel === 'A' ? '#a78bfa' : r.tierLevel === 'B' ? '#60a5fa' : '#34d399'
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2" sx={{ fontWeight: 800, color: turnover > 0 ? '#ffffff' : '#9CA3AF' }}>
+                                  ${turnover.toFixed(2)} USDT
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2" sx={{ fontWeight: 900, color: '#34d399' }}>
+                                  +${dailyComm.toFixed(4)} USDT/Day
+                                </Typography>
+                              </TableCell>
+                              <TableCell sx={{ color: '#9CA3AF', fontSize: '0.85rem' }}>
+                                {new Date(r.createdAt).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell>
+                                <Chip
+                                  label={r.status === 'COMPLETED' ? 'ACTIVE / INVESTING' : 'PENDING ACTIVATION'}
+                                  size="small"
+                                  icon={r.status === 'COMPLETED' ? <CheckCircleIcon /> : <PendingActionsIcon />}
+                                  sx={{
+                                    fontWeight: 800,
+                                    fontSize: '0.72rem',
+                                    bgcolor: r.status === 'COMPLETED' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                                    color: r.status === 'COMPLETED' ? '#34d399' : '#fbbf24'
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell align="right">
+                                <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#34d399' }}>
+                                  +${r.rewardAmountUSDT.toFixed(2)} USDT
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </TableContainer>

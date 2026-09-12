@@ -35,6 +35,10 @@ export interface ReferralRecord {
   rewardAmountUSDT: number;
   hasDeposited: boolean;
   depositAmountUSDT?: number;
+  turnoverUSDT?: number;
+  dailyCommissionUSDT?: number;
+  commissionRate?: number;
+  commissionRateText?: string;
   hasReserved: boolean;
   createdAt: string;
   completedAt?: string;
