@@ -25,8 +25,7 @@ import {
   AssignmentIcon,
   ShareOutlinedIcon,
   CloseIcon,
-  ContentCopyIcon,
-  TrendingUpIcon
+  ContentCopyIcon
 } from '../common/Icons';
 import { useApp } from '../../context/AppContext';
 import { useNavigate } from 'react-router-dom';
