@@ -281,7 +281,7 @@ export const referralService = {
       );
       const depositSum = userDeps.reduce((sum, d) => sum + d.amount, 0);
       const w = walletService.getWalletForUser(u.id);
-      return Math.max(depositSum, w.totalDeposit || 0, w.totalBalance || 0);
+      return Math.max(depositSum, w.totalBalance || 0);
     };
 
     // User identifier keys for Tier A matching
@@ -300,7 +300,7 @@ export const referralService = {
     const tierAMembers: ReferralMember[] = tierAUsers.map(u => {
       const w = walletService.getWalletForUser(u.id);
       const dep = getMemberDeposit(u);
-      const turnover = Math.max(dep, w.totalBalance, w.totalDeposit || 0);
+      const turnover = Math.max(dep, w.totalBalance || 0);
       const dailyComm = Number((turnover * 0.001).toFixed(4));
       return {
         id: u.id,
@@ -340,7 +340,7 @@ export const referralService = {
     const tierBMembers: ReferralMember[] = tierBUsers.map(u => {
       const w = walletService.getWalletForUser(u.id);
       const dep = getMemberDeposit(u);
-      const turnover = Math.max(dep, w.totalBalance, w.totalDeposit || 0);
+      const turnover = Math.max(dep, w.totalBalance || 0);
       const dailyComm = Number((turnover * 0.0005).toFixed(4));
       return {
         id: u.id,
@@ -380,7 +380,7 @@ export const referralService = {
     const tierCMembers: ReferralMember[] = tierCUsers.map(u => {
       const w = walletService.getWalletForUser(u.id);
       const dep = getMemberDeposit(u);
-      const turnover = Math.max(dep, w.totalBalance, w.totalDeposit || 0);
+      const turnover = Math.max(dep, w.totalBalance || 0);
       const dailyComm = Number((turnover * 0.00025).toFixed(4));
       return {
         id: u.id,
