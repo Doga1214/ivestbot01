@@ -165,9 +165,129 @@ export const Referral: React.FC = () => {
           Referral & Affiliate Command Center
         </Typography>
         <Typography variant="body1" sx={{ color: '#9CA3AF', maxWidth: 720, lineHeight: 1.6, fontSize: { xs: '0.88rem', sm: '1rem' } }}>
-          Earn lifetime passive commissions across 3 levels (A: 0.1%, B: 0.05%, C: 0.025%) + instant USDT signup & milestone unlock bonuses.
+          Earn real lifetime passive commissions across 3 levels (Tier A: 0.1%, Tier B: 0.05%, Tier C: 0.025%) on all completed 24-hour downline reservation cycles.
         </Typography>
       </Box>
+
+      {/* ─── REAL 3-TIER OVERRIDE COMMISSION BREAKDOWN ──────────── */}
+      <Grid container spacing={{ xs: 1.5, sm: 2 }} sx={{ mb: 3 }}>
+        {/* Tier A */}
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Paper
+            sx={{
+              p: 2.5,
+              bgcolor: '#111522',
+              borderRadius: 3,
+              border: '1px solid rgba(139, 92, 246, 0.35)',
+              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(17, 21, 34, 0.95) 100%)',
+              position: 'relative'
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+              <Chip
+                label="TIER A (DIRECT)"
+                size="small"
+                sx={{ bgcolor: 'rgba(139, 92, 246, 0.25)', color: '#a78bfa', fontWeight: 900, fontSize: '0.72rem' }}
+              />
+              <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#a78bfa' }}>
+                0.10% Override
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <Box>
+                <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }}>Direct Team Members</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 900, color: '#ffffff' }}>
+                  {summary.aMembersCount}
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }}>Tier A Earned</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 900, color: '#34d399' }}>
+                  ${summary.tierAEarnings.toFixed(2)} USDT
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* Tier B */}
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Paper
+            sx={{
+              p: 2.5,
+              bgcolor: '#111522',
+              borderRadius: 3,
+              border: '1px solid rgba(59, 130, 246, 0.35)',
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(17, 21, 34, 0.95) 100%)',
+              position: 'relative'
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+              <Chip
+                label="TIER B (SECONDARY)"
+                size="small"
+                sx={{ bgcolor: 'rgba(59, 130, 246, 0.25)', color: '#60a5fa', fontWeight: 900, fontSize: '0.72rem' }}
+              />
+              <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#60a5fa' }}>
+                0.05% Override
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <Box>
+                <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }}>Level 2 Downline</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 900, color: '#ffffff' }}>
+                  {summary.bMembersCount}
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }}>Tier B Earned</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 900, color: '#34d399' }}>
+                  ${summary.tierBEarnings.toFixed(2)} USDT
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* Tier C */}
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Paper
+            sx={{
+              p: 2.5,
+              bgcolor: '#111522',
+              borderRadius: 3,
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(17, 21, 34, 0.95) 100%)',
+              position: 'relative'
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+              <Chip
+                label="TIER C (TERTIARY)"
+                size="small"
+                sx={{ bgcolor: 'rgba(16, 185, 129, 0.25)', color: '#34d399', fontWeight: 900, fontSize: '0.72rem' }}
+              />
+              <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#34d399' }}>
+                0.025% Override
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <Box>
+                <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }}>Level 3 Downline</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 900, color: '#ffffff' }}>
+                  {summary.cMembersCount}
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }}>Tier C Earned</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 900, color: '#34d399' }}>
+                  ${summary.tierCEarnings.toFixed(2)} USDT
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+        </Grid>
+      </Grid>
 
       {/* ─── QUICK METRICS KPI BAR ──────────────────────────────── */}
       <Grid container spacing={{ xs: 1.5, sm: 2 }} sx={{ mb: 3.5 }}>
@@ -461,8 +581,8 @@ export const Referral: React.FC = () => {
                     <Typography variant="body2" sx={{ fontWeight: 700, color: '#a78bfa' }}>
                       Level A (Direct)
                     </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 900, color: '#fff' }}>
-                      {adminConfig.commissionRates.A}% Daily + 5 USDT Bonus
+                    <Typography variant="body2" sx={{ fontWeight: 900, color: '#34d399' }}>
+                      {adminConfig.commissionRates.A}% Daily Commission
                     </Typography>
                   </Box>
 
@@ -470,7 +590,7 @@ export const Referral: React.FC = () => {
                     <Typography variant="body2" sx={{ fontWeight: 700, color: '#60a5fa' }}>
                       Level B (2nd Tier)
                     </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 900, color: '#fff' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 900, color: '#34d399' }}>
                       {adminConfig.commissionRates.B}% Daily Commission
                     </Typography>
                   </Box>
@@ -479,7 +599,7 @@ export const Referral: React.FC = () => {
                     <Typography variant="body2" sx={{ fontWeight: 700, color: '#34d399' }}>
                       Level C (3rd Tier)
                     </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 900, color: '#fff' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 900, color: '#34d399' }}>
                       {adminConfig.commissionRates.C}% Daily Commission
                     </Typography>
                   </Box>

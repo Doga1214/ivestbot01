@@ -44,7 +44,7 @@ export const ReferralEarnings: React.FC = () => {
           <Grid size={{ xs: 12, sm: 4 }}>
             <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
               <Typography variant="caption" sx={{ color: '#a78bfa', fontWeight: 600, display: 'block' }}>
-                Tier A Direct Earnings (0.1% + Bonuses)
+                Tier A Direct Earnings (0.10%)
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 900, color: '#ffffff', mt: 0.5 }}>
                 {formatUSDT(referralSummary.tierAEarnings)}
