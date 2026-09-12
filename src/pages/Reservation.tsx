@@ -73,23 +73,18 @@ export const Reservation: React.FC = () => {
   const userLevel = user?.level || 1;
   const reservableBalance = Math.max(0, wallet.availableBalance);
   
-  // Daily rate: Level 1 is 1.1% - 1.4%, Level 2 is 1.5% - 1.8%, Level 3 is 2.0% - 2.4%, Level 4 is 2.5% - 3.0%
+  // Daily rate: 2.2222% per 24H reservation (Full 100% principal doubling in 45 days)
   const rateRange = useMemo(() => {
-    switch (userLevel) {
-      case 2: return { min: 1.5, max: 1.8, label: '1.5-1.8%' };
-      case 3: return { min: 2.0, max: 2.4, label: '2.0-2.4%' };
-      case 4: return { min: 2.5, max: 3.0, label: '2.5-3.0%' };
-      default: return { min: 1.1, max: 1.4, label: '1.1-1.4%' };
-    }
-  }, [userLevel]);
+    return { min: 2.2222, max: 2.2222, label: '2.222% (Doubles in 45 Days)' };
+  }, []);
 
-  // Reservation range based on level
+  // Reservation range based on level (Starting from 10 USDT)
   const rangeLimits = useMemo(() => {
     switch (userLevel) {
-      case 2: return { min: 500, max: 2000, label: '500 ~ 2000' };
-      case 3: return { min: 2000, max: 5000, label: '2000 ~ 5000' };
-      case 4: return { min: 5000, max: 20000, label: '5000 ~ 20000' };
-      default: return { min: 50, max: 500, label: '50 ~ 500' };
+      case 2: return { min: 50, max: 200, label: '50 ~ 200' };
+      case 3: return { min: 200, max: 1000, label: '200 ~ 1000' };
+      case 4: return { min: 1000, max: 50000, label: '1000 ~ 50000' };
+      default: return { min: 10, max: 50, label: '10 ~ 50' };
     }
   }, [userLevel]);
 

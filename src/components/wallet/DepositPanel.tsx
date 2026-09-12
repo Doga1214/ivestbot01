@@ -212,7 +212,7 @@ export const DepositPanel: React.FC = () => {
                   type="number"
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}
-                  helperText="Minimum deposit: 50 USDT"
+                  helperText="Minimum deposit: 10 USDT"
                   required
                 />
               </Grid>

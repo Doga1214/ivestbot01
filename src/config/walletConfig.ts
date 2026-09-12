@@ -12,24 +12,24 @@ export const WALLET_CONFIG = {
     C: 0.025  // 0.025% commission for tertiary C members
   },
   depositBonusRatio: {
-    unitDeposit: 50, // per 50 USDT deposited
-    sponsorBonusPerUnit: 1, // 1 USDT sponsor referral reward per 50 USDT
+    unitDeposit: 10, // per 10 USDT deposited
+    sponsorBonusPerUnit: 0.2, // Proportional sponsor referral reward
     newUserBonusPerUnit: 0, // 0 USDT (No welcome bonus - only referral rewards)
-    minDeposit: 50,
-    maxDeposit: 1000
+    minDeposit: 10, // Lowered minimum reservation/deposit floor
+    maxDeposit: 50000
   },
   processingDurationSeconds: 20, // 20-second processing period
   reservationLockHours: 24, // 24-hour cycle (1 reservation per 24 hours)
 
   // Multi-network withdrawal options and limits
-  minWithdrawalUSDT: 50,
+  minWithdrawalUSDT: 10,
   maxWithdrawalUSDT: 50000,
   withdrawalNetworks: [
     {
       id: 'TRC20',
       name: 'Tron (TRC20)',
       fee: 1.0,
-      minWithdrawal: 50,
+      minWithdrawal: 10,
       currency: 'USDT',
       badgeColor: '#EF4444',
       explorerTxUrl: 'https://tronscan.org/#/transaction/',
@@ -40,7 +40,7 @@ export const WALLET_CONFIG = {
       id: 'BEP20',
       name: 'BNB Smart Chain (BEP20)',
       fee: 0.8,
-      minWithdrawal: 50,
+      minWithdrawal: 10,
       currency: 'USDT',
       badgeColor: '#F59E0B',
       explorerTxUrl: 'https://bscscan.com/tx/',
@@ -51,7 +51,7 @@ export const WALLET_CONFIG = {
       id: 'ERC20',
       name: 'Ethereum (ERC20)',
       fee: 4.5,
-      minWithdrawal: 50,
+      minWithdrawal: 20,
       currency: 'USDT',
       badgeColor: '#6366F1',
       explorerTxUrl: 'https://etherscan.io/tx/',
@@ -62,7 +62,7 @@ export const WALLET_CONFIG = {
       id: 'POLYGON',
       name: 'Polygon (POS)',
       fee: 0.5,
-      minWithdrawal: 50,
+      minWithdrawal: 10,
       currency: 'USDT',
       badgeColor: '#8B5CF6',
       explorerTxUrl: 'https://polygonscan.com/tx/',
