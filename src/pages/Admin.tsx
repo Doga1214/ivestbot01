@@ -137,42 +137,143 @@ export const Admin: React.FC = () => {
   };
 
   const handleApproveDeposit = async (txId: string, remarks?: string) => {
+    // 0ms Instant Optimistic UI Update
+    const target = pendingDeposits.find(d => d.id === txId);
+    setPendingDeposits(prev => prev.filter(d => d.id !== txId));
+    if (target?.userId && target?.amount) {
+      setUsers(prev => prev.map(u => {
+        if (u.profile.id === target.userId) {
+          const newAvail = Number((u.wallet.availableBalance + target.amount).toFixed(4));
+          const newPend = Math.max(0, Number((u.wallet.pendingBalance - target.amount).toFixed(4)));
+          return {
+            ...u,
+            profile: { ...u.profile, status: 'ACTIVE' },
+            wallet: {
+              ...u.wallet,
+              availableBalance: newAvail,
+              pendingBalance: newPend,
+              totalBalance: Number((newAvail + newPend).toFixed(4)),
+              status: 'ACTIVE'
+            }
+          };
+        }
+        return u;
+      }));
+    }
     try {
       await adminApproveDeposit(txId, remarks);
-      await loadAdminData();
     } catch {
       // notification handled in context
     }
+    await loadAdminData();
   };
 
   const handleRejectDeposit = async (txId: string, remarks?: string) => {
+    // 0ms Instant Optimistic UI Update
+    const target = pendingDeposits.find(d => d.id === txId);
+    setPendingDeposits(prev => prev.filter(d => d.id !== txId));
+    if (target?.userId && target?.amount) {
+      setUsers(prev => prev.map(u => {
+        if (u.profile.id === target.userId) {
+          const newPend = Math.max(0, Number((u.wallet.pendingBalance - target.amount).toFixed(4)));
+          return {
+            ...u,
+            wallet: {
+              ...u.wallet,
+              pendingBalance: newPend,
+              totalBalance: Number((u.wallet.availableBalance + newPend).toFixed(4))
+            }
+          };
+        }
+        return u;
+      }));
+    }
     try {
       await adminRejectDeposit(txId, remarks);
-      await loadAdminData();
     } catch {
       // notification handled in context
     }
+    await loadAdminData();
   };
 
   const handleApproveWithdrawal = async (txId: string, remarks?: string) => {
+    // 0ms Instant Optimistic UI Update
+    const target = pendingWithdrawals.find(w => w.id === txId);
+    setPendingWithdrawals(prev => prev.filter(w => w.id !== txId));
+    if (target?.userId && target?.amount) {
+      setUsers(prev => prev.map(u => {
+        if (u.profile.id === target.userId) {
+          const newPend = Math.max(0, Number((u.wallet.pendingBalance - target.amount).toFixed(4)));
+          return {
+            ...u,
+            wallet: {
+              ...u.wallet,
+              pendingBalance: newPend,
+              totalBalance: Number((u.wallet.availableBalance + newPend).toFixed(4))
+            }
+          };
+        }
+        return u;
+      }));
+    }
     try {
       await adminApproveWithdrawal(txId, remarks);
-      await loadAdminData();
     } catch {
       // notification handled in context
     }
+    await loadAdminData();
   };
 
   const handleRejectWithdrawal = async (txId: string, remarks?: string) => {
+    // 0ms Instant Optimistic UI Update & Refund
+    const target = pendingWithdrawals.find(w => w.id === txId);
+    setPendingWithdrawals(prev => prev.filter(w => w.id !== txId));
+    if (target?.userId && target?.amount) {
+      setUsers(prev => prev.map(u => {
+        if (u.profile.id === target.userId) {
+          const newAvail = Number((u.wallet.availableBalance + target.amount).toFixed(4));
+          const newPend = Math.max(0, Number((u.wallet.pendingBalance - target.amount).toFixed(4)));
+          return {
+            ...u,
+            wallet: {
+              ...u.wallet,
+              availableBalance: newAvail,
+              pendingBalance: newPend,
+              totalBalance: Number((newAvail + newPend).toFixed(4))
+            }
+          };
+        }
+        return u;
+      }));
+    }
     try {
       await adminRejectWithdrawal(txId, remarks);
-      await loadAdminData();
     } catch {
       // notification handled in context
     }
+    await loadAdminData();
   };
 
   const handleAdjustBalance = async (userId: string, type: 'CREDIT' | 'DEBIT', amount: number, reason: string) => {
+    // 0ms Instant Optimistic Balance Update
+    setUsers(prev => prev.map(u => {
+      if (u.profile.id === userId) {
+        const newAvail = type === 'CREDIT'
+          ? Number((u.wallet.availableBalance + amount).toFixed(4))
+          : Math.max(0, Number((u.wallet.availableBalance - amount).toFixed(4)));
+        const newTot = Number((newAvail + (u.wallet.pendingBalance || 0)).toFixed(4));
+        return {
+          ...u,
+          wallet: {
+            ...u.wallet,
+            availableBalance: newAvail,
+            totalBalance: newTot
+          }
+        };
+      }
+      return u;
+    }));
+
     if (type === 'CREDIT') {
       await adminCreditUser(userId, amount, reason);
     } else {
