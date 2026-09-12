@@ -150,6 +150,24 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
       return;
     }
 
+    // 0ms Instant Optimistic UI Update inside modal
+    const prevAvail = data.wallet.availableBalance;
+    const nextAvail = adjustType === 'CREDIT'
+      ? Number((prevAvail + amt).toFixed(4))
+      : Math.max(0, Number((prevAvail - amt).toFixed(4)));
+    const nextTot = Number((nextAvail + (data.wallet.pendingBalance || 0)).toFixed(4));
+
+    setData(prev => prev ? {
+      ...prev,
+      wallet: {
+        ...prev.wallet,
+        availableBalance: nextAvail,
+        totalBalance: nextTot
+      }
+    } : null);
+
+    setAdjustAmount('');
+
     if (adjustType === 'CREDIT') {
       await adminService.creditUserWallet(data.profile.id, amt, adjustReason);
       showSnackbar(`Credited +${amt.toFixed(2)} USDT to ${data.profile.name}!`, 'success');
@@ -157,7 +175,6 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({
       await adminService.debitUserWallet(data.profile.id, amt, adjustReason);
       showSnackbar(`Debited -${amt.toFixed(2)} USDT from ${data.profile.name}!`, 'info');
     }
-    setAdjustAmount('');
     await loadData();
     onRefresh();
   };
