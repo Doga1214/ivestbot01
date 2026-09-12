@@ -12,6 +12,7 @@ import { Referral } from './pages/Referral';
 import { Admin } from './pages/Admin';
 import { LoginModal } from './components/auth/LoginModal';
 import { RegisterModal } from './components/auth/RegisterModal';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import './App.css';
 
 // Protected Route Guard
@@ -53,45 +54,47 @@ const AppContent: React.FC = () => {
   return (
     <AppLayout>
       <ReferralQueryHandler />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route
-          path="/reservation"
-          element={
-            <ProtectedRoute>
-              <Reservation />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/wallet"
-          element={
-            <ProtectedRoute>
-              <Wallet />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/referrals"
-          element={
-            <ProtectedRoute>
-              <Referral />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        {/* Hidden Admin Portal */}
-        <Route path="/admin" element={<Admin />} />
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route
+            path="/reservation"
+            element={
+              <ProtectedRoute>
+                <Reservation />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/wallet"
+            element={
+              <ProtectedRoute>
+                <Wallet />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/referrals"
+            element={
+              <ProtectedRoute>
+                <Referral />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          {/* Hidden Admin Portal */}
+          <Route path="/admin" element={<Admin />} />
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </ErrorBoundary>
 
       {/* Global Modals */}
       <LoginModal />
