@@ -605,6 +605,61 @@ export const Referral: React.FC = () => {
                   </Box>
                 </CardContent>
               </Card>
+
+              {/* Direct Referral Deposit Bonus Slabs */}
+              <Card sx={{ border: '1px solid rgba(52, 211, 153, 0.3)', bgcolor: 'rgba(17, 21, 34, 0.95)' }}>
+                <CardContent sx={{ p: 2.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <AutoAwesomeIcon sx={{ color: '#34d399', fontSize: '1.2rem' }} />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#ffffff' }}>
+                      Direct Referral Deposit Bonus Slabs
+                    </Typography>
+                  </Box>
+                  <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 1.5 }}>
+                    Credited <strong>only to the referral link owner</strong> when a downline member deposits:
+                  </Typography>
+
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
+                    {[
+                      { dep: '50 USDT', bonus: '3 USDT' },
+                      { dep: '100 USDT', bonus: '8 USDT' },
+                      { dep: '200 USDT', bonus: '16 USDT' },
+                      { dep: '300 USDT', bonus: '24 USDT' },
+                      { dep: '400 USDT', bonus: '32 USDT' },
+                      { dep: '500+ USDT', bonus: '40 USDT' }
+                    ].map((slab, i) => (
+                      <Box
+                        key={i}
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          px: 1.5,
+                          py: 0.8,
+                          borderRadius: 1.5,
+                          bgcolor: 'rgba(255, 255, 255, 0.03)',
+                          border: '1px solid rgba(255, 255, 255, 0.05)'
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ color: '#e2e8f0', fontWeight: 600 }}>
+                          {slab.dep}
+                        </Typography>
+                        <Chip
+                          label={`+${slab.bonus}`}
+                          size="small"
+                          sx={{
+                            bgcolor: 'rgba(52, 211, 153, 0.15)',
+                            color: '#34d399',
+                            fontWeight: 900,
+                            fontSize: '0.75rem',
+                            border: '1px solid rgba(52, 211, 153, 0.3)'
+                          }}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
+                </CardContent>
+              </Card>
             </Box>
           </Grid>
         </Grid>

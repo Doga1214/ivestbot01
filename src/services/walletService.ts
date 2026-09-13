@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { authService, isValidUuid } from './authService';
+import { WALLET_CONFIG } from '../config/walletConfig';
 
 export type WalletStatus = 'ACTIVE' | 'INACTIVE' | 'FROZEN' | 'RESTRICTED';
 
@@ -897,11 +898,77 @@ export const walletService = {
       adminRemarks: adminRemarks || 'Deposit verified and credited by Admin'
     };
 
+    // Award direct referral sponsor bonus to the owner of the referral link
+    let awardedSponsorBonus = 0;
+    try {
+      const allUsers = authService.getAllUsers();
+      const depUser = allUsers.find(u => u.id === depositUserId);
+      if (depUser?.referredBy) {
+        const refClean = depUser.referredBy.trim().toLowerCase();
+        const sponsorUser = allUsers.find(
+          u => (u.referralCode && u.referralCode.toLowerCase() === refClean) ||
+               (u.username && u.username.toLowerCase() === refClean) ||
+               (u.id && u.id.toLowerCase() === refClean)
+        );
+
+        if (sponsorUser && sponsorUser.id !== depositUserId) {
+          // Calculate bonus based on deposit slabs
+          let slabBonus = 0;
+          if (depositAmount >= 50 && WALLET_CONFIG.referralBonusSlabs) {
+            for (const slab of WALLET_CONFIG.referralBonusSlabs) {
+              if (depositAmount >= slab.minDeposit) {
+                slabBonus = slab.bonusUSDT;
+                break;
+              }
+            }
+          }
+
+          if (slabBonus > 0) {
+            const refBonusId = `REF-BONUS-${txId.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+            const existingBonus = this.getTransactions().find(t => t.referenceId === refBonusId);
+            if (!existingBonus) {
+              awardedSponsorBonus = slabBonus;
+              const sponsorWallet = this.getWalletForUser(sponsorUser.id);
+              const nextSponsorAvail = Number((sponsorWallet.availableBalance + slabBonus).toFixed(4));
+              const nextSponsorTot = Number((sponsorWallet.totalBalance + slabBonus).toFixed(4));
+
+              this.saveWalletForUser(sponsorUser.id, {
+                ...sponsorWallet,
+                availableBalance: nextSponsorAvail,
+                totalBalance: nextSponsorTot
+              });
+
+              this.addTransaction({
+                userId: sponsorUser.id,
+                userName: sponsorUser.username,
+                type: 'REFERRAL_BONUS',
+                amount: slabBonus,
+                currency: 'USDT',
+                status: 'COMPLETED',
+                referenceId: refBonusId,
+                description: `Direct Referral Deposit Bonus (+${slabBonus} USDT) from @${depUser.username || 'user'}`
+              });
+
+              supabase.from('wallets').upsert({
+                user_id: sponsorUser.id,
+                available_balance: nextSponsorAvail,
+                total_balance: nextSponsorTot,
+                currency: 'USDT',
+                updated_at: new Date().toISOString()
+              }, { onConflict: 'user_id' }).then(() => {}).catch(() => {});
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Referral bonus distribution error:', e);
+    }
+
     return {
       updatedWallet: syncedWallet,
       approvedTx,
       welcomeBonus: rpcResData?.welcomeBonus || 0,
-      sponsorBonus: 0
+      sponsorBonus: awardedSponsorBonus
     };
   },
 

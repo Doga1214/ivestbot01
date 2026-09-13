@@ -109,7 +109,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ open: exte
       </DialogTitle>
 
       <DialogContent sx={{ pt: 1.5 }}>
-        {/* Highlight Banner: 3-Tier Referral Commissions */}
+        {/* Highlight Banner: 3-Tier Referral Commissions & Direct Deposit Bonus */}
         <Paper
           sx={{
             p: 2.5,
@@ -122,17 +122,17 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ open: exte
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
             <GroupsIcon sx={{ color: '#a78bfa' }} />
             <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#ffffff' }}>
-              ⚡ 3-Tier Lifetime Daily Referral Commissions
+              ⚡ Direct Referral Deposit Bonus & 3-Tier Commissions
             </Typography>
           </Box>
           <Typography variant="body2" sx={{ color: '#d1d5db', lineHeight: 1.6, mb: 1.5 }}>
-            Invite friends with your referral link and earn lifetime daily passive commissions on every 24-hour reservation cycle completed by your downline:
+            Invite friends with your referral link. You (the link owner) get instant deposit bonuses: <strong>50 USDT = 3 USDT, 100 USDT = 8 USDT, 200 USDT = 16 USDT, 300 USDT = 24 USDT, 400 USDT = 32 USDT, 500+ USDT = 40 USDT</strong>, plus lifetime daily yield commissions:
           </Typography>
 
           <Stack spacing={1} sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)', p: 1.5, borderRadius: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
               <span style={{ color: '#a78bfa', fontWeight: 700 }}>Tier A (Direct Friends):</span>
-              <strong style={{ color: '#34d399' }}>0.10% Daily Lifetime</strong>
+              <strong style={{ color: '#34d399' }}>0.10% Daily + Deposit Bonus Slabs</strong>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
               <span style={{ color: '#60a5fa', fontWeight: 700 }}>Tier B (Secondary Team):</span>

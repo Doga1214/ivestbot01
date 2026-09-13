@@ -13,8 +13,8 @@ export const FAQ: React.FC = () => {
       a: 'The platform operates with a daily yield rate of 1.000% (approx 1.00%). At this rate, executing one reservation every 24 hours provides consistent 1.000% daily profit (100 days = 100% net profit). The yield is credited directly to your available wallet balance upon completion of the 20-second processing window.'
     },
     {
-      q: 'How do multi-tier referral commissions work?',
-      a: 'When you invite members using your referral link, you earn lifetime daily commissions on all their completed reservations: 0.1% on direct Tier A members, 0.05% on Tier B members, and 0.025% on Tier C members. Rewards are credited directly to your balance automatically upon 24-hour cycle completion.'
+      q: 'How do referral bonuses and commissions work?',
+      a: 'When someone joins using your referral link, you (the link owner) earn an instant Direct Referral Deposit Bonus upon their deposit: 3 USDT (on 50 USDT deposit), 8 USDT (on 100 USDT), 16 USDT (on 200 USDT), 24 USDT (on 300 USDT), 32 USDT (on 400 USDT), and 40 USDT (on 500+ USDT). In addition, you earn lifetime daily commissions on all completed downline reservation cycles: 0.1% on Tier A, 0.05% on Tier B, and 0.025% on Tier C.'
     },
     {
       q: 'What are the requirements for Level 2, 3, and 4 VIP tiers?',

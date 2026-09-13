@@ -12,12 +12,20 @@ export const WALLET_CONFIG = {
     C: 0.025  // 0.025% commission for tertiary C members
   },
   depositBonusRatio: {
-    unitDeposit: 10, // per 10 USDT deposited
-    sponsorBonusPerUnit: 0.2, // Proportional sponsor referral reward
-    newUserBonusPerUnit: 0, // 0 USDT (No welcome bonus - only referral rewards)
-    minDeposit: 10, // Lowered minimum reservation/deposit floor
+    unitDeposit: 10,
+    sponsorBonusPerUnit: 0.2,
+    newUserBonusPerUnit: 0,
+    minDeposit: 50,
     maxDeposit: 50000
   },
+  referralBonusSlabs: [
+    { minDeposit: 500, bonusUSDT: 40, label: '500+ USDT' },
+    { minDeposit: 400, bonusUSDT: 32, label: '400 USDT' },
+    { minDeposit: 300, bonusUSDT: 24, label: '300 USDT' },
+    { minDeposit: 200, bonusUSDT: 16, label: '200 USDT' },
+    { minDeposit: 100, bonusUSDT: 8, label: '100 USDT' },
+    { minDeposit: 50, bonusUSDT: 3, label: '50 USDT' }
+  ],
   processingDurationSeconds: 20, // 20-second processing period
   reservationLockHours: 24, // 24-hour cycle (1 reservation per 24 hours)
 

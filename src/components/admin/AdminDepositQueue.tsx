@@ -30,6 +30,7 @@ import {
 import type { WalletTransaction } from '../../services/walletService';
 import { formatUSDT, formatDateTime } from '../../utils/formatters';
 import { WALLET_CONFIG } from '../../config/walletConfig';
+import { referralService } from '../../services/referralService';
 
 interface AdminDepositQueueProps {
   deposits: WalletTransaction[];
@@ -170,8 +171,7 @@ export const AdminDepositQueue: React.FC<AdminDepositQueueProps> = ({
               </TableHead>
               <TableBody>
                 {deposits.map((tx) => {
-                  const units = Math.floor(Math.min(tx.amount, WALLET_CONFIG.depositBonusRatio.maxDeposit) / WALLET_CONFIG.depositBonusRatio.unitDeposit);
-                  const sponsorBonus = units * WALLET_CONFIG.depositBonusRatio.sponsorBonusPerUnit;
+                  const { sponsorBonus } = referralService.calculateDepositBonus(tx.amount);
 
                   return (
                     <TableRow

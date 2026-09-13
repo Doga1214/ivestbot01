@@ -862,14 +862,27 @@ export const referralService = {
     return WALLET_CONFIG.referralRates;
   },
 
+  getReferralBonusSlabs() {
+    return WALLET_CONFIG.referralBonusSlabs;
+  },
+
   calculateDepositBonus(depositAmount: number) {
-    if (depositAmount < WALLET_CONFIG.depositBonusRatio.minDeposit) {
+    if (!depositAmount || depositAmount < 50) {
       return { sponsorBonus: 0, newUserBonus: 0 };
     }
-    const units = Math.floor(Math.min(depositAmount, WALLET_CONFIG.depositBonusRatio.maxDeposit) / WALLET_CONFIG.depositBonusRatio.unitDeposit);
-    return {
-      sponsorBonus: units * WALLET_CONFIG.depositBonusRatio.sponsorBonusPerUnit,
-      newUserBonus: 0
-    };
+
+    // Match against tiered bonus slabs
+    const slabs = WALLET_CONFIG.referralBonusSlabs;
+    for (const slab of slabs) {
+      if (depositAmount >= slab.minDeposit) {
+        return {
+          sponsorBonus: slab.bonusUSDT,
+          newUserBonus: 0
+        };
+      }
+    }
+
+    return { sponsorBonus: 0, newUserBonus: 0 };
   }
 };
+

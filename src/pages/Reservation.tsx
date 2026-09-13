@@ -18,7 +18,6 @@ import {
 } from '@mui/material';
 import {
   AutoAwesomeIcon,
-  TrendingUpIcon,
   EmojiEventsIcon,
   AccessTimeIcon,
   HistoryIcon,
