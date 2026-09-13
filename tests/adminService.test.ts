@@ -67,15 +67,15 @@ export async function runAdminServiceTests(runner: TestRunner) {
     assert.strictEqual(typeof list[0].pendingDepositsCount, 'number');
   });
 
-  await runner.test('creditUserWallet & debitUserWallet: admin direct adjustments', () => {
+  await runner.test('creditUserWallet & debitUserWallet: admin direct adjustments', async () => {
     localStorage.clear();
 
     const user: UserProfile = {
-      id: 'adm-adj-user',
-      name: 'Adjust Me',
-      username: 'adjustme',
-      email: 'adj@test.com',
-      referralCode: 'IVESTADJ',
+      id: 'admin-adjust-user',
+      name: 'Bob Admin',
+      username: 'bobadmin',
+      email: 'bobadmin@example.com',
+      referralCode: 'IVESTBOB',
       level: 1,
       status: 'ACTIVE',
       kycStatus: 'VERIFIED',
@@ -93,12 +93,12 @@ export async function runAdminServiceTests(runner: TestRunner) {
     });
 
     // Credit 250
-    const credit = adminService.creditUserWallet(user.id, 250, 'Special Campaign Grant');
+    const credit = await adminService.creditUserWallet(user.id, 250, 'Special Campaign Grant');
     assert.strictEqual(credit.updatedWallet.totalBalance, 350);
     assert.strictEqual(credit.updatedWallet.availableBalance, 350);
 
     // Debit 50
-    const debit = adminService.debitUserWallet(user.id, 50, 'Chargeback Adjustment');
+    const debit = await adminService.debitUserWallet(user.id, 50, 'Chargeback Adjustment');
     assert.strictEqual(debit.updatedWallet.totalBalance, 300);
     assert.strictEqual(debit.updatedWallet.availableBalance, 300);
   });

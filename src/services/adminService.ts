@@ -439,7 +439,7 @@ export const adminService = {
 
     localStorage.setItem('ivestbot_auth_user', JSON.stringify(user));
     const wallet = walletService.getWalletForUser(userId);
-    walletService.saveWallet(wallet);
+    walletService.saveWallet(wallet, userId);
     return user;
   },
 

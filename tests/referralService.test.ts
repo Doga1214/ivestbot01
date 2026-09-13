@@ -40,19 +40,19 @@ export async function runReferralServiceTests(runner: TestRunner) {
     assert.strictEqual(zero.sponsorBonus, 0);
     assert.strictEqual(zero.newUserBonus, 0);
 
-    // 50 USDT -> 1 unit = 1 USDT sponsor, 0 USDT welcome bonus
+    // 50 USDT -> 3 USDT sponsor bonus, 0 USDT welcome bonus
     const b50 = referralService.calculateDepositBonus(50);
-    assert.strictEqual(b50.sponsorBonus, 1);
+    assert.strictEqual(b50.sponsorBonus, 3);
     assert.strictEqual(b50.newUserBonus, 0);
 
-    // 100 USDT -> 2 units = 2 USDT sponsor, 0 USDT welcome bonus
+    // 100 USDT -> 8 USDT sponsor bonus, 0 USDT welcome bonus
     const b100 = referralService.calculateDepositBonus(100);
-    assert.strictEqual(b100.sponsorBonus, 2);
+    assert.strictEqual(b100.sponsorBonus, 8);
     assert.strictEqual(b100.newUserBonus, 0);
 
-    // 500 USDT -> 10 units = 10 USDT sponsor, 0 USDT welcome bonus
+    // 500 USDT -> 40 USDT sponsor bonus, 0 USDT welcome bonus
     const b500 = referralService.calculateDepositBonus(500);
-    assert.strictEqual(b500.sponsorBonus, 10);
+    assert.strictEqual(b500.sponsorBonus, 40);
     assert.strictEqual(b500.newUserBonus, 0);
   });
 

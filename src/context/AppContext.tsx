@@ -131,8 +131,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (txs) setTransactions(txs);
       });
     } else {
-      setWallet(walletService.getWallet());
-      setTransactions(walletService.getTransactions());
+      setWallet({
+        totalBalance: 0.0,
+        availableBalance: 0.0,
+        pendingBalance: 0.0,
+        currency: 'USDT',
+        status: 'ACTIVE',
+        restrictions: {
+          canDeposit: true,
+          canWithdraw: true,
+          canReserve: true,
+          canTrade: true
+        }
+      });
+      setTransactions([]);
     }
     setSyncTick(t => t + 1);
   }, [user?.id]);
@@ -186,10 +198,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Initial sync
     syncUserData();
 
-    // Listen for custom wallet update events
+    // Listen for custom wallet update events - strictly filter by target user ID
     const handleWalletUpdated = (e: any) => {
       const targetId = user?.id || authService.getCurrentUser()?.id;
-      if (targetId && (e.detail?.userId === targetId || !e.detail?.userId)) {
+      if (targetId && e.detail?.userId === targetId) {
         if (e.detail?.wallet) {
           setWallet(e.detail.wallet);
         } else {
@@ -362,7 +374,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const loggedInUser = await authService.login(usernameOrEmail, password);
     setUser(loggedInUser);
     const userWallet = walletService.getWalletForUser(loggedInUser.id);
-    walletService.saveWallet(userWallet);
+    walletService.saveWalletForUser(loggedInUser.id, userWallet);
     setWallet(userWallet);
     setKyc(walletService.getKycStatus(loggedInUser.id));
     setIsLoginModalOpen(false);
@@ -387,7 +399,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     };
     walletService.saveWalletForUser(registeredUser.id, zeroWallet);
-    walletService.saveWallet(zeroWallet);
     setWallet(zeroWallet);
     setKyc(walletService.getKycStatus(registeredUser.id));
     setIsRegisterModalOpen(false);
@@ -416,7 +427,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     };
     walletService.saveWalletForUser(registeredUser.id, zeroWallet);
-    walletService.saveWallet(zeroWallet);
     setWallet(zeroWallet);
     setKyc(walletService.getKycStatus(registeredUser.id));
     setIsRegisterModalOpen(false);
@@ -431,7 +441,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const logout = () => {
     authService.logout();
     setUser(null);
-    setWallet(walletService.getWallet(''));
+    setWallet({
+      totalBalance: 0.0,
+      availableBalance: 0.0,
+      pendingBalance: 0.0,
+      currency: 'USDT',
+      status: 'ACTIVE',
+      restrictions: {
+        canDeposit: true,
+        canWithdraw: true,
+        canReserve: true,
+        canTrade: true
+      }
+    });
     setTransactions([]);
     setKyc(walletService.getKycStatus(''));
     showSnackbar('Logged out successfully.', 'info');

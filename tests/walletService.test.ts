@@ -61,7 +61,7 @@ export async function runWalletServiceTests(runner: TestRunner) {
     assert.strictEqual(txs[0].id, tx.id);
   });
 
-  await runner.test('adminCredit & adminDebit: adjusts wallet balance and logs admin transaction', () => {
+  await runner.test('adminCredit & adminDebit: adjusts wallet balance and logs admin transaction', async () => {
     localStorage.clear();
     const userId = 'user-credit-debit';
 
@@ -75,13 +75,13 @@ export async function runWalletServiceTests(runner: TestRunner) {
     });
 
     // Credit 50
-    const creditRes = walletService.adminCredit(50, 'Promotional bonus', { id: userId, name: 'Alice' });
+    const creditRes = await walletService.adminCredit(50, 'Promotional bonus', { id: userId, name: 'Alice' });
     assert.strictEqual(creditRes.updatedWallet.totalBalance, 150);
     assert.strictEqual(creditRes.updatedWallet.availableBalance, 150);
     assert.strictEqual(creditRes.tx.type, 'ADMIN_CREDIT');
 
     // Debit 30
-    const debitRes = walletService.adminDebit(30, 'Manual penalty', { id: userId, name: 'Alice' });
+    const debitRes = await walletService.adminDebit(30, 'Manual penalty', { id: userId, name: 'Alice' });
     assert.strictEqual(debitRes.updatedWallet.totalBalance, 120);
     assert.strictEqual(debitRes.updatedWallet.availableBalance, 120);
     assert.strictEqual(debitRes.tx.type, 'ADMIN_DEBIT');

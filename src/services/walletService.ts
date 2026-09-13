@@ -142,6 +142,9 @@ export const walletService = {
             }
           };
         }
+        // Strict isolation: if a specific targetId was requested or user is logged in,
+        // do NOT fall back to global WALLET_STORAGE_KEY of a different user.
+        return DEFAULT_WALLET;
       }
 
       const stored = localStorage.getItem(WALLET_STORAGE_KEY);
@@ -167,14 +170,21 @@ export const walletService = {
       ...wallet,
       updatedAt: new Date().toISOString()
     };
-    localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(data));
-    const targetId = userId || authService.getCurrentUser()?.id;
+    const currentUser = authService.getCurrentUser();
+    const targetId = userId || currentUser?.id;
     if (targetId) {
       localStorage.setItem(`ivestbot_wallet_${targetId}`, JSON.stringify(data));
+      // Only set generic storage key if targetId is the current session user
+      if (currentUser && currentUser.id === targetId) {
+        localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(data));
+      }
+    } else {
+      localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(data));
     }
   },
 
   getWalletForUser(userId: string): WalletState {
+    if (!userId) return DEFAULT_WALLET;
     try {
       const key = `ivestbot_wallet_${userId}`;
       const stored = localStorage.getItem(key);
@@ -199,7 +209,18 @@ export const walletService = {
       try {
         const currentUser = JSON.parse(currentStored);
         if (currentUser.id === userId) {
-          return this.getWallet(userId);
+          const storedState = localStorage.getItem(WALLET_STORAGE_KEY);
+          if (storedState) {
+            const parsed = JSON.parse(storedState);
+            return {
+              ...DEFAULT_WALLET,
+              ...parsed,
+              restrictions: {
+                ...DEFAULT_RESTRICTIONS,
+                ...(parsed.restrictions || {})
+              }
+            };
+          }
         }
       } catch {
         // ignore
@@ -209,6 +230,7 @@ export const walletService = {
   },
 
   saveWalletForUser(userId: string, wallet: WalletState): void {
+    if (!userId) return;
     const data = {
       ...wallet,
       updatedAt: new Date().toISOString()
@@ -228,7 +250,7 @@ export const walletService = {
       }
     }
 
-    // Dispatch global event for instant React context updates
+    // Dispatch global event for instant React context updates with explicit userId
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('ivestbot_wallet_updated', { detail: { userId, wallet: data } }));
     }
@@ -249,6 +271,85 @@ export const walletService = {
           { onConflict: 'user_id' }
         )
         .then(() => {}, () => {});
+    }
+  },
+
+  /**
+   * Safely credits commission/bonus to a sponsor or remote user directly in Supabase
+   * preventing local stale state from overwriting real balances.
+   */
+  async creditUserCommissionAsync(
+    sponsorId: string,
+    sponsorUsername: string | undefined,
+    commissionAmount: number,
+    refId: string,
+    description: string
+  ): Promise<void> {
+    if (!sponsorId || commissionAmount <= 0) return;
+
+    try {
+      let currentAvail = 0;
+      let currentTot = 0;
+      let currentPending = 0;
+      let currency = 'USDT';
+
+      if (isValidUuid(sponsorId)) {
+        const { data: dbWallet } = await supabase
+          .from('wallets')
+          .select('*')
+          .eq('user_id', sponsorId)
+          .maybeSingle();
+
+        if (dbWallet) {
+          currentAvail = parseFloat(dbWallet.available_balance) || 0;
+          currentTot = parseFloat(dbWallet.total_balance) || 0;
+          currentPending = parseFloat(dbWallet.pending_balance) || 0;
+          currency = dbWallet.currency || 'USDT';
+        } else {
+          const local = this.getWalletForUser(sponsorId);
+          currentAvail = local.availableBalance || 0;
+          currentTot = local.totalBalance || 0;
+          currentPending = local.pendingBalance || 0;
+        }
+
+        const nextAvail = Number((currentAvail + commissionAmount).toFixed(4));
+        const nextTot = Number((currentTot + commissionAmount).toFixed(4));
+
+        await supabase.from('wallets').upsert(
+          {
+            user_id: sponsorId,
+            available_balance: nextAvail,
+            total_balance: nextTot,
+            pending_balance: currentPending,
+            currency,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'user_id' }
+        );
+
+        // Also update local cache for this user id
+        const localW = this.getWalletForUser(sponsorId);
+        localStorage.setItem(`ivestbot_wallet_${sponsorId}`, JSON.stringify({
+          ...localW,
+          totalBalance: nextTot,
+          availableBalance: nextAvail,
+          pendingBalance: currentPending,
+          updatedAt: new Date().toISOString()
+        }));
+      }
+
+      this.addTransaction({
+        userId: sponsorId,
+        userName: sponsorUsername,
+        type: 'REFERRAL_BONUS',
+        amount: commissionAmount,
+        currency,
+        status: 'COMPLETED',
+        referenceId: refId,
+        description
+      });
+    } catch (err) {
+      console.error('creditUserCommissionAsync error:', err);
     }
   },
 
@@ -295,20 +396,18 @@ export const walletService = {
     }
 
     try {
-      const currentUser = authService.getCurrentUser();
       const allUsers = authService.getAllUsers();
-      const userProfile = allUsers.find(u => u.id === userId || (currentUser && u.id === currentUser.id));
+      const userProfile = allUsers.find(u => u.id === userId);
 
-      // Collect all possible ID aliases for this user (UUID, legacy ID, email, username)
+      // Collect all possible ID aliases for ONLY this user (UUID, legacy ID, email, username)
       const candidateIds = new Set<string>();
       candidateIds.add(userId);
-      if (currentUser?.id) candidateIds.add(currentUser.id);
       if (userProfile?.id) candidateIds.add(userProfile.id);
 
-      // Try resolving canonical UUID from Supabase profiles if not a UUID
-      let canonicalId = isValidUuid(userId) ? userId : (currentUser?.id && isValidUuid(currentUser.id) ? currentUser.id : '');
-      const userEmail = (userProfile?.email || currentUser?.email || '').toLowerCase().trim();
-      const userUsername = (userProfile?.username || currentUser?.username || '').toLowerCase().trim();
+      // Try resolving canonical UUID from Supabase profiles if not already a UUID
+      let canonicalId = isValidUuid(userId) ? userId : '';
+      const userEmail = (userProfile?.email || '').toLowerCase().trim();
+      const userUsername = (userProfile?.username || '').toLowerCase().trim();
 
       if (!canonicalId && (userEmail || userUsername)) {
         try {
@@ -332,7 +431,7 @@ export const walletService = {
 
       const idList = Array.from(candidateIds);
 
-      // 1. Query Supabase wallets table for all matching candidate IDs
+      // 1. Query Supabase wallets table for this user
       let dbWalletData: any = null;
       for (const id of idList) {
         const { data: w } = await supabase.from('wallets').select('*').eq('user_id', id).maybeSingle();
@@ -342,7 +441,7 @@ export const walletService = {
         }
       }
 
-      // 2. Query deposits table for all candidate IDs
+      // 2. Query deposits table for this user
       let approvedDeposits: any[] = [];
       let pendingDeposits: any[] = [];
       for (const id of idList) {
@@ -358,7 +457,7 @@ export const walletService = {
         }
       }
 
-      // 3. Query withdrawals table for all candidate IDs
+      // 3. Query withdrawals table for this user
       let approvedWithdrawals: any[] = [];
       for (const id of idList) {
         const { data: wthList } = await supabase.from('withdrawals').select('*').eq('user_id', id);
@@ -403,28 +502,26 @@ export const walletService = {
       let totalBalance = 0;
 
       if (dbWalletData && !isNaN(rawDbAvailable)) {
-        // Supabase DB is primary source of truth
+        // Supabase DB is primary authoritative source of truth
         availableBalance = Math.max(0, rawDbAvailable);
         pendingBalance = !isNaN(rawDbPending) ? Math.max(0, rawDbPending) : totalPendingDep;
-        totalBalance = !isNaN(rawDbTotal) && rawDbTotal >= availableBalance
-          ? rawDbTotal
-          : Number((availableBalance + pendingBalance).toFixed(4));
+        totalBalance = !isNaN(rawDbTotal) ? Math.max(0, rawDbTotal) : Number((availableBalance + pendingBalance).toFixed(4));
       } else if (local && typeof local.availableBalance === 'number' && !isNaN(local.availableBalance)) {
         // Fallback to local cache
         availableBalance = Math.max(0, local.availableBalance);
         pendingBalance = local.pendingBalance || totalPendingDep;
         totalBalance = local.totalBalance || Number((availableBalance + pendingBalance).toFixed(4));
       } else {
-        // Fallback to ledger computation
+        // Fallback to initial ledger computation
         availableBalance = ledgerAvailable;
         pendingBalance = totalPendingDep;
         totalBalance = Number((availableBalance + pendingBalance).toFixed(4));
       }
 
-      const targetPersistId = canonicalId || userId;
+      const targetPersistId = canonicalId || (isValidUuid(userId) ? userId : '');
 
-      // Auto-heal & persist to Supabase PostgreSQL database if missing
-      if (isValidUuid(targetPersistId) && !dbWalletData && availableBalance > 0) {
+      // Initialize wallet record in Supabase PostgreSQL database if missing
+      if (targetPersistId && !dbWalletData) {
         await supabase.from('wallets').upsert({
           user_id: targetPersistId,
           available_balance: availableBalance,
@@ -441,17 +538,18 @@ export const walletService = {
         availableBalance,
         pendingBalance,
         currency: dbWalletData?.currency || local.currency || 'USDT',
-        status: (local.status === 'FROZEN' ? 'FROZEN' : 'ACTIVE'),
+        status: (local.status === 'FROZEN' ? 'FROZEN' : (local.status || 'ACTIVE')),
         updatedAt: dbWalletData?.updated_at || new Date().toISOString()
       };
 
-      // Save across all candidate keys
+      // Save across ONLY this specific user's keys
       for (const id of idList) {
         localStorage.setItem(`ivestbot_wallet_${id}`, JSON.stringify(syncedWallet));
       }
 
-      if (currentUser && idList.includes(currentUser.id)) {
-        this.saveWallet(syncedWallet);
+      const currentUser = authService.getCurrentUser();
+      if (currentUser && (currentUser.id === userId || (canonicalId && currentUser.id === canonicalId))) {
+        localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(syncedWallet));
       }
 
       return syncedWallet;
@@ -481,13 +579,15 @@ export const walletService = {
   async syncTransactionsFromSupabase(userId?: string): Promise<WalletTransaction[]> {
     try {
       const allUsers = authService.getAllUsers();
-      const currentUser = authService.getCurrentUser();
       const txMap = new Map<string, WalletTransaction>();
 
-      // Candidate IDs
+      // Candidate IDs: ONLY for this target user if userId is provided
       const candidateIds = new Set<string>();
-      if (userId) candidateIds.add(userId);
-      if (currentUser?.id) candidateIds.add(currentUser.id);
+      if (userId) {
+        candidateIds.add(userId);
+        const userProfile = allUsers.find(u => u.id === userId);
+        if (userProfile?.id) candidateIds.add(userProfile.id);
+      }
 
       // 1. Fetch from deposits table
       const { data: depData } = await supabase.from('deposits').select('*').order('created_at', { ascending: false });
@@ -928,34 +1028,13 @@ export const walletService = {
             const existingBonus = this.getTransactions().find(t => t.referenceId === refBonusId);
             if (!existingBonus) {
               awardedSponsorBonus = slabBonus;
-              const sponsorWallet = this.getWalletForUser(sponsorUser.id);
-              const nextSponsorAvail = Number((sponsorWallet.availableBalance + slabBonus).toFixed(4));
-              const nextSponsorTot = Number((sponsorWallet.totalBalance + slabBonus).toFixed(4));
-
-              this.saveWalletForUser(sponsorUser.id, {
-                ...sponsorWallet,
-                availableBalance: nextSponsorAvail,
-                totalBalance: nextSponsorTot
-              });
-
-              this.addTransaction({
-                userId: sponsorUser.id,
-                userName: sponsorUser.username,
-                type: 'REFERRAL_BONUS',
-                amount: slabBonus,
-                currency: 'USDT',
-                status: 'COMPLETED',
-                referenceId: refBonusId,
-                description: `Direct Referral Deposit Bonus (+${slabBonus} USDT) from @${depUser.username || 'user'}`
-              });
-
-              supabase.from('wallets').upsert({
-                user_id: sponsorUser.id,
-                available_balance: nextSponsorAvail,
-                total_balance: nextSponsorTot,
-                currency: 'USDT',
-                updated_at: new Date().toISOString()
-              }, { onConflict: 'user_id' }).then(() => {}).catch(() => {});
+              await this.creditUserCommissionAsync(
+                sponsorUser.id,
+                sponsorUser.username,
+                slabBonus,
+                refBonusId,
+                `Direct Referral Deposit Bonus (+${slabBonus} USDT) from @${depUser.username || 'user'}`
+              );
             }
           }
         }

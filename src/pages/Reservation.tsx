@@ -21,12 +21,13 @@ import {
   EmojiEventsIcon,
   AccessTimeIcon,
   HistoryIcon,
-  HexagonIcon
+  HexagonIcon,
+  CheckCircleIcon
 } from '../components/common/Icons';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { reservationService } from '../services/reservationService';
-import { formatDateTime } from '../utils/formatters';
+import { formatDateTime, formatUSDT } from '../utils/formatters';
 
 export const Reservation: React.FC = () => {
   const navigate = useNavigate();
@@ -46,6 +47,7 @@ export const Reservation: React.FC = () => {
   const [zeroBalanceDialogOpen, setZeroBalanceDialogOpen] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [lastProfitAmount, setLastProfitAmount] = useState<number>(0);
+  const [lastReservedAmount, setLastReservedAmount] = useState<number>(0);
 
   // 24-Hour Cooldown Countdown Timer
   useEffect(() => {
@@ -99,6 +101,24 @@ export const Reservation: React.FC = () => {
       .reduce((sum, t) => sum + (t.type === 'DAILY_PROFIT' ? t.amount : 0), 0);
   }, [transactions]);
 
+  // Accurate reserved principal amount in current cycle
+  const todayReservedAmount = useMemo(() => {
+    if (reservationState.lastCompletedReservation && reservationState.lastCompletedReservation.amount > 0) {
+      return reservationState.lastCompletedReservation.amount;
+    }
+    return reservableBalance;
+  }, [reservationState.lastCompletedReservation, reservableBalance]);
+
+  // Accurate profit credited today in current cycle
+  const todayProfitCredited = useMemo(() => {
+    if (reservationState.lastCompletedReservation && typeof reservationState.lastCompletedReservation.profit === 'number' && reservationState.lastCompletedReservation.profit > 0) {
+      return reservationState.lastCompletedReservation.profit;
+    }
+    if (todayEarnings > 0) return todayEarnings;
+    if (lastProfitAmount > 0) return lastProfitAmount;
+    return (todayReservedAmount * rateRange.min) / 100;
+  }, [reservationState.lastCompletedReservation, todayEarnings, lastProfitAmount, todayReservedAmount, rateRange.min]);
+
   const cumulativeIncome = useMemo(() => {
     return transactions
       .filter(t => t.type === 'DAILY_PROFIT' || t.type === 'WELCOME_BONUS' || t.type === 'REFERRAL_BONUS')
@@ -110,6 +130,66 @@ export const Reservation: React.FC = () => {
       .filter(t => t.type === 'REFERRAL_BONUS')
       .reduce((sum, t) => sum + t.amount, 0);
   }, [transactions]);
+
+  // Unified history ledger records
+  const displayHistory = useMemo(() => {
+    const resMap = new Map<string, any>();
+
+    const reservationList = reservationService.getHistory();
+    reservationList.forEach(r => {
+      const resAmt = r.amount > 0 ? r.amount : 100;
+      const rate = r.effectiveRate || r.dailyRate || 1.0;
+      const profit = r.profit > 0 ? r.profit : Number((resAmt * (rate / 100)).toFixed(4));
+      resMap.set(r.referenceId || r.id, {
+        id: r.id,
+        referenceId: r.referenceId || `RES-${r.id.slice(-6).toUpperCase()}`,
+        createdAt: r.completedAt || r.startedAt || new Date().toISOString(),
+        reservedAmount: resAmt,
+        rate,
+        profit,
+        totalSettled: Number((resAmt + profit).toFixed(4)),
+        durationText: r.isFullCycle ? '24h Full Cycle' : `${Math.floor((r.activeDurationSeconds || 86400) / 3600)}h Active`,
+        status: r.status || 'COMPLETED'
+      });
+    });
+
+    transactions
+      .filter(t => t.type === 'DAILY_PROFIT' || t.type === 'RESERVATION')
+      .forEach(t => {
+        const ref = t.referenceId || `RES-${t.id.slice(-6).toUpperCase()}`;
+        if (!resMap.has(ref)) {
+          let parsedReserved = 0;
+          let parsedRate = 1.0;
+          const match = t.description?.match(/on\s+([\d.]+)\s+USDT/i);
+          if (match && match[1]) {
+            parsedReserved = parseFloat(match[1]);
+          }
+          const rateMatch = t.description?.match(/\(?([\d.]+)%\s+on/i);
+          if (rateMatch && rateMatch[1]) {
+            parsedRate = parseFloat(rateMatch[1]);
+          }
+          if (!parsedReserved || parsedReserved <= 0) {
+            parsedReserved = reservationState.lastCompletedReservation?.amount || (t.amount > 0 && parsedRate > 0 ? Number(((t.amount / (parsedRate / 100))).toFixed(2)) : reservableBalance || 100);
+          }
+
+          resMap.set(ref, {
+            id: t.id,
+            referenceId: ref,
+            createdAt: t.createdAt,
+            reservedAmount: parsedReserved,
+            rate: parsedRate,
+            profit: t.amount,
+            totalSettled: Number((parsedReserved + t.amount).toFixed(4)),
+            durationText: t.description || '24h AutoBot Yield Settlement',
+            status: t.status === 'COMPLETED' || t.status === 'APPROVED' ? 'COMPLETED' : t.status
+          });
+        }
+      });
+
+    return Array.from(resMap.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, [transactions, reservationState, reservableBalance]);
 
   const handleReserveClick = async () => {
     if (isLocked) {
@@ -125,6 +205,7 @@ export const Reservation: React.FC = () => {
     // Execute reservation
     try {
       const calculatedProfit = Number((reservableBalance * (rateRange.min + (rateRange.max - rateRange.min) * Math.random()) / 100).toFixed(4));
+      setLastReservedAmount(reservableBalance);
       setLastProfitAmount(calculatedProfit);
       await executeReservation({
         amount: reservableBalance,
@@ -191,7 +272,7 @@ export const Reservation: React.FC = () => {
         Reserve once a day to earn passive USDT income.
       </Typography>
 
-      {/* Badges: Level */}
+      {/* Badges: Level & Cycle Status */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: 3 }}>
         <Box
           sx={{
@@ -211,6 +292,26 @@ export const Reservation: React.FC = () => {
           <EmojiEventsIcon sx={{ fontSize: 16, color: '#a78bfa' }} />
           Level {userLevel}
         </Box>
+        {isLocked && (
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 0.7,
+              px: 1.8,
+              py: 0.6,
+              borderRadius: '999px',
+              background: 'rgba(16, 185, 129, 0.12)',
+              border: '1px solid rgba(16, 185, 129, 0.4)',
+              color: '#34d399',
+              fontSize: '0.85rem',
+              fontWeight: 800
+            }}
+          >
+            <CheckCircleIcon sx={{ fontSize: 16, color: '#10b981' }} />
+            24H Cycle Active: {todayReservedAmount.toFixed(2)} USDT
+          </Box>
+        )}
       </Box>
 
       {/* 2. Top 6 Metric Cards (2 Columns x 3 Rows via Grid) */}
@@ -254,10 +355,14 @@ export const Reservation: React.FC = () => {
           </Box>
           <Typography variant="h6" sx={{ fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em', mb: 0.3 }}>
             <span style={{ color: '#06b6d4', marginRight: 4, fontWeight: 700 }}>₮</span>
-            {todayEarnings > 0 ? todayEarnings.toFixed(2) : `${expectedMinIncome.toFixed(2)} ~ ${expectedMaxIncome.toFixed(2)}`}
+            {isLocked
+              ? `+${todayProfitCredited.toFixed(4)}`
+              : (todayEarnings > 0 ? `+${todayEarnings.toFixed(4)}` : `${expectedMinIncome.toFixed(2)} ~ ${expectedMaxIncome.toFixed(2)}`)}
           </Typography>
           <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.7rem', display: 'block' }}>
-            {todayEarnings > 0 ? 'Profit Earned Today' : 'Today Est. Reserve Profit'}
+            {isLocked
+              ? `Earned on ${todayReservedAmount.toFixed(2)} USDT`
+              : (todayEarnings > 0 ? 'Profit Earned Today' : 'Today Est. Reserve Profit')}
           </Typography>
         </Box>
 
@@ -300,13 +405,13 @@ export const Reservation: React.FC = () => {
           </Typography>
         </Box>
 
-        {/* Card 3: Reservation Balance (Main Balance for Reservation) */}
+        {/* Card 3: Reservation Amount & Balance */}
         <Box
           sx={{
             p: 2,
             borderRadius: 3.5,
             background: 'linear-gradient(145deg, #12172a 0%, #0c101d 100%)',
-            border: '1px solid rgba(16, 185, 129, 0.25)',
+            border: isLocked ? '1px solid rgba(16, 185, 129, 0.45)' : '1px solid rgba(16, 185, 129, 0.25)',
             position: 'relative',
             overflow: 'hidden',
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
@@ -327,15 +432,15 @@ export const Reservation: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#10b981' }} />
             <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 700, fontSize: '0.78rem' }}>
-              Reservation Balance
+              {isLocked ? 'Active Reserved Amount' : 'Reservation Balance'}
             </Typography>
           </Box>
           <Typography variant="h6" sx={{ fontWeight: 900, color: '#34d399', letterSpacing: '-0.02em', mb: 0.3 }}>
             <span style={{ color: '#10b981', marginRight: 4, fontWeight: 700 }}>₮</span>
-            {reservableBalance.toFixed(2)}
+            {isLocked ? todayReservedAmount.toFixed(2) : reservableBalance.toFixed(2)}
           </Typography>
           <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.7rem', display: 'block' }}>
-            Main Balance for Reservation
+            {isLocked ? 'Principal in 24H Cycle' : 'Main Balance Available to Reserve'}
           </Typography>
         </Box>
 
@@ -580,21 +685,27 @@ export const Reservation: React.FC = () => {
 
             <Box>
               <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 800, letterSpacing: '0.04em', display: 'block', mb: 0.5 }}>
-                RESERVATION BALANCE (MAIN)
+                {isLocked ? 'RESERVED AMOUNT (ACTIVE)' : 'RESERVATION BALANCE (MAIN)'}
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 900, color: '#34d399', letterSpacing: '-0.01em' }}>
                 <span style={{ color: '#34d399', marginRight: 3 }}>₮</span>
-                {reservableBalance.toFixed(2)}
+                {isLocked ? todayReservedAmount.toFixed(2) : reservableBalance.toFixed(2)}
+              </Typography>
+              <Typography variant="caption" sx={{ color: isLocked ? '#a78bfa' : '#64748B', fontSize: '0.68rem', fontWeight: 700 }}>
+                {isLocked ? 'Active in 24H Cycle' : 'Available to Reserve'}
               </Typography>
             </Box>
 
             <Box>
               <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 800, letterSpacing: '0.04em', display: 'block', mb: 0.5 }}>
-                TODAY'S ESTIMATED PROFIT
+                {isLocked ? "TODAY'S PROFIT CREDITED" : "TODAY'S ESTIMATED PROFIT"}
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 900, color: '#06b6d4', letterSpacing: '-0.01em' }}>
                 <span style={{ color: '#06b6d4', marginRight: 3 }}>₮</span>
-                {expectedMinIncome.toFixed(2)} ~ {expectedMaxIncome.toFixed(2)}
+                {isLocked ? `+${todayProfitCredited.toFixed(4)}` : `${expectedMinIncome.toFixed(2)} ~ ${expectedMaxIncome.toFixed(2)}`}
+              </Typography>
+              <Typography variant="caption" sx={{ color: isLocked ? '#10b981' : '#64748B', fontSize: '0.68rem', fontWeight: 700 }}>
+                {isLocked ? 'Credited to Main Balance' : 'Calculated at 1.000% Daily'}
               </Typography>
             </Box>
 
@@ -604,6 +715,9 @@ export const Reservation: React.FC = () => {
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 900, color: '#10b981', letterSpacing: '-0.01em' }}>
                 {rateRange.label}
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.68rem' }}>
+                Level {userLevel} Yield
               </Typography>
             </Box>
           </Box>
@@ -643,10 +757,10 @@ export const Reservation: React.FC = () => {
             >
               <Box>
                 <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#fbbf24' }}>
-                  ⏳ 24-Hour Cycle Active
+                  ⏳ 24-Hour Cycle Active ({todayReservedAmount.toFixed(2)} USDT)
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#94A3B8' }}>
-                  Next AutoBot reservation unlocked in:
+                  Daily Profit: <strong style={{ color: '#34d399' }}>+{todayProfitCredited.toFixed(4)} USDT</strong> • Next reserve in:
                 </Typography>
               </Box>
               <Typography variant="h6" sx={{ fontFamily: 'monospace', fontWeight: 900, color: '#f59e0b' }}>
@@ -689,8 +803,8 @@ export const Reservation: React.FC = () => {
             {isProcessing
               ? `Executing Settlement (${processingSecondsLeft}s)...`
               : isLocked
-              ? `Locked (${formatLockTime(secondsRemaining)})`
-              : 'Reserve AutoBot Now'}
+              ? `Locked (${formatLockTime(secondsRemaining)}) • Reserved: ${todayReservedAmount.toFixed(2)} USDT`
+              : `Reserve AutoBot Now (${reservableBalance.toFixed(2)} USDT)`}
           </Button>
         </Box>
       )}
@@ -709,7 +823,7 @@ export const Reservation: React.FC = () => {
             Today's Reservation & Cycle Status
           </Typography>
           <Typography variant="body2" sx={{ color: '#94A3B8', mb: 3 }}>
-            Live status of your daily 24-hour reservation cycle, credited wallet profits, and lock timers.
+            Live status of your daily 24-hour reservation cycle, principal amount, credited wallet profits, and lock timers.
           </Typography>
 
           <Box sx={{ p: 2.5, borderRadius: 3, bgcolor: '#0d111e', border: '1px solid rgba(255, 255, 255, 0.06)', mb: 2.5 }}>
@@ -724,16 +838,23 @@ export const Reservation: React.FC = () => {
             </Box>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.8 }}>
-              <Typography variant="body2" sx={{ color: '#94A3B8' }}>Today's Reserved Balance</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#ffffff' }}>
-                {reservableBalance.toFixed(2)} USDT
+              <Typography variant="body2" sx={{ color: '#94A3B8' }}>Today's Reserved Principal</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#00e5ff' }}>
+                {todayReservedAmount.toFixed(2)} USDT
               </Typography>
             </Box>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.8 }}>
               <Typography variant="body2" sx={{ color: '#94A3B8' }}>Today's Yield Credited</Typography>
               <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#34d399' }}>
-                +{todayEarnings > 0 ? todayEarnings.toFixed(4) : (lastProfitAmount > 0 ? lastProfitAmount.toFixed(4) : '0.0000')} USDT
+                +{todayProfitCredited.toFixed(4)} USDT
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.8 }}>
+              <Typography variant="body2" sx={{ color: '#94A3B8' }}>Total 24H Settlement Value</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#ffffff' }}>
+                {(todayReservedAmount + todayProfitCredited).toFixed(4)} USDT
               </Typography>
             </Box>
 
@@ -758,7 +879,7 @@ export const Reservation: React.FC = () => {
                 ⚡ Strict 24-Hour Single Reservation Rule:
               </Typography>
               <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-                Each user can perform exactly 1 reservation cycle per 24 hours. Your wallet has received today's yield and the next cycle will open automatically when the timer reaches 00:00:00.
+                Each user can perform exactly 1 reservation cycle per 24 hours. Your wallet has received today's yield on your <strong>{todayReservedAmount.toFixed(2)} USDT</strong> reservation, and the next cycle will open automatically when the timer reaches 00:00:00.
               </Typography>
             </Box>
           )}
@@ -780,13 +901,13 @@ export const Reservation: React.FC = () => {
               Reservation & Mining History
             </Typography>
             <Chip
-              label={`${transactions.filter(t => t.type === 'DAILY_PROFIT' || t.type === 'RESERVATION').length} Records`}
+              label={`${displayHistory.length} Records`}
               size="small"
               sx={{ bgcolor: 'rgba(255,255,255,0.06)', color: '#9CA3AF', fontWeight: 700 }}
             />
           </Box>
 
-          {transactions.filter(t => t.type === 'DAILY_PROFIT' || t.type === 'RESERVATION').length === 0 ? (
+          {displayHistory.length === 0 ? (
             <Box sx={{ py: 6, textAlign: 'center' }}>
               <Typography variant="body2" sx={{ color: '#94A3B8', mb: 2 }}>
                 No reservation history yet. Click "Reserve" to execute your first 24-hour yield cycle!
@@ -806,39 +927,53 @@ export const Reservation: React.FC = () => {
               {/* Mobile View (<600px) */}
               <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  {transactions
-                    .filter(t => t.type === 'DAILY_PROFIT' || t.type === 'RESERVATION')
-                    .map(tx => (
-                      <Box
-                        key={tx.id}
-                        sx={{
-                          p: 2,
-                          borderRadius: 3,
-                          bgcolor: '#0d111e',
-                          border: '1px solid rgba(255, 255, 255, 0.06)'
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#a78bfa' }}>
-                            {tx.referenceId || `RES-${tx.id.slice(-6).toUpperCase()}`}
+                  {displayHistory.map(item => (
+                    <Box
+                      key={item.id}
+                      sx={{
+                        p: 2,
+                        borderRadius: 3,
+                        bgcolor: '#0d111e',
+                        border: '1px solid rgba(255, 255, 255, 0.06)'
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#a78bfa' }}>
+                          {item.referenceId}
+                        </Typography>
+                        <Chip label={item.status} size="small" variant="outlined" color="success" sx={{ fontSize: '0.65rem', fontWeight: 800, height: 20 }} />
+                      </Box>
+
+                      {/* Primary Amount Highlights */}
+                      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 1.5, p: 1.2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.03)' }}>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', fontSize: '0.7rem' }}>
+                            Reserved Principal
+                          </Typography>
+                          <Typography sx={{ color: '#00e5ff', fontWeight: 900, fontSize: '1rem' }}>
+                            {formatUSDT(item.reservedAmount)}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', fontSize: '0.7rem' }}>
+                            Profit Credited
                           </Typography>
                           <Typography sx={{ color: '#34d399', fontWeight: 900, fontSize: '1rem' }}>
-                            +{tx.amount.toFixed(4)} USDT
+                            +{item.profit.toFixed(4)} USDT
                           </Typography>
-                        </Box>
-
-                        <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mb: 1.2 }}>
-                          {tx.description || '24-Hour AutoBot Yield Settlement'}
-                        </Typography>
-
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 1, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                          <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.75rem' }}>
-                            {formatDateTime(tx.createdAt)}
-                          </Typography>
-                          <Chip label="COMPLETED" size="small" variant="outlined" color="success" sx={{ fontSize: '0.65rem', fontWeight: 800, height: 20 }} />
                         </Box>
                       </Box>
-                    ))}
+
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 1, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                        <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.75rem' }}>
+                          {formatDateTime(item.createdAt)}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#60a5fa', fontWeight: 700, fontSize: '0.75rem' }}>
+                          Rate: {item.rate.toFixed(3)}%
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))}
                 </Box>
               </Box>
 
@@ -850,33 +985,39 @@ export const Reservation: React.FC = () => {
                       <TableRow sx={{ '& th': { borderColor: 'rgba(255,255,255,0.06)', color: '#64748B', fontWeight: 800, py: 1.5 } }}>
                         <TableCell>Date & Time</TableCell>
                         <TableCell>Reference ID</TableCell>
-                        <TableCell>Description / Cycle</TableCell>
+                        <TableCell align="right">Reserved Principal</TableCell>
+                        <TableCell align="center">Yield Rate</TableCell>
                         <TableCell align="right">Profit Credited</TableCell>
+                        <TableCell align="right">Total Return</TableCell>
                         <TableCell align="center">Status</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {transactions
-                        .filter(t => t.type === 'DAILY_PROFIT' || t.type === 'RESERVATION')
-                        .map(tx => (
-                          <TableRow key={tx.id} hover sx={{ '& td': { borderColor: 'rgba(255,255,255,0.04)', py: 1.5 } }}>
-                            <TableCell sx={{ color: '#94A3B8', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
-                              {formatDateTime(tx.createdAt)}
-                            </TableCell>
-                            <TableCell sx={{ color: '#c4b5fd', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                              {tx.referenceId || `RES-${tx.id.slice(-6).toUpperCase()}`}
-                            </TableCell>
-                            <TableCell sx={{ color: '#e2e8f0', fontSize: '0.82rem' }}>
-                              {tx.description || '24h AutoBot Yield Settlement'}
-                            </TableCell>
-                            <TableCell align="right" sx={{ color: '#34d399', fontWeight: 900, fontSize: '0.9rem' }}>
-                              +{tx.amount.toFixed(4)} USDT
-                            </TableCell>
-                            <TableCell align="center">
-                              <Chip label="COMPLETED" size="small" variant="outlined" color="success" sx={{ fontSize: '0.68rem', fontWeight: 800 }} />
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                      {displayHistory.map(item => (
+                        <TableRow key={item.id} hover sx={{ '& td': { borderColor: 'rgba(255,255,255,0.04)', py: 1.5 } }}>
+                          <TableCell sx={{ color: '#94A3B8', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+                            {formatDateTime(item.createdAt)}
+                          </TableCell>
+                          <TableCell sx={{ color: '#c4b5fd', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                            {item.referenceId}
+                          </TableCell>
+                          <TableCell align="right" sx={{ color: '#00e5ff', fontWeight: 900, fontSize: '0.9rem' }}>
+                            {formatUSDT(item.reservedAmount)}
+                          </TableCell>
+                          <TableCell align="center" sx={{ color: '#60a5fa', fontWeight: 700, fontSize: '0.82rem' }}>
+                            {item.rate.toFixed(3)}%
+                          </TableCell>
+                          <TableCell align="right" sx={{ color: '#34d399', fontWeight: 900, fontSize: '0.9rem' }}>
+                            +{item.profit.toFixed(4)} USDT
+                          </TableCell>
+                          <TableCell align="right" sx={{ color: '#ffffff', fontWeight: 800, fontSize: '0.85rem' }}>
+                            {item.totalSettled.toFixed(4)} USDT
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip label="COMPLETED" size="small" variant="outlined" color="success" sx={{ fontSize: '0.68rem', fontWeight: 800 }} />
+                          </TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -951,11 +1092,30 @@ export const Reservation: React.FC = () => {
           🎉 AutoBot Reservation Executed!
         </DialogTitle>
         <DialogContent sx={{ textAlign: 'center' }}>
-          <Typography variant="h4" sx={{ fontWeight: 900, color: '#10b981', mb: 1 }}>
-            +{lastProfitAmount.toFixed(4)} USDT
-          </Typography>
+          {/* Reservation Breakdown Card */}
+          <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', mb: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="body2" sx={{ color: '#94A3B8' }}>Reserved Principal Amount:</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#00e5ff' }}>
+                {lastReservedAmount.toFixed(2)} USDT
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="body2" sx={{ color: '#94A3B8' }}>Daily Yield Rate:</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#60a5fa' }}>
+                {rateRange.label}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <Typography variant="body2" sx={{ color: '#94A3B8', fontWeight: 700 }}>Profit Credited:</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#10b981' }}>
+                +{lastProfitAmount.toFixed(4)} USDT
+              </Typography>
+            </Box>
+          </Box>
+
           <Typography variant="body2" sx={{ color: '#94A3B8' }}>
-            Your 24-hour yield has been successfully calculated, credited to your wallet balance, and logged in the immutable ledger.
+            Your 24-hour yield on <strong>{lastReservedAmount.toFixed(2)} USDT</strong> has been credited to your available balance and recorded in your history ledger.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, justifyContent: 'center' }}>
