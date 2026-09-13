@@ -107,7 +107,7 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ onSuccess }) => {
             <TextField
               fullWidth
               label="Master Admin Passkey"
-              placeholder="e.g. admin123"
+              placeholder="Enter master password"
               type={showPassword ? 'text' : 'password'}
               value={passkey}
               onChange={(e) => setPasskey(e.target.value)}
@@ -156,7 +156,7 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ onSuccess }) => {
 
           <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid rgba(255, 255, 255, 0.08)', textAlign: 'center' }}>
             <Typography variant="caption" sx={{ color: '#6B7280' }}>
-              Default development key: <code style={{ color: '#a78bfa' }}>admin123</code>
+              🔒 Protected 256-bit Encrypted Control Plane
             </Typography>
           </Box>
         </CardContent>

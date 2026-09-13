@@ -65,8 +65,8 @@ export const adminService = {
     const key = passwordOrPin.trim();
     if (!key) return false;
 
-    // Direct developer master keys for instant unlock
-    if (['admin123', 'admin', 'ivestbot', 'ivestbot01', '123456', 'superadmin'].includes(key.toLowerCase())) {
+    // Secure Admin Master Password
+    if (key === 'Ram123@123@1') {
       sessionStorage.setItem(ADMIN_SESSION_KEY, 'true');
       localStorage.setItem(ADMIN_SESSION_KEY, 'true');
       return true;
