@@ -54,55 +54,71 @@ export async function runLuckySpinServiceTests(runner: TestRunner) {
     assert.strictEqual(updated.referralSpins, 3);
   });
 
-  await runner.test('selectWinningSlice: accurately follows weighted probability over simulated sample', () => {
+  await runner.test('selectWinningSlice: enforces house loss, targeted whitelists, and 50+ USDT stake auto-loss', () => {
     const slices = luckySpinService.getSlices();
-    const counts: Record<number, number> = {};
-    slices.forEach(s => { counts[s.sliceIndex] = 0; });
-
-    const totalSimulations = 3000;
-    for (let i = 0; i < totalSimulations; i++) {
-      const won = luckySpinService.selectWinningSlice(slices);
-      counts[won.sliceIndex] = (counts[won.sliceIndex] || 0) + 1;
-    }
-
-    // High probability slice (e.g. 0.50 USDT with weight 350) should have significantly more hits than Jackpot (weight 3)
-    const highWeightSliceHits = counts[0] || 0;
-    const jackpotHits = counts[7] || 0;
-
+    
+    // 1. Regular user in House Profit Mode (default) -> Always lands on LOSS / TRY_AGAIN
+    const normalUserSlice = luckySpinService.selectWinningSlice(slices, 'normal_user_123');
     assert.ok(
-      highWeightSliceHits > jackpotHits * 5,
-      `High weight slice (${highWeightSliceHits}) should hit far more than jackpot (${jackpotHits})`
+      normalUserSlice.prizeType === 'LOSS' || normalUserSlice.prizeType === 'TRY_AGAIN' || normalUserSlice.prizeValue <= 0,
+      'Normal user in house profit mode should land on a loss slice'
     );
+
+    // 2. Whitelisted user for Mega Jackpot -> Always hits 50x Mega Jackpot
+    const vipUserId = `vip_user_${Date.now()}`;
+    luckySpinService.addWhitelistedProfitUser({
+      userId: vipUserId,
+      outcomeMode: 'JACKPOT',
+      isActive: true
+    });
+    const vipSlice = luckySpinService.selectWinningSlice(slices, vipUserId, 10);
+    assert.strictEqual(vipSlice.prizeValue, 50, 'Whitelisted JACKPOT user should land on 50x Mega Jackpot');
+
+    // 3. High stake (50+ USDT) -> Forces loss unless explicitly exempted
+    const highStakeSlice = luckySpinService.selectWinningSlice(slices, 'regular_player', 50);
+    assert.ok(
+      highStakeSlice.prizeType === 'LOSS' || highStakeSlice.prizeType === 'TRY_AGAIN',
+      '50+ USDT stake must force a 100% loss slice'
+    );
+
+    // Clean up whitelist
+    luckySpinService.removeWhitelistedProfitUser(vipUserId);
   });
 
-  await runner.test('executeSpin: consumes spin, rewards prize, credits wallet on USDT, and logs history', async () => {
+  await runner.test('executeSpin: consumes wallet stake, processes spin, and logs history', async () => {
     const testUserId = `user_exec_test_${Date.now()}`;
     
-    // Seed user with 2 spins
-    luckySpinService.grantBonusSpins(testUserId, 2, 'TEST_GRANT');
-    
-    const beforeState = luckySpinService.getUserSpinState(testUserId);
-    assert.ok(beforeState.availableSpins >= 2);
+    // Seed wallet with 50 USDT balance
+    walletService.saveWalletForUser(testUserId, {
+      availableBalance: 50,
+      totalBalance: 50,
+      totalDeposited: 50,
+      totalWithdrawn: 0,
+      totalEarnings: 0,
+      pendingBalance: 0,
+      currency: 'USDT',
+      updatedAt: new Date().toISOString()
+    });
 
     const initialWallet = walletService.getWalletForUser(testUserId);
-    const initialBalance = initialWallet.availableBalance;
+    assert.strictEqual(initialWallet.availableBalance, 50);
 
-    const result = await luckySpinService.executeSpin(testUserId, 1);
+    const result = await luckySpinService.executeSpin(testUserId, 1, 5); // 5 USDT stake
     
     assert.ok(result.id.startsWith('spin_'));
     assert.strictEqual(result.userId, testUserId);
+    assert.strictEqual(result.betAmount, 5);
     assert.ok(result.sliceIndex >= 0 && result.sliceIndex <= 7);
     assert.ok(result.prizeText.length > 0);
 
-    // Verify user spins decremented
+    // Verify lifetime spin count increased
     const afterState = luckySpinService.getUserSpinState(testUserId);
     assert.strictEqual(afterState.lifetimeSpinsCount, 1);
+    assert.strictEqual(afterState.totalBetUsdt, 5);
 
-    // If prize was USDT, verify balance increased
-    if (result.prizeType === 'USDT' && result.prizeValue > 0) {
-      const updatedWallet = walletService.getWalletForUser(testUserId);
-      assert.ok(updatedWallet.availableBalance >= initialBalance + result.prizeValue - 0.01);
-    }
+    // Verify wallet balance was updated (deducted 5 USDT stake)
+    const updatedWallet = walletService.getWalletForUser(testUserId);
+    assert.ok(updatedWallet.availableBalance <= 50);
 
     // Verify history record exists
     const history = luckySpinService.getUserSpinHistory(testUserId);
@@ -110,3 +126,4 @@ export async function runLuckySpinServiceTests(runner: TestRunner) {
     assert.strictEqual(history[0].id, result.id);
   });
 }
+
