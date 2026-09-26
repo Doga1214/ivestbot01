@@ -13,7 +13,7 @@ import { HowItWorks } from '../components/home/HowItWorks';
 import { LiveActionDemo } from '../components/home/LiveActionDemo';
 import { FAQ } from '../components/home/FAQ';
 import { BottomCtaBanner } from '../components/home/BottomCtaBanner';
-import { LuckySpinBanner } from '../components/home/LuckySpinBanner';
+import { HomeLuckySpin } from '../components/home/HomeLuckySpin';
 import { Footer } from '../components/home/Footer';
 import { AnnouncementModal } from '../components/home/AnnouncementModal';
 import { useApp } from '../context/AppContext';
@@ -38,17 +38,17 @@ export const Home: React.FC = () => {
       {/* 4. Live Platform Key Metrics & Stats Bar */}
       <PlatformStatsBar />
 
-      {/* 5. Trending 24H Liquidity Reservation Pools & Leaderboard */}
+      {/* 5. Direct Live Interactive Lucky Spin Wheel on Home Page */}
+      <HomeLuckySpin />
+
+      {/* 6. Trending 24H Liquidity Reservation Pools & Leaderboard */}
       <TrendingPools />
 
-      {/* 6. Interactive 45-Day 2.22% Daily Yield & ROI Calculator */}
+      {/* 7. Interactive 45-Day 2.22% Daily Yield & ROI Calculator */}
       <YieldCalculator />
 
-      {/* 7. Institutional Web3 Platform Features */}
+      {/* 8. Institutional Web3 Platform Features */}
       <PlatformFeatures />
-
-      {/* 8. Daily Lucky Spin Wheel Interactive Reward Banner */}
-      <LuckySpinBanner />
 
       {/* 9. VIP Tier Architecture & Progression */}
       <LevelOverview />
