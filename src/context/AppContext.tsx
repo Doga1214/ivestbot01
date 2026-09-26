@@ -41,7 +41,7 @@ interface AppContextType {
   wallet: WalletState;
   transactions: WalletTransaction[];
   kyc: KycSubmission;
-  refreshWallet: () => void;
+  refreshWallet: (userIdOverride?: string) => Promise<void>;
   submitDeposit: (amount: number, address: string, txHash: string) => Promise<void>;
   submitWithdrawal: (amount: number, address: string) => Promise<{ success: boolean; message: string }>;
   cancelWithdrawal: (txId: string) => Promise<void>;
@@ -119,17 +119,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSnackbar(prev => ({ ...prev, open: false }));
   };
 
-  const refreshWallet = useCallback(() => {
-    const targetId = user?.id || authService.getCurrentUser()?.id;
+  const refreshWallet = useCallback(async (userIdOverride?: string) => {
+    const targetId = userIdOverride || user?.id || authService.getCurrentUser()?.id;
     if (targetId) {
       const local = walletService.getWallet(targetId);
       setWallet(local);
-      walletService.syncWalletFromSupabase(targetId).then(w => {
-        if (w) setWallet(w);
-      });
-      walletService.syncTransactionsFromSupabase(targetId).then(txs => {
+      try {
+        const synced = await walletService.syncWalletFromSupabase(targetId);
+        if (synced) setWallet(synced);
+        const txs = await walletService.syncTransactionsFromSupabase(targetId);
         if (txs) setTransactions(txs);
-      });
+        const kycData = await walletService.syncKycFromSupabase(targetId);
+        if (kycData) setKyc(kycData);
+      } catch {
+        // ignore
+      }
     } else {
       setWallet({
         totalBalance: 0.0,
@@ -373,37 +377,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const login = async (usernameOrEmail: string, password?: string) => {
     const loggedInUser = await authService.login(usernameOrEmail, password);
     setUser(loggedInUser);
-    const userWallet = walletService.getWalletForUser(loggedInUser.id);
-    walletService.saveWalletForUser(loggedInUser.id, userWallet);
-    setWallet(userWallet);
-    setKyc(walletService.getKycStatus(loggedInUser.id));
     setIsLoginModalOpen(false);
-    refreshWallet();
+    await refreshWallet(loggedInUser.id);
     showSnackbar(`Welcome back, ${loggedInUser.name}!`, 'success');
   };
 
   const register = async (data: { name: string; username: string; email: string; password?: string; referralCode?: string }) => {
     const registeredUser = await authService.register(data);
     setUser(registeredUser);
-    const zeroWallet: WalletState = {
-      totalBalance: 0.0,
-      availableBalance: 0.0,
-      pendingBalance: 0.0,
-      currency: 'USDT',
-      status: 'ACTIVE',
-      restrictions: {
-        canDeposit: true,
-        canWithdraw: true,
-        canReserve: true,
-        canTrade: true
-      }
-    };
-    walletService.saveWalletForUser(registeredUser.id, zeroWallet);
-    setWallet(zeroWallet);
-    setKyc(walletService.getKycStatus(registeredUser.id));
     setIsRegisterModalOpen(false);
-    refreshWallet();
-    showSnackbar('Account created successfully! Wallet initialized with 0.00 USDT.', 'success');
+    await refreshWallet(registeredUser.id);
+    showSnackbar('Account created successfully! Welcome to Ivestbot.', 'success');
   };
 
   const sendEmailOtp = async (email: string, password?: string, metadata?: { name?: string; username?: string }) => {
@@ -413,24 +397,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const verifyOtpAndRegister = async (data: { name: string; username: string; email: string; password?: string; referralCode?: string; otp: string }) => {
     const registeredUser = await authService.verifyOtpAndRegister(data);
     setUser(registeredUser);
-    const zeroWallet: WalletState = {
-      totalBalance: 0.0,
-      availableBalance: 0.0,
-      pendingBalance: 0.0,
-      currency: 'USDT',
-      status: 'ACTIVE',
-      restrictions: {
-        canDeposit: true,
-        canWithdraw: true,
-        canReserve: true,
-        canTrade: true
-      }
-    };
-    walletService.saveWalletForUser(registeredUser.id, zeroWallet);
-    setWallet(zeroWallet);
-    setKyc(walletService.getKycStatus(registeredUser.id));
     setIsRegisterModalOpen(false);
-    refreshWallet();
+    await refreshWallet(registeredUser.id);
     showSnackbar('Email verified & Account created successfully! Welcome to Ivestbot.', 'success');
   };
 

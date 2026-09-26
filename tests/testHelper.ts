@@ -48,15 +48,25 @@ if (typeof (globalThis as any).window === 'undefined') {
       origin: 'http://localhost:5173',
       href: 'http://localhost:5173/'
     },
+    localStorage: (globalThis as any).localStorage,
+    sessionStorage: (globalThis as any).sessionStorage,
     dispatchEvent: (_event: any) => true,
     addEventListener: () => {},
     removeEventListener: () => {}
   };
-} else if (!(globalThis as any).window.location) {
-  (globalThis as any).window.location = {
-    origin: 'http://localhost:5173',
-    href: 'http://localhost:5173/'
-  };
+} else {
+  if (!(globalThis as any).window.location) {
+    (globalThis as any).window.location = {
+      origin: 'http://localhost:5173',
+      href: 'http://localhost:5173/'
+    };
+  }
+  if (!(globalThis as any).window.localStorage) {
+    (globalThis as any).window.localStorage = (globalThis as any).localStorage;
+  }
+  if (!(globalThis as any).window.sessionStorage) {
+    (globalThis as any).window.sessionStorage = (globalThis as any).sessionStorage;
+  }
 }
 
 if (typeof (globalThis as any).CustomEvent === 'undefined') {

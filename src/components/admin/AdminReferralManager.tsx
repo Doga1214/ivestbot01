@@ -41,6 +41,10 @@ interface AdminReferralManagerProps {
   showSnackbar: (message: string, severity?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
+function generateMockTxHash(): string {
+  return `0x${Math.random().toString(16).substring(2, 10)}${Date.now().toString(16)}`;
+}
+
 export const AdminReferralManager: React.FC<AdminReferralManagerProps> = ({ showSnackbar }) => {
   const [subTab, setSubTab] = useState<number>(0);
   const [tick, setTick] = useState<number>(0);
@@ -85,7 +89,7 @@ export const AdminReferralManager: React.FC<AdminReferralManagerProps> = ({ show
   // Actions
   const handleOpenApprove = (req: ReferralWithdrawalRequest) => {
     setSelectedReq(req);
-    setTxHashInput(`0x${Math.random().toString(16).substring(2, 10)}${Date.now().toString(16)}`);
+    setTxHashInput(generateMockTxHash());
     setRemarksInput(`Transferred ${req.amountUSDT} USDT to ${req.network} address`);
     setApproveDialogOpen(true);
   };

@@ -7,6 +7,7 @@ import { runReservationServiceTests } from './reservationService.test.ts';
 import { runReferralServiceTests } from './referralService.test.ts';
 import { runWalletServiceTests } from './walletService.test.ts';
 import { runAdminServiceTests } from './adminService.test.ts';
+import { runLuckySpinServiceTests } from './luckySpinService.test.ts';
 
 async function main() {
   console.log('\n========================================');
@@ -24,6 +25,7 @@ async function main() {
   await runReferralServiceTests(runner);
   await runWalletServiceTests(runner);
   await runAdminServiceTests(runner);
+  await runLuckySpinServiceTests(runner);
 
   const { failed } = runner.printSummary();
 

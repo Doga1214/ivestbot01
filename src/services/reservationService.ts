@@ -41,22 +41,7 @@ const RESERVATION_STORAGE_KEY = 'ivestbot_reservation_state_v2';
 const HISTORY_STORAGE_KEY = 'ivestbot_reservation_history_v2';
 const MAX_CYCLE_SECONDS = WALLET_CONFIG.reservationLockHours * 3600; // 86,400 seconds = 24 hours
 
-const DEFAULT_HISTORY: ReservationRecord[] = [
-  {
-    id: 'res-8812',
-    amount: 100.0,
-    dailyRate: WALLET_CONFIG.defaultDailyRate,
-    effectiveRate: WALLET_CONFIG.defaultDailyRate,
-    activeDurationSeconds: 86400,
-    profit: Number((100.0 * (WALLET_CONFIG.defaultDailyRate / 100)).toFixed(4)),
-    status: 'COMPLETED',
-    startedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    completedAt: new Date(Date.now() - 86400000 * 2 + 20000).toISOString(),
-    referenceId: 'RES-8812-FULL',
-    isFullCycle: true,
-    type: 'AI_MINING'
-  }
-];
+const DEFAULT_HISTORY: ReservationRecord[] = [];
 
 export const reservationService = {
   getReservationState(): ReservationState {
@@ -72,7 +57,7 @@ export const reservationService = {
       miningAmount: 0,
       preparedReservation: null,
       currentProcessing: null,
-      lastCompletedReservation: DEFAULT_HISTORY[0],
+      lastCompletedReservation: null,
       nextAvailableTimestamp: null
     };
   },
@@ -290,84 +275,6 @@ export const reservationService = {
     const currentHistory = this.getHistory();
     const newHistory = [completedRecord, ...currentHistory.filter(h => h.id !== completedRecord.id)];
     this.saveHistory(newHistory);
-
-    // Distribute Multi-Tier Referral Commissions (Tier A: 0.1%, Tier B: 0.05%, Tier C: 0.025%)
-    try {
-      const allUsers = authService.getAllUsers();
-      const executingUser = allUsers.find(u => u.id === targetUserId || (currentUser && u.id === currentUser.id));
-      const resAmount = completedRecord.amount;
-
-      if (executingUser?.referredBy && resAmount > 0) {
-        // Tier A Sponsor (Direct)
-        const refA = executingUser.referredBy.trim().toLowerCase();
-        const sponsorA = allUsers.find(
-          u => (u.referralCode && u.referralCode.toLowerCase() === refA) ||
-               (u.username && u.username.toLowerCase() === refA) ||
-               (u.id && u.id.toLowerCase() === refA)
-        );
-
-        if (sponsorA && sponsorA.id !== executingUser.id) {
-          const commissionA = Number((resAmount * (WALLET_CONFIG.referralRates.A / 100)).toFixed(4));
-          if (commissionA > 0) {
-            walletService.creditUserCommissionAsync(
-              sponsorA.id,
-              sponsorA.username,
-              commissionA,
-              `REF-COMM-A-${Date.now().toString().slice(-5)}`,
-              `Tier-A Daily Reservation Commission (${WALLET_CONFIG.referralRates.A}%) from @${executingUser.username}`
-            );
-          }
-
-          // Tier B Sponsor (Secondary)
-          if (sponsorA.referredBy) {
-            const refB = sponsorA.referredBy.trim().toLowerCase();
-            const sponsorB = allUsers.find(
-              u => (u.referralCode && u.referralCode.toLowerCase() === refB) ||
-                   (u.username && u.username.toLowerCase() === refB) ||
-                   (u.id && u.id.toLowerCase() === refB)
-            );
-
-            if (sponsorB && sponsorB.id !== executingUser.id && sponsorB.id !== sponsorA.id) {
-              const commissionB = Number((resAmount * (WALLET_CONFIG.referralRates.B / 100)).toFixed(4));
-              if (commissionB > 0) {
-                walletService.creditUserCommissionAsync(
-                  sponsorB.id,
-                  sponsorB.username,
-                  commissionB,
-                  `REF-COMM-B-${Date.now().toString().slice(-5)}`,
-                  `Tier-B Daily Reservation Commission (${WALLET_CONFIG.referralRates.B}%) from @${executingUser.username}`
-                );
-              }
-
-              // Tier C Sponsor (Tertiary)
-              if (sponsorB.referredBy) {
-                const refC = sponsorB.referredBy.trim().toLowerCase();
-                const sponsorC = allUsers.find(
-                  u => (u.referralCode && u.referralCode.toLowerCase() === refC) ||
-                       (u.username && u.username.toLowerCase() === refC) ||
-                       (u.id && u.id.toLowerCase() === refC)
-                );
-
-                if (sponsorC && sponsorC.id !== executingUser.id && sponsorC.id !== sponsorA.id && sponsorC.id !== sponsorB.id) {
-                  const commissionC = Number((resAmount * (WALLET_CONFIG.referralRates.C / 100)).toFixed(4));
-                  if (commissionC > 0) {
-                    walletService.creditUserCommissionAsync(
-                      sponsorC.id,
-                      sponsorC.username,
-                      commissionC,
-                      `REF-COMM-C-${Date.now().toString().slice(-5)}`,
-                      `Tier-C Daily Reservation Commission (${WALLET_CONFIG.referralRates.C}%) from @${executingUser.username}`
-                    );
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    } catch {
-      // safe fallback
-    }
 
     return { updatedWallet, completedRecord };
   },

@@ -13,10 +13,11 @@ async function runLiveSystemVerification() {
 
   // 1. Create Demo User
   console.log('1️⃣ Registering test user...');
+  const testRunId = Date.now();
   const user = await authService.register({
     name: 'Satoshi Nakamoto',
-    username: 'satoshi',
-    email: 'satoshi@ivestbot.com',
+    username: `satoshi_${testRunId}`,
+    email: `satoshi_${testRunId}@ivestbot.com`,
     referralCode: 'SPONSOR99'
   });
   console.log(`   ✔ User Registered: ${user.name} (ID: ${user.id}, Level: ${user.level})`);
@@ -27,25 +28,17 @@ async function runLiveSystemVerification() {
   if (initialWallet.availableBalance !== 0) throw new Error('Initial balance should be 0.00 USDT');
 
   // 3. User Deposits 100 USDT
-  console.log('\n3️⃣ Simulating 100.00 USDT Deposit (2 units of 50 USDT)...');
-  const depositTx = walletService.addTransaction({
-    userId: user.id,
-    type: 'DEPOSIT',
-    amount: 100,
-    currency: 'USDT',
-    status: 'COMPLETED',
-    description: 'TRC20 Network Deposit'
-  });
-  const depositRes = walletService.adminCredit(100, 'User Deposit Approved', { id: user.id });
+  console.log('\n3️⃣ Simulating 100.00 USDT Deposit (100 USDT tier)...');
+  const depositRes = await walletService.adminCredit(100, 'User Deposit Approved', { id: user.id });
   const updatedWalletAfterDeposit = depositRes.updatedWallet;
   console.log(`   ✔ Wallet Balance After Deposit: ${updatedWalletAfterDeposit.availableBalance} USDT`);
 
   // Verify referral bonus for sponsor (0 welcome bonus for new user)
   const depositBonus = referralService.calculateDepositBonus(100);
   console.log(`   ✔ New User Welcome Bonus: ${depositBonus.newUserBonus} USDT (Expected: 0)`);
-  console.log(`   ✔ Sponsor Referral Bonus: ${depositBonus.sponsorBonus} USDT (Expected: +2 USDT)`);
+  console.log(`   ✔ Sponsor Referral Bonus: ${depositBonus.sponsorBonus} USDT (Expected: +8 USDT)`);
   if (depositBonus.newUserBonus !== 0) throw new Error('New user bonus must be 0');
-  if (depositBonus.sponsorBonus !== 2) throw new Error('Sponsor bonus for 100 USDT deposit must be 2 USDT');
+  if (depositBonus.sponsorBonus !== 8) throw new Error('Sponsor bonus for 100 USDT deposit must be 8 USDT');
 
   // 4. Test Reservation Execution
   console.log('\n4️⃣ Executing Reservation with available balance (100.00 USDT)...');
@@ -75,7 +68,7 @@ async function runLiveSystemVerification() {
   
   console.log(`   ✔ New Available Wallet Balance: ${walletAfterReserve.availableBalance.toFixed(4)} USDT`);
   console.log(`   ✔ Yield Profit Credited: +${completedRecord.profit.toFixed(4)} USDT`);
-  const expectedTotal = Number((100 + prepared.profit).toFixed(4));
+  const expectedTotal = Number((prepared.amount + prepared.profit).toFixed(4));
   if (Math.abs(walletAfterReserve.availableBalance - expectedTotal) > 0.001) {
     throw new Error(`Wallet balance mismatch: Expected ${expectedTotal}, Got ${walletAfterReserve.availableBalance}`);
   }

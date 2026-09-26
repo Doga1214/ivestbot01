@@ -16,6 +16,7 @@ import { AdminGlobalLedger } from '../components/admin/AdminGlobalLedger';
 import { AdminBroadcastModal } from '../components/admin/AdminBroadcastModal';
 import { AdminReferralManager } from '../components/admin/AdminReferralManager';
 import { AdminBackupRestore } from '../components/admin/AdminBackupRestore';
+import { AdminSpinWheelManager } from '../components/admin/AdminSpinWheelManager';
 import {
   ArrowDownwardIcon,
   ArrowUpwardIcon,
@@ -25,6 +26,7 @@ import {
   MonetizationOnIcon,
   ShieldIcon
 } from '../components/common/Icons';
+import { Sparkles } from 'lucide-react';
 
 export const Admin: React.FC = () => {
   const {
@@ -426,6 +428,12 @@ export const Admin: React.FC = () => {
             iconPosition="start"
             label="Balance Safety & Backups"
           />
+
+          <Tab
+            icon={<Sparkles size={18} color="#F59E0B" />}
+            iconPosition="start"
+            label="Lucky Spin Wheel"
+          />
         </Tabs>
       </Paper>
 
@@ -485,6 +493,10 @@ export const Admin: React.FC = () => {
 
       {activeTab === 6 && (
         <AdminBackupRestore />
+      )}
+
+      {activeTab === 7 && (
+        <AdminSpinWheelManager />
       )}
 
       {/* Broadcast Announcement Modal */}

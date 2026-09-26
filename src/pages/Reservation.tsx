@@ -106,8 +106,11 @@ export const Reservation: React.FC = () => {
     if (reservationState.lastCompletedReservation && reservationState.lastCompletedReservation.amount > 0) {
       return reservationState.lastCompletedReservation.amount;
     }
+    if (lastReservedAmount > 0) {
+      return lastReservedAmount;
+    }
     return reservableBalance;
-  }, [reservationState.lastCompletedReservation, reservableBalance]);
+  }, [reservationState.lastCompletedReservation, lastReservedAmount, reservableBalance]);
 
   // Accurate profit credited today in current cycle
   const todayProfitCredited = useMemo(() => {
@@ -401,11 +404,11 @@ export const Reservation: React.FC = () => {
             {teamBenefits.toFixed(2)}
           </Typography>
           <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.7rem', display: 'block' }}>
-            Team Referral Commissions
+            Direct Referral Bonus
           </Typography>
         </Box>
 
-        {/* Card 3: Reservation Amount & Balance */}
+        {/* Card 3: Main Wallet Balance & Active Reserved Amount */}
         <Box
           sx={{
             p: 2,
@@ -432,15 +435,15 @@ export const Reservation: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#10b981' }} />
             <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 700, fontSize: '0.78rem' }}>
-              {isLocked ? 'Active Reserved Amount' : 'Reservation Balance'}
+              Main Balance
             </Typography>
           </Box>
           <Typography variant="h6" sx={{ fontWeight: 900, color: '#34d399', letterSpacing: '-0.02em', mb: 0.3 }}>
             <span style={{ color: '#10b981', marginRight: 4, fontWeight: 700 }}>₮</span>
-            {isLocked ? todayReservedAmount.toFixed(2) : reservableBalance.toFixed(2)}
+            {reservableBalance.toFixed(2)}
           </Typography>
           <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.7rem', display: 'block' }}>
-            {isLocked ? 'Principal in 24H Cycle' : 'Main Balance Available to Reserve'}
+            {isLocked ? `Active Reserved: ${todayReservedAmount.toFixed(2)} USDT` : 'Available to Reserve & Withdraw'}
           </Typography>
         </Box>
 
@@ -685,14 +688,14 @@ export const Reservation: React.FC = () => {
 
             <Box>
               <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 800, letterSpacing: '0.04em', display: 'block', mb: 0.5 }}>
-                {isLocked ? 'RESERVED AMOUNT (ACTIVE)' : 'RESERVATION BALANCE (MAIN)'}
+                MAIN BALANCE (WALLET)
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 900, color: '#34d399', letterSpacing: '-0.01em' }}>
                 <span style={{ color: '#34d399', marginRight: 3 }}>₮</span>
-                {isLocked ? todayReservedAmount.toFixed(2) : reservableBalance.toFixed(2)}
+                {reservableBalance.toFixed(2)}
               </Typography>
               <Typography variant="caption" sx={{ color: isLocked ? '#a78bfa' : '#64748B', fontSize: '0.68rem', fontWeight: 700 }}>
-                {isLocked ? 'Active in 24H Cycle' : 'Available to Reserve'}
+                {isLocked ? `Active Reserved: ${todayReservedAmount.toFixed(2)} USDT` : 'Available to Reserve'}
               </Typography>
             </Box>
 

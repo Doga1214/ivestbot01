@@ -184,6 +184,7 @@ export const RegisterModal: React.FC = () => {
         referralCode: referralCode.trim() || undefined,
         otp: fullOtp
       });
+      handleClose();
       navigate('/profile');
     } catch (err: any) {
       setError(err?.message || 'Invalid or expired OTP. Please try again.');

@@ -638,7 +638,7 @@ export const ProfileTeamCard: React.FC = () => {
             variant="contained"
             onClick={() => {
               setOrdersModalOpen(false);
-              navigate('/referral');
+              navigate('/referrals');
             }}
             sx={{
               background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
@@ -753,7 +753,7 @@ export const ProfileTeamCard: React.FC = () => {
             variant="contained"
             onClick={() => {
               setReferralModalOpen(false);
-              navigate('/referral');
+              navigate('/referrals');
             }}
             sx={{
               py: 1.3,

@@ -185,4 +185,36 @@ export async function runReferralServiceTests(runner: TestRunner) {
     assert.strictEqual(updatedWithdrawals[0].status, 'REJECTED');
     assert.strictEqual(referralService.getUserRewardBalance(userId), 200.0);
   });
+
+  await runner.test('creditUserCommissionAsync: accurately credits sponsor wallet and adds transaction', async () => {
+    localStorage.clear();
+
+    const sponsorId = 'usr-sponsor-100';
+    walletService.saveWalletForUser(sponsorId, {
+      totalBalance: 100,
+      availableBalance: 100,
+      pendingBalance: 0,
+      currency: 'USDT',
+      status: 'ACTIVE',
+      restrictions: { canDeposit: true, canWithdraw: true, canReserve: true, canTrade: true }
+    });
+
+    await walletService.creditUserCommissionAsync(
+      sponsorId,
+      'SponsorUser',
+      40.0,
+      'REF-TEST-001',
+      'Direct Referral Deposit Bonus (+40 USDT) from @downline'
+    );
+
+    const updated = walletService.getWalletForUser(sponsorId);
+    assert.strictEqual(updated.totalBalance, 140.0);
+    assert.strictEqual(updated.availableBalance, 140.0);
+
+    const txs = walletService.getTransactions().filter(t => t.userId === sponsorId);
+    assert.strictEqual(txs.length, 1);
+    assert.strictEqual(txs[0].type, 'REFERRAL_BONUS');
+    assert.strictEqual(txs[0].amount, 40.0);
+  });
 }
+

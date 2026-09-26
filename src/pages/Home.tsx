@@ -13,6 +13,7 @@ import { HowItWorks } from '../components/home/HowItWorks';
 import { LiveActionDemo } from '../components/home/LiveActionDemo';
 import { FAQ } from '../components/home/FAQ';
 import { BottomCtaBanner } from '../components/home/BottomCtaBanner';
+import { LuckySpinBanner } from '../components/home/LuckySpinBanner';
 import { Footer } from '../components/home/Footer';
 import { AnnouncementModal } from '../components/home/AnnouncementModal';
 import { useApp } from '../context/AppContext';
@@ -46,7 +47,10 @@ export const Home: React.FC = () => {
       {/* 7. Institutional Web3 Platform Features */}
       <PlatformFeatures />
 
-      {/* 8. VIP Tier Architecture & Progression */}
+      {/* 8. Daily Lucky Spin Wheel Interactive Reward Banner */}
+      <LuckySpinBanner />
+
+      {/* 9. VIP Tier Architecture & Progression */}
       <LevelOverview />
 
       {/* 9. 3-Tier Community Referral & Instant Milestone Bonus Breakdown */}

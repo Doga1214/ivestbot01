@@ -77,4 +77,46 @@ export async function runReservationServiceTests(runner: TestRunner) {
     assert.strictEqual(lockAfterReset.isLocked, false);
     assert.strictEqual(lockAfterReset.secondsRemaining, 0);
   });
+
+  await runner.test('executeReservation directly: correctly credits profit to main balance without replacing it', () => {
+    localStorage.clear();
+
+    const initialBalance = 250;
+    walletService.saveWallet({
+      totalBalance: initialBalance,
+      availableBalance: initialBalance,
+      pendingBalance: 0,
+      currency: 'USDT',
+      status: 'ACTIVE',
+      restrictions: { canDeposit: true, canWithdraw: true, canReserve: true, canTrade: true }
+    });
+
+    const calculatedProfit = 2.5; // 1% of 250
+    const record = reservationService.initiateSettlementExecution({
+      amount: initialBalance,
+      dailyRate: 1.0,
+      effectiveRate: 1.0,
+      activeDurationSeconds: 86400,
+      profit: calculatedProfit,
+      isFullCycle: true,
+      preparedAt: new Date().toISOString()
+    });
+
+    const { updatedWallet, completedRecord } = reservationService.finalizeSettlement(record);
+    assert.strictEqual(completedRecord.status, 'COMPLETED');
+    assert.strictEqual(completedRecord.amount, 250);
+    assert.strictEqual(completedRecord.profit, 2.5);
+
+    // Main balance MUST now be 252.5 (250 + 2.5) and NOT 250 or replaced by reservation amount
+    assert.strictEqual(updatedWallet.availableBalance, 252.5);
+    assert.strictEqual(updatedWallet.totalBalance, 252.5);
+
+    const postState = reservationService.getReservationState();
+    assert.strictEqual(postState.lastCompletedReservation?.amount, 250);
+    assert.strictEqual(postState.lastCompletedReservation?.profit, 2.5);
+
+    const postWallet = walletService.getWallet();
+    assert.strictEqual(postWallet.availableBalance, 252.5);
+    assert.strictEqual(postWallet.totalBalance, 252.5);
+  });
 }

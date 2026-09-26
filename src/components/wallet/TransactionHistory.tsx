@@ -56,6 +56,14 @@ export const TransactionHistory: React.FC = () => {
         return <Chip label="WELCOME BONUS" color="info" size="small" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />;
       case 'RESERVATION':
         return <Chip label="RESERVE" color="warning" size="small" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />;
+      case 'RESERVATION_RETURN':
+        return <Chip label="RETURN" color="info" size="small" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />;
+      case 'ADMIN_CREDIT':
+        return <Chip label="WALLET CREDIT" color="success" size="small" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />;
+      case 'ADMIN_DEBIT':
+        return <Chip label="DEBIT" color="error" size="small" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />;
+      case 'ADMIN_ADJUSTMENT':
+        return <Chip label="ADJUSTMENT" color="secondary" size="small" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />;
       default:
         return <Chip label={type} size="small" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />;
     }
@@ -122,7 +130,8 @@ export const TransactionHistory: React.FC = () => {
                     tx.type === 'DAILY_PROFIT' ||
                     tx.type === 'REFERRAL_BONUS' ||
                     tx.type === 'WELCOME_BONUS' ||
-                    tx.type === 'RESERVATION_RETURN';
+                    tx.type === 'RESERVATION_RETURN' ||
+                    tx.type === 'ADMIN_CREDIT';
 
                   return (
                     <Paper
@@ -207,7 +216,8 @@ export const TransactionHistory: React.FC = () => {
                         tx.type === 'DAILY_PROFIT' ||
                         tx.type === 'REFERRAL_BONUS' ||
                         tx.type === 'WELCOME_BONUS' ||
-                        tx.type === 'RESERVATION_RETURN';
+                        tx.type === 'RESERVATION_RETURN' ||
+                        tx.type === 'ADMIN_CREDIT';
 
                       return (
                         <TableRow key={tx.id}>

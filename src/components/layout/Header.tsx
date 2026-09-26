@@ -23,6 +23,8 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { formatUSDT } from '../../utils/formatters';
+import { LuckySpinModal } from '../spin/LuckySpinModal';
+import { Sparkles } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -30,6 +32,7 @@ export const Header: React.FC = () => {
   const { user, wallet, isAuthenticated, logout, openLoginModal, openRegisterModal, openAnnouncement } = useApp();
 
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [spinModalOpen, setSpinModalOpen] = React.useState<boolean>(false);
   const isMenuOpen = Boolean(anchorEl);
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -178,6 +181,26 @@ export const Header: React.FC = () => {
                   </Typography>
                 </Box>
 
+                {/* Lucky Spin Quick Chip */}
+                <Chip
+                  icon={<Sparkles size={14} color="#0F172A" />}
+                  label="Spin & Win"
+                  size="small"
+                  onClick={() => setSpinModalOpen(true)}
+                  sx={{
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    bgcolor: '#F59E0B',
+                    color: '#0F172A',
+                    boxShadow: '0 2px 10px rgba(245, 158, 11, 0.35)',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      bgcolor: '#FBBF24',
+                      transform: 'scale(1.04)'
+                    }
+                  }}
+                />
+
                 {/* Level Chip */}
                 <Chip
                   label={`LVL ${user?.level || 1}`}
@@ -223,6 +246,12 @@ export const Header: React.FC = () => {
                       @{user?.username}
                     </Typography>
                   </Box>
+                  <MenuItem onClick={() => { handleMenuClose(); setSpinModalOpen(true); }}>
+                    <ListItemIcon>
+                      <Sparkles size={18} color="#F59E0B" />
+                    </ListItemIcon>
+                    <ListItemText primary="Lucky Spin Wheel" sx={{ color: '#FEF08A', fontWeight: 700 }} />
+                  </MenuItem>
                   <MenuItem onClick={() => { handleMenuClose(); navigate('/profile'); }}>
                     <ListItemIcon>
                       <PersonOutlineIcon fontSize="small" sx={{ color: '#a78bfa' }} />
@@ -267,6 +296,15 @@ export const Header: React.FC = () => {
           </Box>
         </Toolbar>
       </Container>
+
+      {user?.id && (
+        <LuckySpinModal
+          isOpen={spinModalOpen}
+          onClose={() => setSpinModalOpen(false)}
+          userId={user.id}
+          userLevel={user.level || 1}
+        />
+      )}
     </AppBar>
   );
 };

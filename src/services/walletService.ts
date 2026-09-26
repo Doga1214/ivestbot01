@@ -30,6 +30,7 @@ export type TransactionType =
   | 'DAILY_PROFIT'
   | 'REFERRAL_BONUS'
   | 'WELCOME_BONUS'
+  | 'SPIN_REWARD'
   | 'TRADE_DEMO'
   | 'ADMIN_CREDIT'
   | 'ADMIN_DEBIT'
@@ -229,6 +230,47 @@ export const walletService = {
     return DEFAULT_WALLET;
   },
 
+  /**
+   * Persists wallet directly to Supabase PostgreSQL database using canonical UUID resolution.
+   */
+  async persistWalletToSupabase(userId: string, wallet: WalletState): Promise<boolean> {
+    if (!userId) return false;
+    try {
+      let targetId = isValidUuid(userId) ? userId : '';
+      if (!targetId) {
+        const allUsers = authService.getAllUsers();
+        const profile = allUsers.find(u => u.id === userId);
+        if (profile?.id && isValidUuid(profile.id)) {
+          targetId = profile.id;
+        } else {
+          try {
+            targetId = await this.resolveCanonicalUserId(profile || { id: userId });
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      if (targetId && isValidUuid(targetId)) {
+        await supabase.from('wallets').upsert(
+          {
+            user_id: targetId,
+            total_balance: wallet.totalBalance,
+            available_balance: wallet.availableBalance,
+            pending_balance: wallet.pendingBalance,
+            currency: wallet.currency || 'USDT',
+            updated_at: wallet.updatedAt || new Date().toISOString()
+          },
+          { onConflict: 'user_id' }
+        );
+        return true;
+      }
+    } catch (err) {
+      console.warn('persistWalletToSupabase warning:', err);
+    }
+    return false;
+  },
+
   saveWalletForUser(userId: string, wallet: WalletState): void {
     if (!userId) return;
     const data = {
@@ -255,27 +297,12 @@ export const walletService = {
       window.dispatchEvent(new CustomEvent('ivestbot_wallet_updated', { detail: { userId, wallet: data } }));
     }
 
-    // Sync to Supabase in background
-    if (isValidUuid(userId)) {
-      supabase
-        .from('wallets')
-        .upsert(
-          {
-            user_id: userId,
-            total_balance: data.totalBalance,
-            available_balance: data.availableBalance,
-            pending_balance: data.pendingBalance,
-            currency: data.currency || 'USDT',
-            updated_at: new Date().toISOString()
-          },
-          { onConflict: 'user_id' }
-        )
-        .then(() => {}, () => {});
-    }
+    // Safely persist to Supabase in background with canonical UUID resolution
+    this.persistWalletToSupabase(userId, data).catch(() => {});
   },
 
   /**
-   * Safely credits commission/bonus to a sponsor or remote user directly in Supabase
+   * Credits referral commission to sponsor wallet safely and atomically,
    * preventing local stale state from overwriting real balances.
    */
   async creditUserCommissionAsync(
@@ -288,10 +315,11 @@ export const walletService = {
     if (!sponsorId || commissionAmount <= 0) return;
 
     try {
-      let currentAvail = 0;
-      let currentTot = 0;
-      let currentPending = 0;
-      let currency = 'USDT';
+      const local = this.getWalletForUser(sponsorId);
+      let currentAvail = local.availableBalance || 0;
+      let currentTot = local.totalBalance || 0;
+      let currentPending = local.pendingBalance || 0;
+      let currency = local.currency || 'USDT';
 
       if (isValidUuid(sponsorId)) {
         const { data: dbWallet } = await supabase
@@ -301,15 +329,10 @@ export const walletService = {
           .maybeSingle();
 
         if (dbWallet) {
-          currentAvail = parseFloat(dbWallet.available_balance) || 0;
-          currentTot = parseFloat(dbWallet.total_balance) || 0;
-          currentPending = parseFloat(dbWallet.pending_balance) || 0;
-          currency = dbWallet.currency || 'USDT';
-        } else {
-          const local = this.getWalletForUser(sponsorId);
-          currentAvail = local.availableBalance || 0;
-          currentTot = local.totalBalance || 0;
-          currentPending = local.pendingBalance || 0;
+          currentAvail = parseFloat(dbWallet.available_balance) || currentAvail;
+          currentTot = parseFloat(dbWallet.total_balance) || currentTot;
+          currentPending = parseFloat(dbWallet.pending_balance) || currentPending;
+          currency = dbWallet.currency || currency;
         }
 
         const nextAvail = Number((currentAvail + commissionAmount).toFixed(4));
@@ -326,17 +349,20 @@ export const walletService = {
           },
           { onConflict: 'user_id' }
         );
-
-        // Also update local cache for this user id
-        const localW = this.getWalletForUser(sponsorId);
-        localStorage.setItem(`ivestbot_wallet_${sponsorId}`, JSON.stringify({
-          ...localW,
-          totalBalance: nextTot,
-          availableBalance: nextAvail,
-          pendingBalance: currentPending,
-          updatedAt: new Date().toISOString()
-        }));
       }
+
+      const nextAvail = Number((currentAvail + commissionAmount).toFixed(4));
+      const nextTot = Number((currentTot + commissionAmount).toFixed(4));
+
+      // Update local wallet state and trigger real-time balance update events
+      this.saveWalletForUser(sponsorId, {
+        ...local,
+        totalBalance: nextTot,
+        availableBalance: nextAvail,
+        pendingBalance: currentPending,
+        currency,
+        updatedAt: new Date().toISOString()
+      });
 
       this.addTransaction({
         userId: sponsorId,
@@ -348,6 +374,10 @@ export const walletService = {
         referenceId: refId,
         description
       });
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ivestbot_referral_config_updated'));
+      }
     } catch (err) {
       console.error('creditUserCommissionAsync error:', err);
     }
@@ -491,43 +521,78 @@ export const walletService = {
       const totalPendingDep = pendingDeposits.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
 
       const local = this.getWalletForUser(userId);
+      const localAvailable = typeof local.availableBalance === 'number' && !isNaN(local.availableBalance) ? Math.max(0, local.availableBalance) : 0;
+      const localPending = typeof local.pendingBalance === 'number' && !isNaN(local.pendingBalance) ? Math.max(0, local.pendingBalance) : 0;
+      const localTotal = typeof local.totalBalance === 'number' && !isNaN(local.totalBalance) ? Math.max(0, local.totalBalance) : 0;
+      const localTimestamp = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+
       const rawDbAvailable = parseFloat(dbWalletData?.available_balance);
       const rawDbTotal = parseFloat(dbWalletData?.total_balance);
       const rawDbPending = parseFloat(dbWalletData?.pending_balance);
+      const dbTimestamp = dbWalletData?.updated_at ? new Date(dbWalletData.updated_at).getTime() : 0;
 
       const ledgerAvailable = Math.max(0, Number((totalApprovedDep + totalProfits - totalApprovedWth).toFixed(4)));
 
       let availableBalance = 0;
       let pendingBalance = 0;
       let totalBalance = 0;
+      let shouldRepairDb = false;
 
-      if (dbWalletData && !isNaN(rawDbAvailable)) {
-        // Supabase DB is primary authoritative source of truth
-        availableBalance = Math.max(0, rawDbAvailable);
-        pendingBalance = !isNaN(rawDbPending) ? Math.max(0, rawDbPending) : totalPendingDep;
-        totalBalance = !isNaN(rawDbTotal) ? Math.max(0, rawDbTotal) : Number((availableBalance + pendingBalance).toFixed(4));
-      } else if (local && typeof local.availableBalance === 'number' && !isNaN(local.availableBalance)) {
-        // Fallback to local cache
-        availableBalance = Math.max(0, local.availableBalance);
-        pendingBalance = local.pendingBalance || totalPendingDep;
-        totalBalance = local.totalBalance || Number((availableBalance + pendingBalance).toFixed(4));
+      const hasValidDbRecord = dbWalletData && !isNaN(rawDbAvailable);
+
+      if (hasValidDbRecord) {
+        // Timestamp conflict resolution: Is DB strictly newer than local by >2000ms?
+        if (dbTimestamp > localTimestamp + 2000) {
+          // Guard: If DB is 0 but local has legitimate active profits/balance, don't blindly zero out
+          if (rawDbAvailable === 0 && localAvailable > 0 && (totalApprovedDep > 0 || totalProfits > 0)) {
+            availableBalance = localAvailable;
+            pendingBalance = !isNaN(rawDbPending) ? Math.max(0, rawDbPending) : localPending;
+            totalBalance = Number((availableBalance + pendingBalance).toFixed(4));
+            shouldRepairDb = true;
+          } else {
+            availableBalance = Math.max(0, rawDbAvailable);
+            pendingBalance = !isNaN(rawDbPending) ? Math.max(0, rawDbPending) : totalPendingDep;
+            totalBalance = !isNaN(rawDbTotal) ? Math.max(0, rawDbTotal) : Number((availableBalance + pendingBalance).toFixed(4));
+          }
+        } else if (localAvailable > 0 && (localTimestamp >= dbTimestamp || rawDbAvailable === 0)) {
+          // Local state is more recent (e.g. daily settlement / bonus) or DB has stale zero
+          availableBalance = localAvailable;
+          pendingBalance = !isNaN(rawDbPending) && rawDbPending > 0 ? rawDbPending : (localPending || totalPendingDep);
+          totalBalance = localTotal > 0 ? localTotal : Number((availableBalance + pendingBalance).toFixed(4));
+          shouldRepairDb = true;
+        } else {
+          // Standard authoritative DB sync
+          availableBalance = Math.max(0, rawDbAvailable);
+          pendingBalance = !isNaN(rawDbPending) ? Math.max(0, rawDbPending) : totalPendingDep;
+          totalBalance = !isNaN(rawDbTotal) ? Math.max(0, rawDbTotal) : Number((availableBalance + pendingBalance).toFixed(4));
+        }
       } else {
-        // Fallback to initial ledger computation
-        availableBalance = ledgerAvailable;
-        pendingBalance = totalPendingDep;
-        totalBalance = Number((availableBalance + pendingBalance).toFixed(4));
+        // No DB record found (e.g. new registration, silent RLS query, or connection drop)
+        if (localAvailable > 0) {
+          // Zero-Drop Shield: Maintain verified local balance
+          availableBalance = localAvailable;
+          pendingBalance = localPending || totalPendingDep;
+          totalBalance = localTotal || Number((availableBalance + pendingBalance).toFixed(4));
+          shouldRepairDb = true;
+        } else {
+          // Fallback to ledger computation
+          availableBalance = ledgerAvailable;
+          pendingBalance = totalPendingDep;
+          totalBalance = Number((availableBalance + pendingBalance).toFixed(4));
+          shouldRepairDb = true;
+        }
       }
 
       const targetPersistId = canonicalId || (isValidUuid(userId) ? userId : '');
 
-      // Initialize wallet record in Supabase PostgreSQL database if missing
-      if (targetPersistId && !dbWalletData) {
+      // Initialize / Heal wallet record in Supabase PostgreSQL database if missing or stale
+      if (targetPersistId && (shouldRepairDb || !dbWalletData)) {
         await supabase.from('wallets').upsert({
           user_id: targetPersistId,
           available_balance: availableBalance,
           total_balance: totalBalance,
           pending_balance: pendingBalance,
-          currency: 'USDT',
+          currency: dbWalletData?.currency || local.currency || 'USDT',
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
       }
@@ -539,7 +604,7 @@ export const walletService = {
         pendingBalance,
         currency: dbWalletData?.currency || local.currency || 'USDT',
         status: (local.status === 'FROZEN' ? 'FROZEN' : (local.status || 'ACTIVE')),
-        updatedAt: dbWalletData?.updated_at || new Date().toISOString()
+        updatedAt: dbWalletData?.updated_at && !shouldRepairDb ? dbWalletData.updated_at : new Date().toISOString()
       };
 
       // Save across ONLY this specific user's keys
@@ -640,8 +705,8 @@ export const walletService = {
             description: d.status === 'APPROVED'
               ? `Withdrawal Approved & Dispatched (-${parseFloat(d.amount) || 0} USDT)`
               : d.status === 'REJECTED'
-              ? `Withdrawal Rejected by Admin (Refunded ${parseFloat(d.amount) || 0} USDT): ${d.admin_note || 'Security Review'}`
-              : `Withdrawal Request to ${(d.recipient_address || '').slice(0, 8)}... - Pending Admin Review`,
+              ? `Withdrawal Refunded (+${parseFloat(d.amount) || 0} USDT): ${d.admin_note || 'Verification'}`
+              : `Withdrawal Request to ${(d.recipient_address || '').slice(0, 8)}... - Pending Verification`,
             referenceId: refId,
             createdAt: d.created_at || new Date().toISOString(),
             address: d.recipient_address,
@@ -919,7 +984,7 @@ export const walletService = {
       const { data: rpcRes, error: rpcErr } = await supabase.rpc('approve_deposit_request', {
         p_deposit_id: txId,
         p_admin_id: 'admin',
-        p_remarks: adminRemarks || 'Deposit verified and credited by Admin'
+        p_remarks: adminRemarks || 'Deposit verified and credited'
       });
       if (!rpcErr && rpcRes?.success) {
         rpcSuccess = true;
@@ -944,7 +1009,7 @@ export const walletService = {
       // 2. Mark deposit as APPROVED in deposits table
       await supabase.from('deposits').update({
         status: 'APPROVED',
-        admin_note: adminRemarks || 'Deposit verified and credited by Admin',
+        admin_note: adminRemarks || 'Deposit verified and credited',
         updated_at: new Date().toISOString()
       }).eq('id', txId);
 
@@ -995,21 +1060,59 @@ export const walletService = {
       description: `USDT Deposit Verified & Approved (+${depositAmount} USDT credited)`,
       referenceId: `DEP-${txId.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
       createdAt: new Date().toISOString(),
-      adminRemarks: adminRemarks || 'Deposit verified and credited by Admin'
+      adminRemarks: adminRemarks || 'Deposit verified and credited'
     };
 
     // Award direct referral sponsor bonus to the owner of the referral link
     let awardedSponsorBonus = 0;
     try {
       const allUsers = authService.getAllUsers();
-      const depUser = allUsers.find(u => u.id === depositUserId);
+      let depUser = allUsers.find(u => u.id === depositUserId);
+      if (!depUser && isValidUuid(depositUserId)) {
+        const { data: prof } = await supabase.from('profiles').select('*').eq('id', depositUserId).maybeSingle();
+        if (prof) {
+          depUser = {
+            id: prof.id,
+            name: prof.name,
+            username: prof.username,
+            email: prof.email,
+            referralCode: prof.referral_code,
+            referredBy: prof.referred_by_code || undefined,
+            level: prof.level || 1,
+            status: prof.status || 'ACTIVE',
+            kycStatus: prof.kyc_status || 'NOT_SUBMITTED',
+            createdAt: prof.created_at
+          };
+        }
+      }
+
       if (depUser?.referredBy) {
         const refClean = depUser.referredBy.trim().toLowerCase();
-        const sponsorUser = allUsers.find(
+        let sponsorUser = allUsers.find(
           u => (u.referralCode && u.referralCode.toLowerCase() === refClean) ||
                (u.username && u.username.toLowerCase() === refClean) ||
                (u.id && u.id.toLowerCase() === refClean)
         );
+
+        if (!sponsorUser) {
+          const { data: spProf } = await supabase.from('profiles').select('*')
+            .or(`referral_code.ilike.${refClean},username.ilike.${refClean}`)
+            .maybeSingle();
+          if (spProf) {
+            sponsorUser = {
+              id: spProf.id,
+              name: spProf.name,
+              username: spProf.username,
+              email: spProf.email,
+              referralCode: spProf.referral_code,
+              referredBy: spProf.referred_by_code || undefined,
+              level: spProf.level || 1,
+              status: spProf.status || 'ACTIVE',
+              kycStatus: spProf.kyc_status || 'NOT_SUBMITTED',
+              createdAt: spProf.created_at
+            };
+          }
+        }
 
         if (sponsorUser && sponsorUser.id !== depositUserId) {
           // Calculate bonus based on deposit slabs
@@ -1035,6 +1138,24 @@ export const walletService = {
                 refBonusId,
                 `Direct Referral Deposit Bonus (+${slabBonus} USDT) from @${depUser.username || 'user'}`
               );
+
+              // Also persist/update Supabase referrals table if connected
+              if (isValidUuid(sponsorUser.id) && isValidUuid(depositUserId)) {
+                try {
+                  await supabase.from('referrals').upsert({
+                    referrer_id: sponsorUser.id,
+                    referee_id: depositUserId,
+                    referral_code: sponsorUser.referralCode || depUser.referredBy,
+                    has_deposited: true,
+                    deposit_amount_usdt: depositAmount,
+                    reward_amount_usdt: slabBonus,
+                    status: 'COMPLETED',
+                    completed_at: new Date().toISOString()
+                  }, { onConflict: 'referrer_id,referee_id' });
+                } catch {
+                  // silent fallback
+                }
+              }
             }
           }
         }
@@ -1065,7 +1186,7 @@ export const walletService = {
       const { data: rpcRes, error: rpcErr } = await supabase.rpc('reject_deposit_request', {
         p_deposit_id: txId,
         p_admin_id: 'admin',
-        p_remarks: adminRemarks || 'Deposit rejected by Admin'
+        p_remarks: adminRemarks || 'Deposit verification rejected'
       });
 
       if (!rpcErr && rpcRes?.success) {
@@ -1087,7 +1208,7 @@ export const walletService = {
         // 2. Mark deposit as REJECTED in deposits table
         await supabase.from('deposits').update({
           status: 'REJECTED',
-          admin_note: adminRemarks || 'Deposit rejected by Admin',
+          admin_note: adminRemarks || 'Deposit verification rejected',
           updated_at: new Date().toISOString()
         }).eq('id', txId);
 
@@ -1151,7 +1272,7 @@ export const walletService = {
       const { data: rpcRes, error: rpcErr } = await supabase.rpc('approve_withdrawal_request', {
         p_withdrawal_id: txId,
         p_admin_id: 'admin',
-        p_remarks: adminRemarks || 'Withdrawal dispatched by Admin'
+        p_remarks: adminRemarks || 'Withdrawal dispatched to blockchain'
       });
 
       if (!rpcErr && rpcRes?.success) {
@@ -1173,7 +1294,7 @@ export const walletService = {
         // 2. Mark withdrawal as APPROVED in withdrawals table
         await supabase.from('withdrawals').update({
           status: 'APPROVED',
-          admin_note: adminRemarks || 'Withdrawal dispatched by Admin',
+          admin_note: adminRemarks || 'Withdrawal dispatched to blockchain',
           updated_at: new Date().toISOString()
         }).eq('id', txId);
 
@@ -1237,7 +1358,7 @@ export const walletService = {
       const { data: rpcRes, error: rpcErr } = await supabase.rpc('reject_withdrawal_request', {
         p_withdrawal_id: txId,
         p_admin_id: 'admin',
-        p_remarks: adminRemarks || 'Withdrawal rejected and refunded by Admin'
+        p_remarks: adminRemarks || 'Withdrawal rejected and refunded'
       });
 
       if (!rpcErr && rpcRes?.success) {
@@ -1260,7 +1381,7 @@ export const walletService = {
         // 2. Mark withdrawal as REJECTED in withdrawals table
         await supabase.from('withdrawals').update({
           status: 'REJECTED',
-          admin_note: adminRemarks || 'Withdrawal rejected and refunded by Admin',
+          admin_note: adminRemarks || 'Withdrawal rejected and refunded',
           updated_at: new Date().toISOString()
         }).eq('id', txId);
 
@@ -1302,7 +1423,7 @@ export const walletService = {
       amount: refundedAmount,
       currency: 'USDT',
       status: 'REJECTED' as TransactionStatus,
-      description: `Withdrawal Rejected by Admin (Refunded ${refundedAmount} USDT)`,
+      description: `Withdrawal Refunded (+${refundedAmount} USDT)`,
       referenceId: `WTH-${txId.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
       createdAt: new Date().toISOString(),
       adminRemarks

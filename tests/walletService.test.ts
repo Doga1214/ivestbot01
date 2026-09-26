@@ -1,5 +1,5 @@
 import { assert, TestRunner } from './testHelper.ts';
-import { walletService, type WalletState, type WalletRestrictions } from '../src/services/walletService.ts';
+import { walletService, type WalletRestrictions } from '../src/services/walletService.ts';
 
 export async function runWalletServiceTests(runner: TestRunner) {
   runner.suite('Services - WalletService');
@@ -176,4 +176,30 @@ export async function runWalletServiceTests(runner: TestRunner) {
     assert.strictEqual(scan.isClean, true);
     assert.strictEqual(scan.healthScore, 100);
   });
+
+  await runner.test('Zero-Drop Balance Shield: preserves positive local balance and prevents zero-out overwrite', async () => {
+    localStorage.clear();
+    const userId = 'user-zero-drop-test';
+
+    // Local user has accumulated 250 USDT
+    walletService.saveWalletForUser(userId, {
+      totalBalance: 250,
+      availableBalance: 250,
+      pendingBalance: 0,
+      currency: 'USDT',
+      status: 'ACTIVE',
+      restrictions: { canDeposit: true, canWithdraw: true, canReserve: true, canTrade: true }
+    });
+
+    // Simulate Supabase sync when remote returns null/empty or stale 0
+    const synced = await walletService.syncWalletFromSupabase(userId);
+    assert.ok(synced);
+    assert.strictEqual(synced?.availableBalance, 250, 'Available balance must remain 250 and not drop to 0');
+    assert.strictEqual(synced?.totalBalance, 250, 'Total balance must remain 250');
+
+    // Verify local storage is still intact
+    const postSync = walletService.getWalletForUser(userId);
+    assert.strictEqual(postSync.availableBalance, 250);
+  });
 }
+

@@ -13,20 +13,23 @@ import { Admin } from './pages/Admin';
 import { LoginModal } from './components/auth/LoginModal';
 import { RegisterModal } from './components/auth/RegisterModal';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { FloatingSpinLauncher } from './components/common/FloatingSpinLauncher';
+import { authService } from './services/authService';
 import './App.css';
 
 // Protected Route Guard
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, openLoginModal } = useApp();
   const location = useLocation();
+  const hasUserSession = isAuthenticated || !!authService.getCurrentUser();
 
   React.useEffect(() => {
-    if (!isAuthenticated) {
+    if (!hasUserSession) {
       openLoginModal();
     }
-  }, [isAuthenticated, openLoginModal, location]);
+  }, [hasUserSession, openLoginModal, location]);
 
-  if (!isAuthenticated) {
+  if (!hasUserSession) {
     return <Navigate to="/" replace />;
   }
 
@@ -81,6 +84,7 @@ const AppContent: React.FC = () => {
               </ProtectedRoute>
             }
           />
+          <Route path="/referral" element={<Navigate to="/referrals" replace />} />
           <Route
             path="/profile"
             element={
@@ -99,6 +103,7 @@ const AppContent: React.FC = () => {
       {/* Global Modals */}
       <LoginModal />
       <RegisterModal />
+      <FloatingSpinLauncher />
 
       {/* Global Notification Toast */}
       <Snackbar

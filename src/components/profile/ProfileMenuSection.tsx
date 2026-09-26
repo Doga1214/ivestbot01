@@ -29,6 +29,9 @@ import {
 } from '../common/Icons';
 import { useApp } from '../../context/AppContext';
 import { authService } from '../../services/authService';
+import { LuckySpinModal } from '../spin/LuckySpinModal';
+import { Sparkles } from 'lucide-react';
+import { luckySpinService } from '../../services/luckySpinService';
 
 export const ProfileMenuSection: React.FC = () => {
   const { user, updateUserProfile, showSnackbar } = useApp();
@@ -38,6 +41,7 @@ export const ProfileMenuSection: React.FC = () => {
   const [learnOpen, setLearnOpen] = useState(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
+  const [luckySpinOpen, setLuckySpinOpen] = useState(false);
 
   // Settings form state
   const [editName, setEditName] = useState(user?.name || '');
@@ -112,7 +116,18 @@ export const ProfileMenuSection: React.FC = () => {
     setSettingsOpen(false);
   };
 
+  const spinState = user?.id ? luckySpinService.getUserSpinState(user.id) : null;
+  const hasSpins = (spinState?.availableSpins || 0) > 0 || spinState?.canClaimDailySpin;
+
   const menuItems = [
+    {
+      id: 'lucky-spin',
+      label: 'Lucky Spin & Daily Rewards',
+      badge: hasSpins ? (spinState?.availableSpins ? `${spinState.availableSpins} Spins` : 'FREE') : undefined,
+      icon: <Sparkles style={{ color: '#F59E0B', width: 22, height: 22 }} />,
+      onClick: () => setLuckySpinOpen(true),
+      highlight: true
+    },
     {
       id: 'settings',
       label: 'Settings',
@@ -187,12 +202,27 @@ export const ProfileMenuSection: React.FC = () => {
             >
               {item.icon}
             </Box>
-            <Typography variant="body1" sx={{ fontWeight: 800, color: '#ffffff', fontSize: '1rem' }}>
+            <Typography variant="body1" sx={{ fontWeight: 800, color: item.highlight ? '#FEF08A' : '#ffffff', fontSize: '1rem' }}>
               {item.label}
             </Typography>
           </Box>
 
-          <ChevronRightIcon sx={{ color: '#9CA3AF', fontSize: 22 }} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {item.badge && (
+              <Chip
+                label={item.badge}
+                size="small"
+                sx={{
+                  bgcolor: '#F59E0B',
+                  color: '#0F172A',
+                  fontWeight: 900,
+                  fontSize: '0.72rem',
+                  height: '22px'
+                }}
+              />
+            )}
+            <ChevronRightIcon sx={{ color: '#9CA3AF', fontSize: 22 }} />
+          </Box>
         </Paper>
       ))}
 
@@ -612,6 +642,15 @@ export const ProfileMenuSection: React.FC = () => {
           </Typography>
         </DialogContent>
       </Dialog>
+
+      {user?.id && (
+        <LuckySpinModal
+          isOpen={luckySpinOpen}
+          onClose={() => setLuckySpinOpen(false)}
+          userId={user.id}
+          userLevel={user.level || 1}
+        />
+      )}
     </Box>
   );
 };
