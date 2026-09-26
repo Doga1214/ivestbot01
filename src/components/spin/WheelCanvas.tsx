@@ -75,6 +75,8 @@ export const WheelCanvas = forwardRef<WheelCanvasRef, WheelCanvasProps>(({
   const [rotation, setRotation] = useState<number>(0);
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
   const [activeLed, setActiveLed] = useState<number>(0);
+  const rotationRef = useRef<number>(0);
+  const isSpinningRef = useRef<boolean>(false);
   const lastTickAngleRef = useRef<number>(0);
   const animRef = useRef<number | null>(null);
 
@@ -83,60 +85,77 @@ export const WheelCanvas = forwardRef<WheelCanvasRef, WheelCanvasProps>(({
   const radius = size / 2;
   const center = radius;
 
+  // Keep refs synced
+  rotationRef.current = rotation;
+  isSpinningRef.current = isSpinning;
+
   // LED lights blinking animation around the rim
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveLed((prev) => (prev + 1) % 16);
-    }, isSpinning ? 70 : 400);
+    }, isSpinning ? 60 : 400);
     return () => clearInterval(interval);
   }, [isSpinning]);
 
   useImperativeHandle(ref, () => ({
-    isSpinning,
+    get isSpinning() {
+      return isSpinningRef.current;
+    },
     spinToSlice: (targetSliceIndex: number, onComplete: () => void) => {
-      if (isSpinning) return;
+      if (isSpinningRef.current) return;
       setIsSpinning(true);
+      isSpinningRef.current = true;
       if (onSpinStart) onSpinStart();
 
       // Physics Calculation:
-      const fullRotations = 5 + Math.floor(Math.random() * 3); // 5 to 7 full 360° spins
+      // Slice idx center is at (idx + 0.5) * sliceAngle - 90 deg.
+      // Top pointer is at -90 deg.
+      // Target rotation angle mod 360 to align slice center with top pointer:
       const sliceCenter = (targetSliceIndex + 0.5) * sliceAngle;
-      
-      // Add slight jitter inside the slice (+/- 30% of slice width) for organic randomness
-      const jitter = (Math.random() - 0.5) * (sliceAngle * 0.45);
-      const targetAngle = (360 - sliceCenter + jitter);
+      // Slight organic jitter (+/- 25% of half-slice width)
+      const jitter = (Math.random() - 0.5) * (sliceAngle * 0.35);
+      const targetAngleIn360 = (360 - sliceCenter + jitter + 360) % 360;
 
-      const startAngle = rotation % 360;
-      const totalDelta = (fullRotations * 360) + (targetAngle - startAngle + 360) % 360;
-      const finalRotation = rotation + totalDelta;
+      const currentRot = rotationRef.current;
+      const currentAngleIn360 = ((currentRot % 360) + 360) % 360;
 
-      const durationMs = 5200;
+      // Distance clockwise to reach target angle
+      const forwardDistance = (targetAngleIn360 - currentAngleIn360 + 360) % 360;
+      const fullRotations = 5 + Math.floor(Math.random() * 2); // 5 to 6 full 360° spins
+      const totalDelta = (fullRotations * 360) + forwardDistance;
+      const finalRotation = currentRot + totalDelta;
+
+      const durationMs = 3800; // Snappy, exciting 3.8s spin
       const startTime = performance.now();
-      lastTickAngleRef.current = rotation;
+      lastTickAngleRef.current = currentRot;
 
       const easeOutCubic = (t: number) => {
-        return 1 - Math.pow(1 - t, 3.5);
+        return 1 - Math.pow(1 - t, 3.8);
       };
 
       const animate = (now: number) => {
         const elapsed = now - startTime;
         const progress = Math.min(1, elapsed / durationMs);
         const easedProgress = easeOutCubic(progress);
-        const currentRot = rotation + totalDelta * easedProgress;
+        const currentAnimRot = currentRot + totalDelta * easedProgress;
 
-        setRotation(currentRot);
+        rotationRef.current = currentAnimRot;
+        setRotation(currentAnimRot);
 
         // Sound ticker check
-        if (Math.abs(currentRot - lastTickAngleRef.current) >= (sliceAngle / 1.5)) {
+        if (Math.abs(currentAnimRot - lastTickAngleRef.current) >= (sliceAngle / 1.6)) {
           playMechanicalTick();
-          lastTickAngleRef.current = currentRot;
+          lastTickAngleRef.current = currentAnimRot;
         }
 
         if (progress < 1) {
           animRef.current = requestAnimationFrame(animate);
         } else {
+          rotationRef.current = finalRotation;
           setRotation(finalRotation);
           setIsSpinning(false);
+          isSpinningRef.current = false;
+          
           const targetSlice = slices[targetSliceIndex];
           const isLoss = targetSlice?.prizeType === 'LOSS' || targetSlice?.prizeType === 'TRY_AGAIN';
           if (!isLoss) {
@@ -149,6 +168,7 @@ export const WheelCanvas = forwardRef<WheelCanvasRef, WheelCanvasProps>(({
       animRef.current = requestAnimationFrame(animate);
     }
   }));
+
 
   useEffect(() => {
     return () => {

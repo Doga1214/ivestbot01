@@ -119,9 +119,12 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
     }
 
     try {
-      // 1. Calculate outcome server/service-side
+      // 1. Calculate outcome server/service-side & debit stake
       const result = await luckySpinService.executeSpin(userId, userLevel, stake);
       setIsSpinning(true);
+      if (typeof result.newBalance === 'number') {
+        setWalletBalance(result.newBalance);
+      }
 
       // 2. Animate wheel to the winning slice
       wheelRef.current?.spinToSlice(result.sliceIndex, () => {
@@ -145,6 +148,7 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
       }
     }
   };
+
 
 
   if (!isOpen) return null;

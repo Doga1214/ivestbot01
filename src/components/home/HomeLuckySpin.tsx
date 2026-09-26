@@ -131,6 +131,9 @@ export const HomeLuckySpin: React.FC = () => {
     try {
       const result = await luckySpinService.executeSpin(user.id, (user as any).level || 1, stake);
       setIsSpinning(true);
+      if (typeof result.newBalance === 'number') {
+        setWalletBalance(result.newBalance);
+      }
 
       wheelRef.current?.spinToSlice(result.sliceIndex, () => {
         setIsSpinning(false);
