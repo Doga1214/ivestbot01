@@ -34,15 +34,15 @@ export const DEFAULT_SPIN_SLICES: SpinSlice[] = [
   {
     id: 'slice-1',
     sliceIndex: 1,
-    label: 'Better Luck!',
+    label: '2x Loss',
     sublabel: 'No Win (Loss)',
     prizeType: 'LOSS',
     prizeValue: 0,
     weight: 300,
-    colorBg: '#1E1B4B',
-    colorText: '#94A3B8',
-    accentColor: '#64748B',
-    iconName: 'RotateCcw',
+    colorBg: '#2D1517',
+    colorText: '#F87171',
+    accentColor: '#EF4444',
+    iconName: 'TrendingDown',
     isJackpot: false
   },
   {
@@ -156,7 +156,6 @@ export const DEFAULT_ADMIN_CONFIG: SpinAdminConfig = {
 };
 
 
-
 class LuckySpinService {
   private slices: SpinSlice[] = [];
   private adminConfig: SpinAdminConfig = DEFAULT_ADMIN_CONFIG;
@@ -182,7 +181,15 @@ class LuckySpinService {
     try {
       const savedSlices = storage.getItem(STORAGE_KEYS.SLICES);
       if (savedSlices) {
-        this.slices = this.computeSliceProbabilities(JSON.parse(savedSlices));
+        let parsedSlices: SpinSlice[] = JSON.parse(savedSlices);
+        // Auto-migrate legacy 'Better Luck!' label to '2x Loss'
+        parsedSlices = parsedSlices.map((s) =>
+          s.label === 'Better Luck!'
+            ? { ...s, label: '2x Loss', colorBg: '#2D1517', colorText: '#F87171', accentColor: '#EF4444' }
+            : s
+        );
+        this.slices = this.computeSliceProbabilities(parsedSlices);
+        this.saveSlices(this.slices);
       } else {
         this.slices = this.computeSliceProbabilities(DEFAULT_SPIN_SLICES);
         this.saveSlices(this.slices);
@@ -200,6 +207,7 @@ class LuckySpinService {
       this.adminConfig = DEFAULT_ADMIN_CONFIG;
     }
   }
+
 
   public computeSliceProbabilities(slices: SpinSlice[]): SpinSlice[] {
     const totalWeight = slices.reduce((sum, s) => sum + Math.max(0, s.weight), 0);

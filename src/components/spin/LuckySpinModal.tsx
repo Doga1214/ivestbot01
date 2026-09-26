@@ -754,7 +754,7 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
               }}
             >
               {!currentWin.isWin
-                ? 'BETTER LUCK NEXT TIME!'
+                ? 'SPIN RESULT: LOSS'
                 : currentWin.slice.isJackpot
                 ? '🌟 MEGA JACKPOT UNLOCKED! 🌟'
                 : 'CONGRATULATIONS!'}
@@ -770,8 +770,9 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                 letterSpacing: '0.5px'
               }}
             >
-              {!currentWin.isWin ? 'No Win (Loss)' : currentWin.prizeText}
+              {!currentWin.isWin ? currentWin.slice.label || '2x Loss' : currentWin.prizeText}
             </div>
+
 
             {/* Description */}
             <div style={{ fontSize: '13px', color: '#94A3B8', maxWidth: '320px', marginBottom: '24px' }}>

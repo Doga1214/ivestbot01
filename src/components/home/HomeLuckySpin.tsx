@@ -861,7 +861,7 @@ export const HomeLuckySpin: React.FC = () => {
                 }}
               >
                 {!currentWin.isWin
-                  ? 'BETTER LUCK NEXT TIME!'
+                  ? 'SPIN RESULT: LOSS'
                   : currentWin.slice.isJackpot
                   ? '🌟 MEGA JACKPOT UNLOCKED! 🌟'
                   : '🎉 CONGRATULATIONS! 🎉'}
@@ -875,8 +875,9 @@ export const HomeLuckySpin: React.FC = () => {
                   my: 1.5
                 }}
               >
-                {!currentWin.isWin ? 'No Win (Loss)' : currentWin.prizeText}
+                {!currentWin.isWin ? currentWin.slice.label || '2x Loss' : currentWin.prizeText}
               </Typography>
+
 
               <Typography variant="body2" sx={{ color: '#94A3B8', mb: 3.5, lineHeight: 1.6 }}>
                 {!currentWin.isWin ? (
