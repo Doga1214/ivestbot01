@@ -549,7 +549,8 @@ class LuckySpinService {
   }
 
   /**
-   * Execute Spin: server-authoritative outcome calculation, balance deduction, wallet credit, and ledger recording
+   * Execute Spin: server-authoritative outcome calculation, balance deduction, wallet credit, and ledger recording.
+   * Direct USDT Stake Model: No free ticket limit, users can spin unlimited times by staking USDT.
    */
   public async executeSpin(userId: string, userLevel: number = 1, betAmount: number = 1): Promise<SpinResult> {
     if (!this.adminConfig.isWheelActive) {
@@ -562,28 +563,19 @@ class LuckySpinService {
 
     let state = this.getUserSpinState(userId, userLevel);
 
-    // Auto-claim daily spin if eligible
-    if (state.availableSpins <= 0 && state.canClaimDailySpin) {
-      state = this.claimDailySpin(userId, userLevel);
-    }
-
-    if (state.availableSpins <= 0) {
-      throw new Error('No spin tickets available! Come back tomorrow or invite friends to earn free spins.');
-    }
-
     // Check user available balance for the required activation stake
     const currentWallet = walletService.getWalletForUser(userId);
     const availableBal = currentWallet.availableBalance || 0;
     if (availableBal < stake) {
       throw new Error(
-        `Insufficient wallet balance! You need at least $${stake.toFixed(2)} USDT available (1 - 100 USDT) to activate and spin the wheel.`
+        `Insufficient wallet balance! You need at least $${stake.toFixed(2)} USDT available (1 - 100 USDT) to spin the wheel.`
       );
     }
 
-    // 1. Deduct 1 spin ticket and record stake in user state
-    state.availableSpins -= 1;
-    state.lifetimeSpinsCount += 1;
+    // 1. Record spin count and stake in user state
+    state.lifetimeSpinsCount = (state.lifetimeSpinsCount || 0) + 1;
     state.totalBetUsdt = (state.totalBetUsdt || 0) + stake;
+
 
     // 2. Deduct activation stake (1 - 100 USDT) from wallet
     const afterBetAvailable = Number(Math.max(0, availableBal - stake).toFixed(4));

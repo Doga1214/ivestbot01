@@ -491,7 +491,7 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                 </div>
               </div>
 
-              {/* Available Spins Badge & Cooldown */}
+              {/* User Live Balance & Unlimited Spin Info */}
               <div
                 style={{
                   display: 'flex',
@@ -506,102 +506,58 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 500 }}>Available Tickets</div>
+                  <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 500 }}>Available Balance</div>
                   <div style={{ fontSize: '16px', fontWeight: 800, color: '#FEF08A' }}>
-                    {spinState?.availableSpins || 0} <span style={{ fontSize: '11px', color: '#CBD5E1' }}>Spins</span>
+                    ${walletBalance.toFixed(2)} <span style={{ fontSize: '11px', color: '#CBD5E1' }}>USDT</span>
                   </div>
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 500 }}>Next Free Spin</div>
-                  <div style={{ fontSize: '12.5px', fontWeight: 700, color: countdownStr ? '#38BDF8' : '#22C55E' }}>
-                    {countdownStr ? (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Clock size={12} /> {countdownStr}
-                      </span>
-                    ) : (
-                      'Available Now!'
-                    )}
+                  <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 500 }}>Spin Limit</div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#38BDF8' }}>
+                    ⚡ Unlimited Multi-Spins
                   </div>
                 </div>
               </div>
 
-              {/* Action Button: SPIN or CLAIM DAILY */}
-              {spinState && spinState.availableSpins > 0 ? (
-                <button
-                  onClick={handleStartSpin}
-                  disabled={isSpinning || walletBalance < betAmount}
-                  style={{
-                    width: '100%',
-                    padding: '14px 20px',
-                    borderRadius: '14px',
-                    border: 'none',
-                    background: isSpinning
-                      ? 'linear-gradient(135deg, #64748B 0%, #475569 100%)'
-                      : walletBalance < betAmount
-                      ? 'linear-gradient(135deg, #475569 0%, #334155 100%)'
-                      : 'linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #B45309 100%)',
-                    color: isSpinning || walletBalance < betAmount ? '#CBD5E1' : '#0F172A',
-                    fontSize: '15px',
-                    fontWeight: 900,
-                    letterSpacing: '0.8px',
-                    cursor: isSpinning || walletBalance < betAmount ? 'not-allowed' : 'pointer',
-                    boxShadow: isSpinning || walletBalance < betAmount ? 'none' : '0 10px 25px -5px rgba(245, 158, 11, 0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    transition: 'all 0.2s ease',
-                    transform: isSpinning ? 'scale(0.98)' : 'scale(1)'
-                  }}
-                >
-                  <RotateCw size={18} className={isSpinning ? 'spin-anim' : ''} />
-                  {isSpinning
-                    ? 'SPINNING THE WHEEL...'
+              {/* Direct Instant Spin Action Button */}
+              <button
+                onClick={handleStartSpin}
+                disabled={isSpinning || walletBalance < betAmount}
+                style={{
+                  width: '100%',
+                  padding: '14px 20px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  background: isSpinning
+                    ? 'linear-gradient(135deg, #64748B 0%, #475569 100%)'
                     : walletBalance < betAmount
-                    ? `INSUFFICIENT BALANCE ($${betAmount} USDT NEEDED)`
-                    : `SPIN & ACTIVATE ($${betAmount} USDT)`}
-                </button>
-              ) : spinState && spinState.canClaimDailySpin ? (
-                <button
-                  onClick={handleClaimDaily}
-                  style={{
-                    width: '100%',
-                    padding: '14px 20px',
-                    borderRadius: '14px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                    color: '#FFFFFF',
-                    fontSize: '15px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.4)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  <Gift size={18} /> CLAIM TODAY&apos;S FREE SPIN
-                </button>
-              ) : (
-                <div
-                  style={{
-                    width: '100%',
-                    textAlign: 'center',
-                    padding: '12px',
-                    borderRadius: '14px',
-                    backgroundColor: 'rgba(30, 41, 59, 0.5)',
-                    border: '1px dashed #475569',
-                    fontSize: '12px',
-                    color: '#94A3B8'
-                  }}
-                >
-                  No spins remaining. Invite friends through your Referral Link to get +1 ticket per active member!
-                </div>
-              )}
+                    ? 'linear-gradient(135deg, #475569 0%, #334155 100%)'
+                    : 'linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #B45309 100%)',
+                  color: isSpinning || walletBalance < betAmount ? '#CBD5E1' : '#0F172A',
+                  fontSize: '15px',
+                  fontWeight: 900,
+                  letterSpacing: '0.8px',
+                  cursor: isSpinning || walletBalance < betAmount ? 'not-allowed' : 'pointer',
+                  boxShadow: isSpinning || walletBalance < betAmount ? 'none' : '0 10px 25px -5px rgba(245, 158, 11, 0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s ease',
+                  transform: isSpinning ? 'scale(0.98)' : 'scale(1)'
+                }}
+              >
+                <RotateCw size={18} className={isSpinning ? 'spin-anim' : ''} />
+                {isSpinning
+                  ? 'SPINNING THE WHEEL...'
+                  : walletBalance < betAmount
+                  ? `INSUFFICIENT BALANCE ($${betAmount} USDT NEEDED)`
+                  : `SPIN & WIN (-$${betAmount} USDT)`}
+              </button>
             </div>
           )}
+
 
           {activeTab === 'history' && (
             <div>

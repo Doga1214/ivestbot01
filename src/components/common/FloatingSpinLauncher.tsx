@@ -27,8 +27,6 @@ export const FloatingSpinLauncher: React.FC = () => {
 
   if (!user?.id) return null;
 
-  const hasRewardToClaim = availableSpins > 0 || canClaimDaily;
-
   return (
     <>
       <div
@@ -56,35 +54,12 @@ export const FloatingSpinLauncher: React.FC = () => {
             transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
             position: 'relative'
           }}
-          title="Lucky Spin Wheel"
+          title="Lucky Spin Wheel (USDT)"
         >
           <Sparkles size={26} color="#0F172A" />
-
-          {/* Badge indicator */}
-          {hasRewardToClaim && (
-            <span
-              style={{
-                position: 'absolute',
-                top: '-4px',
-                right: '-4px',
-                background: '#EF4444',
-                color: '#FFFFFF',
-                fontSize: '10px',
-                fontWeight: 800,
-                padding: '2px 6px',
-                borderRadius: '10px',
-                border: '1.5px solid #0F172A',
-                boxShadow: '0 2px 5px rgba(0,0,0,0.5)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px'
-              }}
-            >
-              {canClaimDaily && availableSpins === 0 ? 'FREE' : availableSpins}
-            </span>
-          )}
         </button>
       </div>
+
 
       <LuckySpinModal
         isOpen={isOpen}

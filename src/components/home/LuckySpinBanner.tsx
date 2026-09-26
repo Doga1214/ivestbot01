@@ -58,7 +58,7 @@ export const LuckySpinBanner: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
               <Chip
                 icon={<Sparkles size={14} color="#0F172A" />}
-                label="DAILY REWARD DRAW"
+                label="LUCKY WHEEL DRAW"
                 size="small"
                 sx={{
                   bgcolor: '#F59E0B',
@@ -69,7 +69,7 @@ export const LuckySpinBanner: React.FC = () => {
                 }}
               />
               <Chip
-                label="100% Free to Play"
+                label="Instant USDT Multi-Spins"
                 size="small"
                 variant="outlined"
                 sx={{ borderColor: 'rgba(56, 189, 248, 0.4)', color: '#38BDF8', fontSize: '0.72rem', fontWeight: 600 }}
@@ -86,13 +86,13 @@ export const LuckySpinBanner: React.FC = () => {
                 mb: 1.5
               }}
             >
-              Spin the <span style={{ color: '#FBBF24' }}>Lucky Wheel</span> & Win Cash Prizes Daily
+              Spin the <span style={{ color: '#FBBF24' }}>Lucky Wheel</span> & Win Up To 50x Cash Prizes
             </Typography>
 
             <Typography variant="body2" sx={{ color: '#94A3B8', fontSize: '0.95rem', lineHeight: 1.6, mb: 3 }}>
-              Claim 1 free spin every 24 hours. Win instant <strong style={{ color: '#22C55E' }}>USDT cash credits</strong>,
+              Stake USDT (1 - 100 USDT) and spin multiple times without limits! Win instant <strong style={{ color: '#22C55E' }}>USDT cash multipliers</strong>,
               24-hour <strong style={{ color: '#38BDF8' }}>APR yield boosters</strong>, or the coveted{' '}
-              <strong style={{ color: '#F59E0B' }}>100 USDT Mega Jackpot</strong>!
+              <strong style={{ color: '#F59E0B' }}>50x Mega Jackpot</strong>!
             </Typography>
 
             <Button
@@ -118,9 +118,10 @@ export const LuckySpinBanner: React.FC = () => {
               }}
             >
               <Gift size={20} />
-              {hasSpins ? 'Spin Your Free Wheel Now' : 'Open Lucky Wheel'}
+              Spin Lucky Wheel (USDT)
               <ArrowRight size={18} />
             </Button>
+
           </Box>
 
           {/* Right: Wheel Miniature Graphic */}

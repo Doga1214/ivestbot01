@@ -122,12 +122,13 @@ export const ProfileMenuSection: React.FC = () => {
   const menuItems = [
     {
       id: 'lucky-spin',
-      label: 'Lucky Spin & Daily Rewards',
-      badge: hasSpins ? (spinState?.availableSpins ? `${spinState.availableSpins} Spins` : 'FREE') : undefined,
+      label: 'Lucky Spin Wheel (USDT)',
+      badge: '50x Win',
       icon: <Sparkles style={{ color: '#F59E0B', width: 22, height: 22 }} />,
       onClick: () => setLuckySpinOpen(true),
       highlight: true
     },
+
     {
       id: 'settings',
       label: 'Settings',

@@ -435,7 +435,7 @@ export const HomeLuckySpin: React.FC = () => {
                 </Box>
               </Box>
 
-              {/* Available Tickets Counter & Next Spin Timer */}
+              {/* User Live Balance & Unlimited Spin Info */}
               <Box
                 sx={{
                   display: 'flex',
@@ -451,36 +451,30 @@ export const HomeLuckySpin: React.FC = () => {
               >
                 <Box>
                   <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600 }}>
-                    Available Tickets
+                    Available Balance
                   </Typography>
                   <Typography variant="h6" sx={{ fontWeight: 900, color: '#FEF08A', lineHeight: 1.1 }}>
-                    {user ? spinState?.availableSpins || 0 : 1}{' '}
-                    <span style={{ fontSize: '0.8rem', color: '#CBD5E1', fontWeight: 500 }}>Spins</span>
+                    ${walletBalance.toFixed(2)}{' '}
+                    <span style={{ fontSize: '0.8rem', color: '#CBD5E1', fontWeight: 500 }}>USDT</span>
                   </Typography>
                 </Box>
 
                 <Box sx={{ textAlign: 'right' }}>
                   <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600 }}>
-                    Next Free Spin
+                    Spin Mode
                   </Typography>
                   <Typography
                     variant="subtitle2"
                     sx={{
                       fontWeight: 800,
-                      color: countdownStr ? '#38BDF8' : '#22C55E',
+                      color: '#38BDF8',
                       display: 'flex',
                       alignItems: 'center',
                       gap: 0.5,
                       justifyContent: 'flex-end'
                     }}
                   >
-                    {countdownStr ? (
-                      <>
-                        <Clock size={14} /> {countdownStr}
-                      </>
-                    ) : (
-                      'Available Now!'
-                    )}
+                    ⚡ Unlimited Multi-Spins
                   </Typography>
                 </Box>
               </Box>
@@ -507,9 +501,9 @@ export const HomeLuckySpin: React.FC = () => {
                       }
                     }}
                   >
-                    <Lock size={18} /> Login To Spin Free & Win Cash
+                    <Lock size={18} /> Login To Spin & Win USDT
                   </Button>
-                ) : hasSpins ? (
+                ) : (
                   <Button
                     fullWidth
                     variant="contained"
@@ -541,47 +535,11 @@ export const HomeLuckySpin: React.FC = () => {
                       ? 'SPINNING THE WHEEL...'
                       : walletBalance < betAmount
                       ? `INSUFFICIENT BALANCE ($${betAmount} USDT NEEDED)`
-                      : `SPIN & ACTIVATE ($${betAmount} USDT)`}
+                      : `SPIN & WIN (-$${betAmount} USDT)`}
                   </Button>
-                ) : canClaim ? (
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    onClick={handleClaimDaily}
-                    sx={{
-                      py: 1.8,
-                      borderRadius: '16px',
-                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                      color: '#FFFFFF',
-                      fontWeight: 900,
-                      fontSize: '1.05rem',
-                      boxShadow: '0 10px 25px rgba(16, 185, 129, 0.4)',
-                      textTransform: 'none',
-                      gap: 1.5,
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #34D399 0%, #047857 100%)'
-                      }
-                    }}
-                  >
-                    <Gift size={20} /> CLAIM TODAY&apos;S FREE SPIN
-                  </Button>
-                ) : (
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: '14px',
-                      bgcolor: 'rgba(30, 41, 59, 0.6)',
-                      border: '1px dashed #475569',
-                      textAlign: 'center'
-                    }}
-                  >
-                    <Typography variant="body2" sx={{ color: '#94A3B8', fontSize: '0.85rem' }}>
-                      Next free spin unlocks in <strong style={{ color: '#38BDF8' }}>{countdownStr || '24h'}</strong>.
-                      Invite friends to get instant bonus spins!
-                    </Typography>
-                  </Box>
                 )}
               </Box>
+
             </Box>
           </Grid>
 
