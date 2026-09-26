@@ -8,21 +8,21 @@ import type {
 import { walletService } from './walletService';
 
 const STORAGE_KEYS = {
-  SLICES: 'ivestbot_spin_slices_v1',
-  USER_SPINS: 'ivestbot_user_spins_v1',
-  SPIN_HISTORY: 'ivestbot_spin_history_v1',
-  ADMIN_CONFIG: 'ivestbot_spin_admin_config_v1'
+  SLICES: 'ivestbot_spin_slices_v2',
+  USER_SPINS: 'ivestbot_user_spins_v2',
+  SPIN_HISTORY: 'ivestbot_spin_history_v2',
+  ADMIN_CONFIG: 'ivestbot_spin_admin_config_v2'
 };
 
 export const DEFAULT_SPIN_SLICES: SpinSlice[] = [
   {
     id: 'slice-0',
     sliceIndex: 0,
-    label: '0.50 USDT',
+    label: '1.5x Win',
     sublabel: 'Cash Prize',
     prizeType: 'USDT',
-    prizeValue: 0.50,
-    weight: 350,
+    prizeValue: 1.5,
+    weight: 260,
     colorBg: '#1E293B',
     colorText: '#F8FAFC',
     accentColor: '#38BDF8',
@@ -32,25 +32,25 @@ export const DEFAULT_SPIN_SLICES: SpinSlice[] = [
   {
     id: 'slice-1',
     sliceIndex: 1,
-    label: '+0.5% APR',
-    sublabel: '24h Yield Boost',
-    prizeType: 'APR_BOOST',
-    prizeValue: 0.50,
-    weight: 250,
-    colorBg: '#0F172A',
-    colorText: '#38BDF8',
-    accentColor: '#0EA5E9',
-    iconName: 'Zap',
+    label: 'Better Luck!',
+    sublabel: 'No Win (Loss)',
+    prizeType: 'LOSS',
+    prizeValue: 0,
+    weight: 300,
+    colorBg: '#1E1B4B',
+    colorText: '#94A3B8',
+    accentColor: '#64748B',
+    iconName: 'RotateCcw',
     isJackpot: false
   },
   {
     id: 'slice-2',
     sliceIndex: 2,
-    label: '1.00 USDT',
-    sublabel: 'Cash Prize',
+    label: '2.0x Win',
+    sublabel: 'Double Prize',
     prizeType: 'USDT',
-    prizeValue: 1.00,
-    weight: 180,
+    prizeValue: 2.0,
+    weight: 200,
     colorBg: '#1E293B',
     colorText: '#F8FAFC',
     accentColor: '#22C55E',
@@ -60,24 +60,38 @@ export const DEFAULT_SPIN_SLICES: SpinSlice[] = [
   {
     id: 'slice-3',
     sliceIndex: 3,
-    label: '+1 Spin',
-    sublabel: 'Extra Ticket',
-    prizeType: 'EXTRA_SPIN',
-    prizeValue: 1.00,
-    weight: 100,
+    label: '+0.5% APR',
+    sublabel: '24h Yield Boost',
+    prizeType: 'APR_BOOST',
+    prizeValue: 0.50,
+    weight: 150,
     colorBg: '#0F172A',
-    colorText: '#FBBF24',
-    accentColor: '#F59E0B',
-    iconName: 'RotateCw',
+    colorText: '#38BDF8',
+    accentColor: '#0EA5E9',
+    iconName: 'Zap',
     isJackpot: false
   },
   {
     id: 'slice-4',
     sliceIndex: 4,
-    label: '5.00 USDT',
+    label: '0 USDT',
+    sublabel: 'Try Again (Loss)',
+    prizeType: 'TRY_AGAIN',
+    prizeValue: 0,
+    weight: 250,
+    colorBg: '#2D1517',
+    colorText: '#F87171',
+    accentColor: '#EF4444',
+    iconName: 'XCircle',
+    isJackpot: false
+  },
+  {
+    id: 'slice-5',
+    sliceIndex: 5,
+    label: '5.0x Win',
     sublabel: 'Super Prize',
     prizeType: 'USDT',
-    prizeValue: 5.00,
+    prizeValue: 5.0,
     weight: 70,
     colorBg: '#1E293B',
     colorText: '#F8FAFC',
@@ -86,41 +100,27 @@ export const DEFAULT_SPIN_SLICES: SpinSlice[] = [
     isJackpot: false
   },
   {
-    id: 'slice-5',
-    sliceIndex: 5,
-    label: '10.00 USDT',
-    sublabel: 'Epic Win',
-    prizeType: 'USDT',
-    prizeValue: 10.00,
-    weight: 35,
-    colorBg: '#0F172A',
-    colorText: '#EC4899',
-    accentColor: '#F43F5E',
-    iconName: 'Trophy',
-    isJackpot: false
-  },
-  {
     id: 'slice-6',
     sliceIndex: 6,
-    label: '25.00 USDT',
+    label: '10x Win',
     sublabel: 'High Roller',
     prizeType: 'USDT',
-    prizeValue: 25.00,
-    weight: 12,
-    colorBg: '#1E293B',
-    colorText: '#F8FAFC',
+    prizeValue: 10.0,
+    weight: 25,
+    colorBg: '#0F172A',
+    colorText: '#EC4899',
     accentColor: '#F97316',
-    iconName: 'Flame',
+    iconName: 'Trophy',
     isJackpot: false
   },
   {
     id: 'slice-7',
     sliceIndex: 7,
-    label: '⭐ 100 USDT',
+    label: '⭐ 50x Mega Win',
     sublabel: 'Mega Jackpot!',
     prizeType: 'USDT',
-    prizeValue: 100.00,
-    weight: 3,
+    prizeValue: 50.0,
+    weight: 4,
     colorBg: '#451A03',
     colorText: '#FEF08A',
     accentColor: '#EAB308',
@@ -138,6 +138,8 @@ export const DEFAULT_ADMIN_CONFIG: SpinAdminConfig = {
   },
   referralRewardSpinsPerDeposit: 1,
   isWheelActive: true,
+  minBetUsdt: 1,
+  maxBetUsdt: 100,
   maxDailyPrizesUsdtCap: 5000,
   todayPrizesDistributedUsdt: 0,
   jackpotNotificationThreshold: 25
@@ -371,12 +373,16 @@ class LuckySpinService {
   }
 
   /**
-   * Execute Spin: server-authoritative outcome calculation, wallet credit, and ledger recording
+   * Execute Spin: server-authoritative outcome calculation, balance deduction, wallet credit, and ledger recording
    */
-  public async executeSpin(userId: string, userLevel: number = 1): Promise<SpinResult> {
+  public async executeSpin(userId: string, userLevel: number = 1, betAmount: number = 1): Promise<SpinResult> {
     if (!this.adminConfig.isWheelActive) {
       throw new Error('Lucky Spin Wheel is currently undergoing maintenance. Please try again later.');
     }
+
+    const minBet = this.adminConfig.minBetUsdt || 1;
+    const maxBet = this.adminConfig.maxBetUsdt || 100;
+    const stake = Math.min(Math.max(Number(betAmount) || minBet, minBet), maxBet);
 
     let state = this.getUserSpinState(userId, userLevel);
 
@@ -386,64 +392,104 @@ class LuckySpinService {
     }
 
     if (state.availableSpins <= 0) {
-      throw new Error('No spins available! Come back tomorrow or invite friends to earn free spins.');
+      throw new Error('No spin tickets available! Come back tomorrow or invite friends to earn free spins.');
     }
 
-    // 1. Deduct 1 spin
+    // Check user available balance for the required activation stake
+    const currentWallet = walletService.getWalletForUser(userId);
+    const availableBal = currentWallet.availableBalance || 0;
+    if (availableBal < stake) {
+      throw new Error(
+        `Insufficient wallet balance! You need at least $${stake.toFixed(2)} USDT available (1 - 100 USDT) to activate and spin the wheel.`
+      );
+    }
+
+    // 1. Deduct 1 spin ticket and record stake in user state
     state.availableSpins -= 1;
     state.lifetimeSpinsCount += 1;
+    state.totalBetUsdt = (state.totalBetUsdt || 0) + stake;
 
-    // 2. Select winning slice
+    // 2. Deduct activation stake (1 - 100 USDT) from wallet
+    const afterBetAvailable = Number(Math.max(0, availableBal - stake).toFixed(4));
+    const afterBetTotal = Number(Math.max(0, (currentWallet.totalBalance || availableBal) - stake).toFixed(4));
+    const debitedWallet = {
+      ...currentWallet,
+      availableBalance: afterBetAvailable,
+      totalBalance: afterBetTotal,
+      updatedAt: new Date().toISOString()
+    };
+    walletService.saveWalletForUser(userId, debitedWallet);
+
+    walletService.addTransaction({
+      userId,
+      type: 'ADMIN_DEBIT',
+      amount: stake,
+      currency: 'USDT',
+      status: 'COMPLETED',
+      description: `🎡 Lucky Spin Stake Activation (-$${stake.toFixed(2)} USDT)`,
+      referenceId: `spin_stake_${Date.now()}`
+    });
+
+    // 3. Select winning slice via weighted probability RNG
     const slices = this.getSlices();
     const winningSlice = this.selectWinningSlice(slices);
 
     let transactionId: string | undefined;
-    let newBalance: number | undefined;
+    let newBalance: number = afterBetAvailable;
+    let wonAmount = 0;
+    let isWin = false;
 
-    // 3. Process Rewards
-    if (winningSlice.prizeType === 'USDT' && winningSlice.prizeValue > 0) {
-      state.totalWonUsdt += winningSlice.prizeValue;
-      this.adminConfig.todayPrizesDistributedUsdt += winningSlice.prizeValue;
+    // 4. Process Outcome (Wins vs Loss)
+    const isLoss = winningSlice.prizeType === 'LOSS' || winningSlice.prizeType === 'TRY_AGAIN';
+
+    if (isLoss) {
+      isWin = false;
+      wonAmount = 0;
+    } else if (winningSlice.prizeType === 'USDT' && winningSlice.prizeValue > 0) {
+      isWin = true;
+      wonAmount = Number((winningSlice.prizeValue * stake).toFixed(4));
+      state.totalWonUsdt += wonAmount;
+      this.adminConfig.todayPrizesDistributedUsdt += wonAmount;
       this.saveAdminConfig(this.adminConfig);
 
-      // Credit wallet
+      // Credit winnings back to wallet
       try {
-        const wallet = walletService.getWalletForUser(userId);
-        const updatedAvailable = Number((wallet.availableBalance + winningSlice.prizeValue).toFixed(4));
-        const updatedTotal = Number((updatedAvailable + (wallet.pendingBalance || 0)).toFixed(4));
-        const updatedWallet = {
-          ...wallet,
-          availableBalance: updatedAvailable,
-          totalBalance: updatedTotal,
+        const finalAvailable = Number((afterBetAvailable + wonAmount).toFixed(4));
+        const finalTotal = Number((afterBetTotal + wonAmount).toFixed(4));
+        const creditedWallet = {
+          ...debitedWallet,
+          availableBalance: finalAvailable,
+          totalBalance: finalTotal,
           updatedAt: new Date().toISOString()
         };
-        walletService.saveWalletForUser(userId, updatedWallet);
+        walletService.saveWalletForUser(userId, creditedWallet);
 
-        // Record in ledger
         const tx = walletService.addTransaction({
           userId,
           type: 'SPIN_REWARD',
-          amount: winningSlice.prizeValue,
+          amount: wonAmount,
           currency: 'USDT',
           status: 'COMPLETED',
-          description: `🎡 Lucky Spin Prize: ${winningSlice.label}`,
-          referenceId: `spin_${Date.now()}`
+          description: `🎡 Lucky Spin Won: ${winningSlice.label} (+$${wonAmount.toFixed(2)} USDT)`,
+          referenceId: `spin_win_${Date.now()}`
         });
         transactionId = tx.id;
-        newBalance = updatedAvailable;
+        newBalance = finalAvailable;
       } catch (err) {
         console.error('Failed to credit spin prize to wallet ledger:', err);
       }
     } else if (winningSlice.prizeType === 'EXTRA_SPIN') {
+      isWin = true;
       state.availableSpins += Math.max(1, Math.round(winningSlice.prizeValue));
     } else if (winningSlice.prizeType === 'APR_BOOST') {
+      isWin = true;
       state.activeAprBoostPercent = winningSlice.prizeValue;
       state.aprBoostExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     }
 
     this.saveUserSpinState(state);
 
-    // 4. Record in spin history
+    // 5. Record in spin history
     const result: SpinResult = {
       id: `spin_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       userId,
@@ -451,7 +497,12 @@ class LuckySpinService {
       slice: winningSlice,
       prizeType: winningSlice.prizeType,
       prizeValue: winningSlice.prizeValue,
-      prizeText: winningSlice.label,
+      prizeText: winningSlice.prizeType === 'USDT'
+        ? `${winningSlice.label} ($${wonAmount.toFixed(2)} USDT)`
+        : winningSlice.label,
+      betAmount: stake,
+      wonAmount,
+      isWin,
       newBalance,
       spinsRemaining: state.availableSpins,
       createdAt: new Date().toISOString(),
@@ -493,13 +544,13 @@ class LuckySpinService {
    */
   public getRecentWinners(): RecentWinnerFeedItem[] {
     const mockPrizes = [
-      { user: '0x49**9a', prize: '100 USDT (Jackpot!)', type: 'USDT' as const, value: 100, isJackpot: true, minAgo: 2 },
-      { user: 'alex_tr***', prize: '25.00 USDT', type: 'USDT' as const, value: 25, isJackpot: false, minAgo: 5 },
-      { user: 'ivest_88**', prize: '10.00 USDT', type: 'USDT' as const, value: 10, isJackpot: false, minAgo: 11 },
-      { user: 'cryptoking**', prize: '+0.5% APR Boost', type: 'APR_BOOST' as const, value: 0.5, isJackpot: false, minAgo: 18 },
-      { user: 'sarah_w***', prize: '5.00 USDT', type: 'USDT' as const, value: 5, isJackpot: false, minAgo: 24 },
-      { user: '0x99**3c', prize: '10.00 USDT', type: 'USDT' as const, value: 10, isJackpot: false, minAgo: 32 },
-      { user: 'david_k***', prize: '25.00 USDT', type: 'USDT' as const, value: 25, isJackpot: false, minAgo: 45 }
+      { user: '0x49**9a', prize: '50x Mega Jackpot ($500.00 USDT)', type: 'USDT' as const, value: 500, isJackpot: true, minAgo: 2 },
+      { user: 'alex_tr***', prize: '10x Win ($100.00 USDT)', type: 'USDT' as const, value: 100, isJackpot: false, minAgo: 6 },
+      { user: 'ivest_88**', prize: '5.0x Win ($50.00 USDT)', type: 'USDT' as const, value: 50, isJackpot: false, minAgo: 12 },
+      { user: 'cryptoking**', prize: '+0.5% APR Boost', type: 'APR_BOOST' as const, value: 0.5, isJackpot: false, minAgo: 19 },
+      { user: 'sarah_w***', prize: '2.0x Win ($20.00 USDT)', type: 'USDT' as const, value: 20, isJackpot: false, minAgo: 25 },
+      { user: '0x99**3c', prize: '1.5x Win ($15.00 USDT)', type: 'USDT' as const, value: 15, isJackpot: false, minAgo: 33 },
+      { user: 'david_k***', prize: '10x Win ($250.00 USDT)', type: 'USDT' as const, value: 250, isJackpot: false, minAgo: 45 }
     ];
 
     return mockPrizes.map((p, idx) => ({

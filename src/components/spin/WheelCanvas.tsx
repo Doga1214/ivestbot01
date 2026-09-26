@@ -1,16 +1,5 @@
-import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
+import { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import type { SpinSlice } from '../../types/spin';
-import {
-  Coins,
-  Zap,
-  DollarSign,
-  RotateCw,
-  Sparkles,
-  Trophy,
-  Flame,
-  Crown,
-  Gift
-} from 'lucide-react';
 
 export interface WheelCanvasRef {
   spinToSlice: (sliceIndex: number, onComplete: () => void) => void;
@@ -22,22 +11,6 @@ interface WheelCanvasProps {
   size?: number;
   onSpinStart?: () => void;
 }
-
-// Icon helper mapping
-const getSliceIcon = (name: string, color: string) => {
-  const props = { size: 18, color, style: { filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' } };
-  switch (name) {
-    case 'Coins': return <Coins {...props} />;
-    case 'Zap': return <Zap {...props} />;
-    case 'DollarSign': return <DollarSign {...props} />;
-    case 'RotateCw': return <RotateCw {...props} />;
-    case 'Sparkles': return <Sparkles {...props} />;
-    case 'Trophy': return <Trophy {...props} />;
-    case 'Flame': return <Flame {...props} />;
-    case 'Crown': return <Crown {...props} />;
-    default: return <Gift {...props} />;
-  }
-};
 
 // Web Audio API Synthesizer for mechanical ticks & win chime
 const playMechanicalTick = () => {
@@ -126,10 +99,6 @@ export const WheelCanvas = forwardRef<WheelCanvasRef, WheelCanvasProps>(({
       if (onSpinStart) onSpinStart();
 
       // Physics Calculation:
-      // The pointer is at TOP (270 degrees in SVG coordinates or 0deg in our coordinate system).
-      // Each slice i spans from [i * sliceAngle, (i + 1) * sliceAngle].
-      // Center of slice i is (i + 0.5) * sliceAngle.
-      // To bring slice i to top (0deg), we need rotation mod 360 = (360 - (i + 0.5) * sliceAngle).
       const fullRotations = 5 + Math.floor(Math.random() * 3); // 5 to 7 full 360° spins
       const sliceCenter = (targetSliceIndex + 0.5) * sliceAngle;
       
@@ -169,7 +138,10 @@ export const WheelCanvas = forwardRef<WheelCanvasRef, WheelCanvasProps>(({
           setRotation(finalRotation);
           setIsSpinning(false);
           const targetSlice = slices[targetSliceIndex];
-          playWinFanfare(targetSlice?.isJackpot);
+          const isLoss = targetSlice?.prizeType === 'LOSS' || targetSlice?.prizeType === 'TRY_AGAIN';
+          if (!isLoss) {
+            playWinFanfare(targetSlice?.isJackpot);
+          }
           onComplete();
         }
       };

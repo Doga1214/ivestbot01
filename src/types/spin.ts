@@ -1,4 +1,4 @@
-export type SpinPrizeType = 'USDT' | 'APR_BOOST' | 'EXTRA_SPIN' | 'COMMISSION_BOOST' | 'TRY_AGAIN';
+export type SpinPrizeType = 'USDT' | 'APR_BOOST' | 'EXTRA_SPIN' | 'COMMISSION_BOOST' | 'TRY_AGAIN' | 'LOSS';
 
 export interface SpinSlice {
   id: string;
@@ -6,7 +6,8 @@ export interface SpinSlice {
   label: string;
   sublabel?: string;
   prizeType: SpinPrizeType;
-  prizeValue: number; // e.g., 0.5 for 0.5 USDT, 0.5 for +0.5% APR, 1 for +1 spin
+  prizeValue: number; // multiplier or base USDT value, e.g. 2 for 2x, 0 for loss, 50 for 50x Jackpot
+  multiplier?: number;
   weight: number;     // Relative weight for weighted RNG
   probabilityPercent?: number; // Computed probability
   colorBg: string;    // Slice background hex/gradient
@@ -27,6 +28,7 @@ export interface UserSpinState {
   purchasedSpins: number;
   lifetimeSpinsCount: number;
   totalWonUsdt: number;
+  totalBetUsdt?: number;
   activeAprBoostPercent: number; // Active temporary yield boost
   aprBoostExpiresAt: string | null;
 }
@@ -39,6 +41,9 @@ export interface SpinResult {
   prizeType: SpinPrizeType;
   prizeValue: number;
   prizeText: string;
+  betAmount: number;
+  wonAmount: number;
+  isWin: boolean;
   newBalance?: number;
   spinsRemaining: number;
   createdAt: string;
@@ -64,7 +69,10 @@ export interface SpinAdminConfig {
   };
   referralRewardSpinsPerDeposit: number;
   isWheelActive: boolean;
+  minBetUsdt: number; // Min activation/stake amount (1 USDT)
+  maxBetUsdt: number; // Max activation/stake amount (100 USDT)
   maxDailyPrizesUsdtCap: number;
   todayPrizesDistributedUsdt: number;
   jackpotNotificationThreshold: number;
 }
+

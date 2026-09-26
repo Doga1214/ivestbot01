@@ -7,8 +7,6 @@ import {
   Gift,
   AlertCircle,
   CheckCircle2,
-  Users,
-  Percent,
   Plus
 } from 'lucide-react';
 import { luckySpinService, DEFAULT_SPIN_SLICES } from '../../services/luckySpinService';
@@ -241,10 +239,11 @@ export const AdminSpinWheelManager: React.FC = () => {
                       fontSize: '12px'
                     }}
                   >
-                    <option value="USDT">USDT Cash</option>
+                    <option value="USDT">USDT Multiplier / Cash</option>
                     <option value="APR_BOOST">APR Boost</option>
                     <option value="EXTRA_SPIN">Extra Spin</option>
-                    <option value="TRY_AGAIN">Try Again</option>
+                    <option value="LOSS">Loss (No Prize)</option>
+                    <option value="TRY_AGAIN">Try Again (Loss)</option>
                   </select>
                 </td>
                 <td style={{ padding: '8px 10px' }}>
@@ -297,7 +296,7 @@ export const AdminSpinWheelManager: React.FC = () => {
         </table>
       </div>
 
-      {/* Global Wheel Rules & VIP Configuration */}
+      {/* Global Wheel Rules, Activation Limits & VIP Configuration */}
       {config && (
         <div
           style={{
@@ -312,7 +311,7 @@ export const AdminSpinWheelManager: React.FC = () => {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '14px', fontWeight: 700, color: '#FEF08A', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Settings size={16} /> Daily VIP Spin Allowances & Referral Perks
+              <Settings size={16} /> Spin Activation Stake Limits & VIP Daily Allowances
             </span>
             <button
               onClick={handleSaveConfig}
@@ -332,6 +331,58 @@ export const AdminSpinWheelManager: React.FC = () => {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+            <div>
+              <label style={{ fontSize: '11px', color: '#FEF08A', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+                Min Spin Stake (USDT)
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={config.minBetUsdt || 1}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    minBetUsdt: Math.max(1, parseInt(e.target.value, 10) || 1)
+                  })
+                }
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  borderRadius: '6px',
+                  backgroundColor: '#1E293B',
+                  border: '1px solid #F59E0B',
+                  color: '#FEF08A',
+                  fontWeight: 700
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', color: '#FEF08A', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+                Max Spin Stake (USDT)
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={1000}
+                value={config.maxBetUsdt || 100}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    maxBetUsdt: Math.max(1, parseInt(e.target.value, 10) || 100)
+                  })
+                }
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  borderRadius: '6px',
+                  backgroundColor: '#1E293B',
+                  border: '1px solid #F59E0B',
+                  color: '#FEF08A',
+                  fontWeight: 700
+                }}
+              />
+            </div>
             <div>
               <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>
                 Level 1 Free Daily Spins

@@ -9,11 +9,15 @@ import {
   CheckCircle2,
   AlertCircle,
   HelpCircle,
-  TrendingUp,
   History,
-  Zap
+  Zap,
+  DollarSign,
+  Wallet,
+  XCircle,
+  RotateCcw
 } from 'lucide-react';
 import { luckySpinService } from '../../services/luckySpinService';
+import { walletService } from '../../services/walletService';
 import type { SpinSlice, UserSpinState, SpinResult, RecentWinnerFeedItem } from '../../types/spin';
 import { WheelCanvas, type WheelCanvasRef } from './WheelCanvas';
 import { ConfettiEffect } from './ConfettiEffect';
@@ -35,6 +39,8 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
 }) => {
   const [slices, setSlices] = useState<SpinSlice[]>([]);
   const [spinState, setSpinState] = useState<UserSpinState | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [betAmount, setBetAmount] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<'wheel' | 'history' | 'rules'>('wheel');
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
   const [spinError, setSpinError] = useState<string | null>(null);
@@ -54,6 +60,8 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
     setSlices(loadedSlices);
     const state = luckySpinService.getUserSpinState(userId, userLevel);
     setSpinState(state);
+    const wallet = walletService.getWalletForUser(userId);
+    setWalletBalance(wallet.availableBalance || 0);
     setRecentWinners(luckySpinService.getRecentWinners());
     setHistoryList(luckySpinService.getUserSpinHistory(userId));
   };
@@ -103,9 +111,16 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
     if (!userId || isSpinning) return;
     setSpinError(null);
 
+    // Validate stake
+    const stake = Math.min(Math.max(Number(betAmount) || 1, 1), 100);
+    if (walletBalance < stake) {
+      setSpinError(`Insufficient balance! You need at least $${stake.toFixed(2)} USDT in available balance to spin.`);
+      return;
+    }
+
     try {
       // 1. Calculate outcome server/service-side
-      const result = await luckySpinService.executeSpin(userId, userLevel);
+      const result = await luckySpinService.executeSpin(userId, userLevel, stake);
       setIsSpinning(true);
 
       // 2. Animate wheel to the winning slice
@@ -113,7 +128,11 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
         setIsSpinning(false);
         setCurrentWin(result);
         setShowWinDialog(true);
-        setShowConfetti(true);
+        if (result.isWin) {
+          setShowConfetti(true);
+        } else {
+          setShowConfetti(false);
+        }
         refreshData();
         if (onRewardClaimed) onRewardClaimed();
       });
@@ -126,6 +145,7 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
       }
     }
   };
+
 
   if (!isOpen) return null;
 
@@ -379,6 +399,98 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                 />
               </div>
 
+              {/* Stake Activation Selector (1 to 100 USDT) */}
+              <div
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  borderRadius: '16px',
+                  backgroundColor: 'rgba(30, 41, 59, 0.7)',
+                  border: '1px solid rgba(245, 158, 11, 0.35)',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11.5px', color: '#FEF08A', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <DollarSign size={14} color="#FBBF24" /> SPIN ACTIVATION STAKE (1 - 100 USDT)
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Wallet size={12} color="#38BDF8" /> Balance: <strong style={{ color: '#F8FAFC' }}>${walletBalance.toFixed(2)}</strong>
+                  </span>
+                </div>
+
+                {/* Quick Bet Buttons */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {[1, 5, 10, 25, 50, 100].map((amt) => {
+                    const isSelected = betAmount === amt;
+                    return (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setBetAmount(amt)}
+                        disabled={isSpinning}
+                        style={{
+                          flex: '1 1 calc(16.6% - 5px)',
+                          minWidth: '42px',
+                          padding: '6px 0',
+                          borderRadius: '8px',
+                          border: isSelected ? '1.5px solid #F59E0B' : '1px solid #334155',
+                          backgroundColor: isSelected ? 'rgba(245, 158, 11, 0.25)' : 'rgba(15, 23, 42, 0.6)',
+                          color: isSelected ? '#FEF08A' : '#CBD5E1',
+                          fontWeight: isSelected ? 800 : 600,
+                          fontSize: '11.5px',
+                          cursor: isSpinning ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        ${amt}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom Stake Input & Multiplier Preview */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      step={1}
+                      disabled={isSpinning}
+                      value={betAmount}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val)) {
+                          setBetAmount(Math.min(100, Math.max(1, val)));
+                        } else {
+                          setBetAmount(1);
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '7px 10px 7px 24px',
+                        borderRadius: '8px',
+                        backgroundColor: '#0F172A',
+                        border: '1px solid #475569',
+                        color: '#F8FAFC',
+                        fontSize: '12.5px',
+                        fontWeight: 700
+                      }}
+                    />
+                    <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', fontSize: '12px' }}>
+                      $
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#94A3B8', whiteSpace: 'nowrap' }}>
+                    Max Win: <strong style={{ color: '#FBBF24' }}>${(betAmount * 50).toFixed(0)} USDT</strong> (50x)
+                  </div>
+                </div>
+              </div>
+
               {/* Available Spins Badge & Cooldown */}
               <div
                 style={{
@@ -386,26 +498,26 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   width: '100%',
-                  padding: '10px 16px',
+                  padding: '9px 14px',
                   borderRadius: '14px',
                   backgroundColor: 'rgba(30, 41, 59, 0.6)',
                   border: '1px solid rgba(51, 65, 85, 0.5)',
-                  marginBottom: '14px'
+                  marginBottom: '12px'
                 }}
               >
                 <div>
                   <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 500 }}>Available Tickets</div>
-                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#FEF08A' }}>
-                    {spinState?.availableSpins || 0} <span style={{ fontSize: '12px', color: '#CBD5E1' }}>Spins</span>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#FEF08A' }}>
+                    {spinState?.availableSpins || 0} <span style={{ fontSize: '11px', color: '#CBD5E1' }}>Spins</span>
                   </div>
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 500 }}>Next Free Spin</div>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: countdownStr ? '#38BDF8' : '#22C55E' }}>
+                  <div style={{ fontSize: '12.5px', fontWeight: 700, color: countdownStr ? '#38BDF8' : '#22C55E' }}>
                     {countdownStr ? (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Clock size={13} /> {countdownStr}
+                        <Clock size={12} /> {countdownStr}
                       </span>
                     ) : (
                       'Available Now!'
@@ -418,7 +530,7 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
               {spinState && spinState.availableSpins > 0 ? (
                 <button
                   onClick={handleStartSpin}
-                  disabled={isSpinning}
+                  disabled={isSpinning || walletBalance < betAmount}
                   style={{
                     width: '100%',
                     padding: '14px 20px',
@@ -426,13 +538,15 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                     border: 'none',
                     background: isSpinning
                       ? 'linear-gradient(135deg, #64748B 0%, #475569 100%)'
+                      : walletBalance < betAmount
+                      ? 'linear-gradient(135deg, #475569 0%, #334155 100%)'
                       : 'linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #B45309 100%)',
-                    color: isSpinning ? '#CBD5E1' : '#0F172A',
-                    fontSize: '16px',
+                    color: isSpinning || walletBalance < betAmount ? '#CBD5E1' : '#0F172A',
+                    fontSize: '15px',
                     fontWeight: 900,
                     letterSpacing: '0.8px',
-                    cursor: isSpinning ? 'not-allowed' : 'pointer',
-                    boxShadow: isSpinning ? 'none' : '0 10px 25px -5px rgba(245, 158, 11, 0.5)',
+                    cursor: isSpinning || walletBalance < betAmount ? 'not-allowed' : 'pointer',
+                    boxShadow: isSpinning || walletBalance < betAmount ? 'none' : '0 10px 25px -5px rgba(245, 158, 11, 0.5)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -442,7 +556,11 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                   }}
                 >
                   <RotateCw size={18} className={isSpinning ? 'spin-anim' : ''} />
-                  {isSpinning ? 'SPINNING THE WHEEL...' : 'SPIN THE WHEEL NOW'}
+                  {isSpinning
+                    ? 'SPINNING THE WHEEL...'
+                    : walletBalance < betAmount
+                    ? `INSUFFICIENT BALANCE ($${betAmount} USDT NEEDED)`
+                    : `SPIN & ACTIVATE ($${betAmount} USDT)`}
                 </button>
               ) : spinState && spinState.canClaimDailySpin ? (
                 <button
@@ -531,20 +649,26 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                             width: '32px',
                             height: '32px',
                             borderRadius: '8px',
-                            backgroundColor: item.prizeType === 'USDT' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(56, 189, 248, 0.2)',
+                            backgroundColor: item.isWin
+                              ? 'rgba(34, 197, 94, 0.2)'
+                              : 'rgba(239, 68, 68, 0.2)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
                           }}
                         >
-                          <Gift size={16} color={item.prizeType === 'USDT' ? '#22C55E' : '#38BDF8'} />
+                          {item.isWin ? (
+                            <Gift size={16} color="#22C55E" />
+                          ) : (
+                            <XCircle size={16} color="#EF4444" />
+                          )}
                         </div>
                         <div>
-                          <div style={{ fontSize: '13px', fontWeight: 700, color: '#F8FAFC' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: item.isWin ? '#F8FAFC' : '#94A3B8' }}>
                             {item.prizeText}
                           </div>
                           <div style={{ fontSize: '10px', color: '#64748B' }}>
-                            {new Date(item.createdAt).toLocaleString()}
+                            Stake: ${item.betAmount || 1} USDT • {new Date(item.createdAt).toLocaleTimeString()}
                           </div>
                         </div>
                       </div>
@@ -552,11 +676,15 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                       <div
                         style={{
                           fontSize: '12px',
-                          fontWeight: 700,
-                          color: item.prizeType === 'USDT' ? '#22C55E' : '#EAB308'
+                          fontWeight: 800,
+                          color: item.isWin
+                            ? (item.prizeType === 'USDT' ? '#22C55E' : '#EAB308')
+                            : '#EF4444'
                         }}
                       >
-                        {item.prizeType === 'USDT' ? `+$${item.prizeValue.toFixed(2)}` : 'Claimed'}
+                        {item.isWin
+                          ? (item.wonAmount > 0 ? `+$${item.wonAmount.toFixed(2)}` : 'Claimed')
+                          : 'No Win (Loss)'}
                       </div>
                     </div>
                   ))}
@@ -567,7 +695,7 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
 
           {activeTab === 'rules' && (
             <div style={{ fontSize: '12px', color: '#CBD5E1', lineHeight: '1.6' }}>
-              <h4 style={{ margin: '0 0 8px 0', color: '#FEF08A', fontSize: '14px' }}>🎡 Lucky Draw Probability Table</h4>
+              <h4 style={{ margin: '0 0 8px 0', color: '#FEF08A', fontSize: '14px' }}>🎡 Lucky Draw Multiplier & Odds Table</h4>
               <div
                 style={{
                   border: '1px solid #334155',
@@ -579,7 +707,7 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '11.5px' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#1E293B', color: '#94A3B8' }}>
-                      <th style={{ padding: '8px 12px' }}>Prize</th>
+                      <th style={{ padding: '8px 12px' }}>Outcome / Slice</th>
                       <th style={{ padding: '8px 12px' }}>Type</th>
                       <th style={{ padding: '8px 12px', textAlign: 'right' }}>Win Probability</th>
                     </tr>
@@ -588,7 +716,9 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                     {slices.map((s) => (
                       <tr key={s.id} style={{ borderBottom: '1px solid #1E293B' }}>
                         <td style={{ padding: '8px 12px', fontWeight: 600, color: s.accentColor }}>{s.label}</td>
-                        <td style={{ padding: '8px 12px', color: '#94A3B8' }}>{s.prizeType}</td>
+                        <td style={{ padding: '8px 12px', color: '#94A3B8' }}>
+                          {s.prizeType === 'LOSS' || s.prizeType === 'TRY_AGAIN' ? 'Loss' : s.prizeType}
+                        </td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#F8FAFC' }}>
                           {s.probabilityPercent}%
                         </td>
@@ -598,18 +728,18 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                 </table>
               </div>
 
-              <h4 style={{ margin: '0 0 6px 0', color: '#FEF08A', fontSize: '13px' }}>📜 Fair Play Rules</h4>
+              <h4 style={{ margin: '0 0 6px 0', color: '#FEF08A', fontSize: '13px' }}>📜 Fair Play & Activation Rules</h4>
               <ul style={{ paddingLeft: '18px', margin: 0, color: '#94A3B8', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <li>Every registered member receives 1 free spin every 24 hours.</li>
-                <li>VIP Level 2+ members receive extra daily allowances (Up to 5 spins/day).</li>
-                <li>USDT prizes are credited directly and instantaneously to your main balance ledger.</li>
-                <li>Outcome generation is server-authoritative and mathematically fair.</li>
+                <li>Select your activation stake from <strong>1 USDT to 100 USDT</strong> per spin.</li>
+                <li>Cash prizes scale directly with your chosen stake (up to 50x Mega Jackpot!).</li>
+                <li>The wheel includes <strong>Loss / Try Again</strong> outcomes where no prize is awarded.</li>
+                <li>Outcome generation is server-authoritative and mathematically provably fair.</li>
               </ul>
             </div>
           )}
         </div>
 
-        {/* Win Reveal Dialog Overlay */}
+        {/* Win / Loss Outcome Dialog Overlay */}
         {showWinDialog && currentWin && (
           <div
             style={{
@@ -628,50 +758,80 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
               zIndex: 20
             }}
           >
+            {/* Outcome Icon */}
             <div
               style={{
                 width: '72px',
                 height: '72px',
                 borderRadius: '50%',
-                background: currentWin.slice.isJackpot
+                background: !currentWin.isWin
+                  ? 'linear-gradient(135deg, #EF4444 0%, #991B1B 100%)'
+                  : currentWin.slice.isJackpot
                   ? 'linear-gradient(135deg, #FDE047 0%, #D97706 100%)'
                   : 'linear-gradient(135deg, #10B981 0%, #047857 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 0 35px rgba(245, 158, 11, 0.6)',
+                boxShadow: !currentWin.isWin
+                  ? '0 0 35px rgba(239, 68, 68, 0.5)'
+                  : '0 0 35px rgba(245, 158, 11, 0.6)',
                 marginBottom: '16px'
               }}
             >
-              {currentWin.slice.isJackpot ? (
+              {!currentWin.isWin ? (
+                <RotateCcw size={36} color="#FFFFFF" />
+              ) : currentWin.slice.isJackpot ? (
                 <Trophy size={36} color="#0F172A" />
               ) : (
                 <CheckCircle2 size={36} color="#FFFFFF" />
               )}
             </div>
 
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#FBBF24', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              {currentWin.slice.isJackpot ? '🌟 MEGA JACKPOT UNLOCKED! 🌟' : 'CONGRATULATIONS!'}
-            </div>
-
+            {/* Outcome Title */}
             <div
               style={{
-                fontSize: '28px',
+                fontSize: '13px',
+                fontWeight: 700,
+                color: !currentWin.isWin ? '#F87171' : '#FBBF24',
+                textTransform: 'uppercase',
+                letterSpacing: '1px'
+              }}
+            >
+              {!currentWin.isWin
+                ? 'BETTER LUCK NEXT TIME!'
+                : currentWin.slice.isJackpot
+                ? '🌟 MEGA JACKPOT UNLOCKED! 🌟'
+                : 'CONGRATULATIONS!'}
+            </div>
+
+            {/* Prize Text / Result */}
+            <div
+              style={{
+                fontSize: '26px',
                 fontWeight: 900,
-                color: '#F8FAFC',
+                color: !currentWin.isWin ? '#EF4444' : '#F8FAFC',
                 margin: '8px 0 4px 0',
                 letterSpacing: '0.5px'
               }}
             >
-              {currentWin.prizeText}
+              {!currentWin.isWin ? 'No Win (Loss)' : currentWin.prizeText}
             </div>
 
-            <div style={{ fontSize: '13px', color: '#94A3B8', maxWidth: '300px', marginBottom: '24px' }}>
-              {currentWin.prizeType === 'USDT'
-                ? 'Your winnings have been credited directly to your live wallet balance.'
-                : currentWin.prizeType === 'APR_BOOST'
-                ? 'Your +0.5% APR boost is active on all pool reservations for the next 24 hours!'
-                : 'Extra spin ticket added to your balance! Spin again!'}
+            {/* Description */}
+            <div style={{ fontSize: '13px', color: '#94A3B8', maxWidth: '320px', marginBottom: '24px' }}>
+              {!currentWin.isWin ? (
+                <span>
+                  You staked <strong>${currentWin.betAmount} USDT</strong>. The wheel landed on a loss slice. Don&apos;t give up—try again to hit up to 50x Mega Jackpot!
+                </span>
+              ) : currentWin.prizeType === 'USDT' ? (
+                <span>
+                  Your winnings of <strong>+${currentWin.wonAmount.toFixed(2)} USDT</strong> have been credited directly to your live wallet balance!
+                </span>
+              ) : currentWin.prizeType === 'APR_BOOST' ? (
+                'Your +0.5% APR boost is active on all pool reservations for the next 24 hours!'
+              ) : (
+                'Extra spin ticket added to your balance! Spin again!'
+              )}
             </div>
 
             <button
@@ -685,15 +845,19 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                 padding: '12px 20px',
                 borderRadius: '14px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-                color: '#0F172A',
+                background: !currentWin.isWin
+                  ? 'linear-gradient(135deg, #475569 0%, #334155 100%)'
+                  : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                color: !currentWin.isWin ? '#FFFFFF' : '#0F172A',
                 fontSize: '15px',
                 fontWeight: 800,
                 cursor: 'pointer',
-                boxShadow: '0 8px 20px rgba(245, 158, 11, 0.4)'
+                boxShadow: !currentWin.isWin
+                  ? '0 8px 20px rgba(0, 0, 0, 0.4)'
+                  : '0 8px 20px rgba(245, 158, 11, 0.4)'
               }}
             >
-              AWESOME, CONTINUE
+              {!currentWin.isWin ? 'SPIN AGAIN' : 'AWESOME, CONTINUE'}
             </button>
           </div>
         )}
