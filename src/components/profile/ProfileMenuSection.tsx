@@ -30,8 +30,8 @@ import {
 import { useApp } from '../../context/AppContext';
 import { authService } from '../../services/authService';
 import { LuckySpinModal } from '../spin/LuckySpinModal';
-import { Sparkles } from 'lucide-react';
-import { luckySpinService } from '../../services/luckySpinService';
+import { PolicyModal } from '../policy/PolicyModal';
+import { Sparkles, Scale } from 'lucide-react';
 
 export const ProfileMenuSection: React.FC = () => {
   const { user, updateUserProfile, showSnackbar } = useApp();
@@ -42,6 +42,7 @@ export const ProfileMenuSection: React.FC = () => {
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
   const [luckySpinOpen, setLuckySpinOpen] = useState(false);
+  const [policyModalOpen, setPolicyModalOpen] = useState(false);
 
   // Settings form state
   const [editName, setEditName] = useState(user?.name || '');
@@ -116,9 +117,6 @@ export const ProfileMenuSection: React.FC = () => {
     setSettingsOpen(false);
   };
 
-  const spinState = user?.id ? luckySpinService.getUserSpinState(user.id) : null;
-  const hasSpins = (spinState?.availableSpins || 0) > 0 || spinState?.canClaimDailySpin;
-
   const menuItems = [
     {
       id: 'lucky-spin',
@@ -162,6 +160,14 @@ export const ProfileMenuSection: React.FC = () => {
       label: 'Disclaimer',
       icon: <WarningAmberIcon sx={{ color: '#a855f7', fontSize: 24 }} />,
       onClick: () => setDisclaimerOpen(true)
+    },
+    {
+      id: 'policy-doc',
+      label: 'User & Withdrawal Policy (v1.0 PDF)',
+      badge: 'Official',
+      icon: <Scale style={{ color: '#FBBF24', width: 22, height: 22 }} />,
+      onClick: () => setPolicyModalOpen(true),
+      highlight: true
     }
   ];
 
@@ -652,6 +658,11 @@ export const ProfileMenuSection: React.FC = () => {
           userLevel={user.level || 1}
         />
       )}
+
+      <PolicyModal
+        isOpen={policyModalOpen}
+        onClose={() => setPolicyModalOpen(false)}
+      />
     </Box>
   );
 };

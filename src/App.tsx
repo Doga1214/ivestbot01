@@ -10,6 +10,7 @@ import { Wallet } from './pages/Wallet';
 import { Profile } from './pages/Profile';
 import { Referral } from './pages/Referral';
 import { Admin } from './pages/Admin';
+import { PolicyPage } from './pages/PolicyPage';
 import { LoginModal } from './components/auth/LoginModal';
 import { RegisterModal } from './components/auth/RegisterModal';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
@@ -93,6 +94,10 @@ const AppContent: React.FC = () => {
               </ProtectedRoute>
             }
           />
+          {/* Policy & Rules (Publicly accessible) */}
+          <Route path="/policy" element={<PolicyPage />} />
+          <Route path="/rules" element={<Navigate to="/policy" replace />} />
+          <Route path="/terms-policy" element={<Navigate to="/policy" replace />} />
           {/* Hidden Admin Portal */}
           <Route path="/admin" element={<Admin />} />
           {/* Fallback */}

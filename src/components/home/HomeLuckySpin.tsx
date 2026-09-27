@@ -17,7 +17,6 @@ import {
   Trophy,
   Gift,
   RotateCw,
-  Clock,
   Zap,
   CheckCircle2,
   Lock,
@@ -34,7 +33,7 @@ import { WheelCanvas, type WheelCanvasRef } from '../spin/WheelCanvas';
 import { ConfettiEffect } from '../spin/ConfettiEffect';
 
 export const HomeLuckySpin: React.FC = () => {
-  const { user, openLoginModal, refreshWallet } = useApp();
+  const { user, openLoginModal } = useApp();
   const [slices, setSlices] = useState<SpinSlice[]>([]);
   const [spinState, setSpinState] = useState<UserSpinState | null>(null);
   const [walletBalance, setWalletBalance] = useState<number>(0);
@@ -44,7 +43,6 @@ export const HomeLuckySpin: React.FC = () => {
   const [currentWin, setCurrentWin] = useState<SpinResult | null>(null);
   const [showWinDialog, setShowWinDialog] = useState<boolean>(false);
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
-  const [countdownStr, setCountdownStr] = useState<string>('');
   const [recentWinners, setRecentWinners] = useState<RecentWinnerFeedItem[]>([]);
   const [activeTab, setActiveTab] = useState<'prizes' | 'winners' | 'history'>('prizes');
   const [historyList, setHistoryList] = useState<SpinResult[]>([]);
@@ -72,41 +70,6 @@ export const HomeLuckySpin: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [user?.id]);
-
-  // Next Free Spin Countdown Timer
-  useEffect(() => {
-    if (!spinState?.nextDailySpinAt) {
-      setCountdownStr('');
-      return;
-    }
-
-    const interval = setInterval(() => {
-      const diff = new Date(spinState.nextDailySpinAt!).getTime() - Date.now();
-      if (diff <= 0) {
-        setCountdownStr('Ready!');
-        loadData();
-        clearInterval(interval);
-      } else {
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        setCountdownStr(
-          `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-        );
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [spinState?.nextDailySpinAt]);
-
-  const handleClaimDaily = () => {
-    if (!user?.id) {
-      openLoginModal();
-      return;
-    }
-    const updated = luckySpinService.claimDailySpin(user.id);
-    setSpinState(updated);
-  };
 
   const handleSpinClick = async () => {
     if (!user?.id) {
@@ -158,9 +121,6 @@ export const HomeLuckySpin: React.FC = () => {
       }
     }
   };
-
-  const hasSpins = (spinState?.availableSpins || 0) > 0;
-  const canClaim = spinState?.canClaimDailySpin || false;
 
   return (
     <Box

@@ -57,6 +57,30 @@ export const FloatingSpinLauncher: React.FC = () => {
           title="Lucky Spin Wheel (USDT)"
         >
           <Sparkles size={26} color="#0F172A" />
+          {(availableSpins > 0 || canClaimDaily) && (
+            <span
+              style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-4px',
+                backgroundColor: '#EF4444',
+                color: '#FFFFFF',
+                borderRadius: '9999px',
+                fontSize: '11px',
+                fontWeight: 800,
+                minWidth: '20px',
+                height: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0 4px',
+                border: '2px solid #0F172A',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
+              }}
+            >
+              {availableSpins > 0 ? availableSpins : '1'}
+            </span>
+          )}
         </button>
       </div>
 

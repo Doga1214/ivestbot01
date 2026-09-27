@@ -5,7 +5,6 @@ import {
   Trophy,
   RotateCw,
   Gift,
-  Clock,
   CheckCircle2,
   AlertCircle,
   HelpCircle,
@@ -47,7 +46,6 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
   const [currentWin, setCurrentWin] = useState<SpinResult | null>(null);
   const [showWinDialog, setShowWinDialog] = useState<boolean>(false);
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
-  const [countdownStr, setCountdownStr] = useState<string>('');
   const [recentWinners, setRecentWinners] = useState<RecentWinnerFeedItem[]>([]);
   const [historyList, setHistoryList] = useState<SpinResult[]>([]);
 
@@ -74,38 +72,6 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
       setSpinError(null);
     }
   }, [isOpen, userId, userLevel]);
-
-  // Countdown Timer for Next Daily Free Spin
-  useEffect(() => {
-    if (!spinState?.nextDailySpinAt) {
-      setCountdownStr('');
-      return;
-    }
-
-    const interval = setInterval(() => {
-      const diff = new Date(spinState.nextDailySpinAt!).getTime() - Date.now();
-      if (diff <= 0) {
-        setCountdownStr('Ready!');
-        refreshData();
-        clearInterval(interval);
-      } else {
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        setCountdownStr(
-          `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-        );
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [spinState?.nextDailySpinAt]);
-
-  const handleClaimDaily = () => {
-    if (!userId) return;
-    const updated = luckySpinService.claimDailySpin(userId, userLevel);
-    setSpinState(updated);
-  };
 
   const handleStartSpin = async () => {
     if (!userId || isSpinning) return;

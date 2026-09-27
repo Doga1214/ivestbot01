@@ -92,11 +92,15 @@ export async function runLuckySpinServiceTests(runner: TestRunner) {
     walletService.saveWalletForUser(testUserId, {
       availableBalance: 50,
       totalBalance: 50,
-      totalDeposited: 50,
-      totalWithdrawn: 0,
-      totalEarnings: 0,
       pendingBalance: 0,
       currency: 'USDT',
+      status: 'ACTIVE',
+      restrictions: {
+        canDeposit: true,
+        canWithdraw: true,
+        canReserve: true,
+        canTrade: true
+      },
       updatedAt: new Date().toISOString()
     });
 

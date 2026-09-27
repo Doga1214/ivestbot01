@@ -13,10 +13,7 @@ import {
   UserCheck,
   Trash2,
   Play,
-  Flame,
-  Zap,
-  TrendingDown,
-  DollarSign
+  TrendingDown
 } from 'lucide-react';
 import { luckySpinService, DEFAULT_SPIN_SLICES } from '../../services/luckySpinService';
 import { authService, type UserProfile } from '../../services/authService';

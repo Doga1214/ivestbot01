@@ -3,7 +3,6 @@ import { Box, Typography, Button, Container, Chip } from '@mui/material';
 import { Sparkles, Trophy, Gift, ArrowRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { LuckySpinModal } from '../spin/LuckySpinModal';
-import { luckySpinService } from '../../services/luckySpinService';
 
 export const LuckySpinBanner: React.FC = () => {
   const { user, openLoginModal } = useApp();
@@ -16,9 +15,6 @@ export const LuckySpinBanner: React.FC = () => {
     }
     setIsOpen(true);
   };
-
-  const spinState = user?.id ? luckySpinService.getUserSpinState(user.id) : null;
-  const hasSpins = (spinState?.availableSpins || 0) > 0 || spinState?.canClaimDailySpin;
 
   return (
     <Box sx={{ py: 6, px: 2, background: 'radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.08) 0%, transparent 70%)' }}>

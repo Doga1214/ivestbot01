@@ -110,6 +110,9 @@ export const Footer: React.FC = () => {
               Compliance & Legal
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
+              <Link onClick={() => navigate('/policy')} sx={{ color: '#FBBF24', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', '&:hover': { color: '#FEF08A' }, fontSize: '0.88rem' }}>
+                📄 User &amp; Withdrawal Policy (PDF)
+              </Link>
               <Typography variant="body2" sx={{ color: '#9CA3AF', fontSize: '0.88rem' }}>
                 Terms of Service
               </Typography>

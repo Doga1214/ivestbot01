@@ -31,6 +31,8 @@ import { useApp } from '../../context/AppContext';
 import { authService } from '../../services/authService';
 import { formatUSDT } from '../../utils/formatters';
 import { WALLET_CONFIG } from '../../config/walletConfig';
+import { PolicyModal } from '../policy/PolicyModal';
+import { Scale } from 'lucide-react';
 
 interface SavedAddress {
   id: string;
@@ -64,6 +66,7 @@ export const WithdrawalPanel: React.FC = () => {
   const [pinError, setPinError] = useState<string | null>(null);
   const [isPinLocked, setIsPinLocked] = useState<boolean>(false);
   const [lockoutMsg, setLockoutMsg] = useState<string | null>(null);
+  const [isPolicyOpen, setIsPolicyOpen] = useState<boolean>(false);
 
   // Load saved address book from localStorage
   useEffect(() => {
@@ -456,10 +459,35 @@ export const WithdrawalPanel: React.FC = () => {
               </Typography>
             </Box>
 
-            <Chip
-              label={`Min Cashout: ${minLimit} USDT`}
-              sx={{ bgcolor: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#60a5fa', fontWeight: 800, fontSize: '0.75rem' }}
-            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <Button
+                size="small"
+                onClick={() => setIsPolicyOpen(true)}
+                sx={{
+                  color: '#FBBF24',
+                  bgcolor: 'rgba(245, 158, 11, 0.12)',
+                  border: '1px solid rgba(245, 158, 11, 0.35)',
+                  borderRadius: '10px',
+                  fontWeight: 800,
+                  fontSize: '0.75rem',
+                  textTransform: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.8,
+                  px: 1.5,
+                  py: 0.5,
+                  '&:hover': {
+                    bgcolor: 'rgba(245, 158, 11, 0.22)'
+                  }
+                }}
+              >
+                <Scale size={14} /> 6-Level Policy (PDF)
+              </Button>
+              <Chip
+                label={`Min Cashout: ${minLimit} USDT`}
+                sx={{ bgcolor: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#60a5fa', fontWeight: 800, fontSize: '0.75rem' }}
+              />
+            </Box>
           </Box>
 
           {/* Available for Withdrawal Balance Banner */}
@@ -1060,6 +1088,8 @@ export const WithdrawalPanel: React.FC = () => {
               </Button>
             </DialogActions>
           </Dialog>
+          {/* Policy Modal */}
+          <PolicyModal isOpen={isPolicyOpen} onClose={() => setIsPolicyOpen(false)} />
         </CardContent>
       </Card>
     </Box>
