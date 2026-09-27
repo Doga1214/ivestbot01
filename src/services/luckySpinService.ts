@@ -181,6 +181,7 @@ class LuckySpinService {
     try {
       const savedSlices = storage.getItem(STORAGE_KEYS.SLICES);
       if (savedSlices) {
+        let parsedSlices = JSON.parse(savedSlices) as SpinSlice[];
         // Auto-migrate legacy 'Better Luck!' / '2x Loss' label to '5.0x Loss'
         parsedSlices = parsedSlices.map((s) =>
           s.label === 'Better Luck!' || s.label === '2x Loss'

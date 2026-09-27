@@ -33,7 +33,7 @@ import { WheelCanvas, type WheelCanvasRef } from '../spin/WheelCanvas';
 import { ConfettiEffect } from '../spin/ConfettiEffect';
 
 export const HomeLuckySpin: React.FC = () => {
-  const { user, openLoginModal } = useApp();
+  const { user, openLoginModal, refreshWallet } = useApp();
   const [slices, setSlices] = useState<SpinSlice[]>([]);
   const [spinState, setSpinState] = useState<UserSpinState | null>(null);
   const [walletBalance, setWalletBalance] = useState<number>(0);
@@ -48,6 +48,12 @@ export const HomeLuckySpin: React.FC = () => {
   const [historyList, setHistoryList] = useState<SpinResult[]>([]);
 
   const wheelRef = useRef<WheelCanvasRef | null>(null);
+
+  const handleClaimDaily = () => {
+    if (!user?.id) return;
+    const newState = luckySpinService.claimDailySpin(user.id, (user as any).level || 1);
+    setSpinState(newState);
+  };
 
   const loadData = () => {
     const loadedSlices = luckySpinService.getSlices();

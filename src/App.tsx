@@ -15,6 +15,7 @@ import { LoginModal } from './components/auth/LoginModal';
 import { RegisterModal } from './components/auth/RegisterModal';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { FloatingSpinLauncher } from './components/common/FloatingSpinLauncher';
+import { FloatingChatLauncher } from './components/chat/FloatingChatLauncher';
 import { authService } from './services/authService';
 import './App.css';
 
@@ -109,6 +110,7 @@ const AppContent: React.FC = () => {
       <LoginModal />
       <RegisterModal />
       <FloatingSpinLauncher />
+      <FloatingChatLauncher />
 
       {/* Global Notification Toast */}
       <Snackbar
