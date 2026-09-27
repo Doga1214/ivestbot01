@@ -29,7 +29,7 @@ import { Sparkles, Bot } from 'lucide-react';
 export const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, wallet, isAuthenticated, logout, openLoginModal, openRegisterModal, openAnnouncement, openChat } = useApp();
+  const { user, wallet, isAuthenticated, logout, openLoginModal, openRegisterModal, openAnnouncement, openChat, refreshWallet } = useApp();
 
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [spinModalOpen, setSpinModalOpen] = React.useState<boolean>(false);
@@ -329,6 +329,11 @@ export const Header: React.FC = () => {
           onClose={() => setSpinModalOpen(false)}
           userId={user.id}
           userLevel={user.level || 1}
+          onRewardClaimed={() => {
+            if (user?.id && refreshWallet) {
+              refreshWallet(user.id);
+            }
+          }}
         />
       )}
     </AppBar>

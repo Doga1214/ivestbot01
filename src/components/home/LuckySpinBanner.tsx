@@ -5,7 +5,7 @@ import { useApp } from '../../context/AppContext';
 import { LuckySpinModal } from '../spin/LuckySpinModal';
 
 export const LuckySpinBanner: React.FC = () => {
-  const { user, openLoginModal } = useApp();
+  const { user, openLoginModal, refreshWallet } = useApp();
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
   const handleOpen = () => {
@@ -177,6 +177,11 @@ export const LuckySpinBanner: React.FC = () => {
           isOpen={isOpen}
           onClose={() => setIsOpen(false)}
           userId={user.id}
+          onRewardClaimed={() => {
+            if (user?.id && refreshWallet) {
+              refreshWallet(user.id);
+            }
+          }}
         />
       )}
     </Box>

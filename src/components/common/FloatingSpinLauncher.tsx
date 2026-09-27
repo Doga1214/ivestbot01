@@ -5,7 +5,7 @@ import { LuckySpinModal } from '../spin/LuckySpinModal';
 import { useApp } from '../../context/AppContext';
 
 export const FloatingSpinLauncher: React.FC = () => {
-  const { user } = useApp();
+  const { user, refreshWallet } = useApp();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [availableSpins, setAvailableSpins] = useState<number>(0);
   const [canClaimDaily, setCanClaimDaily] = useState<boolean>(false);
@@ -92,7 +92,12 @@ export const FloatingSpinLauncher: React.FC = () => {
           checkStatus();
         }}
         userId={user.id}
-        onRewardClaimed={checkStatus}
+        onRewardClaimed={() => {
+          checkStatus();
+          if (user?.id && refreshWallet) {
+            refreshWallet(user.id);
+          }
+        }}
       />
     </>
   );

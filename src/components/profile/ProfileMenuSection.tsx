@@ -34,7 +34,7 @@ import { PolicyModal } from '../policy/PolicyModal';
 import { Sparkles, Scale, Bot } from 'lucide-react';
 
 export const ProfileMenuSection: React.FC = () => {
-  const { user, updateUserProfile, showSnackbar, openChat } = useApp();
+  const { user, updateUserProfile, showSnackbar, openChat, refreshWallet } = useApp();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [securityOpen, setSecurityOpen] = useState(false);
@@ -664,6 +664,11 @@ export const ProfileMenuSection: React.FC = () => {
           onClose={() => setLuckySpinOpen(false)}
           userId={user.id}
           userLevel={user.level || 1}
+          onRewardClaimed={() => {
+            if (user?.id && refreshWallet) {
+              refreshWallet(user.id);
+            }
+          }}
         />
       )}
 
