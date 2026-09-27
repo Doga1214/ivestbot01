@@ -1,4 +1,4 @@
-import { ChatMessage, ChatAction, QuickPrompt } from '../types/chat';
+import type { ChatMessage, ChatAction, QuickPrompt } from '../types/chat';
 import { walletService } from './walletService';
 import { luckySpinService } from './luckySpinService';
 import { levelService } from './levelService';

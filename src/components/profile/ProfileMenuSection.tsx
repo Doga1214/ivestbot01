@@ -31,10 +31,10 @@ import { useApp } from '../../context/AppContext';
 import { authService } from '../../services/authService';
 import { LuckySpinModal } from '../spin/LuckySpinModal';
 import { PolicyModal } from '../policy/PolicyModal';
-import { Sparkles, Scale } from 'lucide-react';
+import { Sparkles, Scale, Bot } from 'lucide-react';
 
 export const ProfileMenuSection: React.FC = () => {
-  const { user, updateUserProfile, showSnackbar } = useApp();
+  const { user, updateUserProfile, showSnackbar, openChat } = useApp();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [securityOpen, setSecurityOpen] = useState(false);
@@ -124,6 +124,14 @@ export const ProfileMenuSection: React.FC = () => {
       badge: '50x Win',
       icon: <Sparkles style={{ color: '#F59E0B', width: 22, height: 22 }} />,
       onClick: () => setLuckySpinOpen(true),
+      highlight: true
+    },
+    {
+      id: 'ai-support',
+      label: '24/7 AI & Live Support',
+      badge: 'Live AI',
+      icon: <Bot style={{ color: '#38BDF8', width: 22, height: 22 }} />,
+      onClick: openChat,
       highlight: true
     },
 

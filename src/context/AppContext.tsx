@@ -36,6 +36,10 @@ interface AppContextType {
   isAnnouncementOpen: boolean;
   openAnnouncement: () => void;
   closeAnnouncement: () => void;
+  isChatOpen: boolean;
+  openChat: () => void;
+  closeChat: () => void;
+  toggleChat: () => void;
 
   // Wallet & Admin Review
   wallet: WalletState;
@@ -91,6 +95,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [initialReferralCode, setInitialReferralCode] = useState('');
   const [isAnnouncementOpen, setIsAnnouncementOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const [wallet, setWallet] = useState<WalletState>(() => walletService.getWallet(authService.getCurrentUser()?.id));
   const [transactions, setTransactions] = useState<WalletTransaction[]>(() => walletService.getTransactions());
@@ -690,6 +695,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isAnnouncementOpen,
         openAnnouncement: () => setIsAnnouncementOpen(true),
         closeAnnouncement: () => setIsAnnouncementOpen(false),
+        isChatOpen,
+        openChat: () => setIsChatOpen(true),
+        closeChat: () => setIsChatOpen(false),
+        toggleChat: () => setIsChatOpen(prev => !prev),
         wallet,
         transactions,
         kyc,

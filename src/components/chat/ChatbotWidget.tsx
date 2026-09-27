@@ -19,8 +19,6 @@ import {
   Bot,
   Trash2,
   ExternalLink,
-  Sparkles,
-  Headphones,
   Maximize2,
   Minimize2
 } from 'lucide-react';
@@ -204,7 +202,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ isOpen, onClose })
           boxShadow: '0 12px 40px rgba(0, 0, 0, 0.7), 0 0 20px rgba(245, 158, 11, 0.15)',
           display: 'flex',
           flexDirection: 'column',
-          zIndex: 1300,
+          zIndex: 1400,
           overflow: 'hidden',
           transition: 'width 0.3s ease, height 0.3s ease'
         }}
@@ -481,6 +479,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ isOpen, onClose })
           }}
           sx={{
             p: 1.5,
+            pb: { xs: 'calc(14px + env(safe-area-inset-bottom, 0px))', sm: 1.5 },
             bgcolor: 'rgba(15, 23, 42, 0.95)',
             borderTop: '1px solid rgba(51, 65, 85, 0.5)',
             display: 'flex',

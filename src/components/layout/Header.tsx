@@ -24,12 +24,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { formatUSDT } from '../../utils/formatters';
 import { LuckySpinModal } from '../spin/LuckySpinModal';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Bot } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, wallet, isAuthenticated, logout, openLoginModal, openRegisterModal, openAnnouncement } = useApp();
+  const { user, wallet, isAuthenticated, logout, openLoginModal, openRegisterModal, openAnnouncement, openChat } = useApp();
 
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [spinModalOpen, setSpinModalOpen] = React.useState<boolean>(false);
@@ -138,6 +138,26 @@ export const Header: React.FC = () => {
 
           {/* Right Action / User Profile */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            {/* 24/7 AI Support Trigger */}
+            <Tooltip title="24/7 AI & Live Support">
+              <IconButton
+                onClick={openChat}
+                size="small"
+                sx={{
+                  color: '#60a5fa',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  bgcolor: 'rgba(59, 130, 246, 0.12)',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    bgcolor: 'rgba(59, 130, 246, 0.25)',
+                    transform: 'scale(1.05)'
+                  }
+                }}
+              >
+                <Bot size={18} />
+              </IconButton>
+            </Tooltip>
+
             {/* Announcement Bell Trigger */}
             <Tooltip title="Platform Announcements & Bonus Updates">
               <IconButton
@@ -251,6 +271,12 @@ export const Header: React.FC = () => {
                       <Sparkles size={18} color="#F59E0B" />
                     </ListItemIcon>
                     <ListItemText primary="Lucky Spin Wheel" sx={{ color: '#FEF08A', fontWeight: 700 }} />
+                  </MenuItem>
+                  <MenuItem onClick={() => { handleMenuClose(); openChat(); }}>
+                    <ListItemIcon>
+                      <Bot size={18} color="#60a5fa" />
+                    </ListItemIcon>
+                    <ListItemText primary="24/7 AI Support" sx={{ color: '#93c5fd', fontWeight: 700 }} />
                   </MenuItem>
                   <MenuItem onClick={() => { handleMenuClose(); navigate('/profile'); }}>
                     <ListItemIcon>
