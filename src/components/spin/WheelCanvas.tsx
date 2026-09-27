@@ -10,6 +10,7 @@ interface WheelCanvasProps {
   slices: SpinSlice[];
   size?: number;
   onSpinStart?: () => void;
+  isHighRollerMode?: boolean;
 }
 
 // Web Audio API Synthesizer for mechanical ticks & win chime
@@ -70,7 +71,8 @@ export const playWinFanfare = (isJackpot: boolean = false) => {
 export const WheelCanvas = forwardRef<WheelCanvasRef, WheelCanvasProps>(({
   slices,
   size = 360,
-  onSpinStart
+  onSpinStart,
+  isHighRollerMode = false
 }, ref) => {
   const [rotation, setRotation] = useState<number>(0);
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
@@ -93,7 +95,7 @@ export const WheelCanvas = forwardRef<WheelCanvasRef, WheelCanvasProps>(({
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveLed((prev) => (prev + 1) % 16);
-    }, isSpinning ? 60 : 400);
+    }, isSpinning ? 50 : 350);
     return () => clearInterval(interval);
   }, [isSpinning]);
 
@@ -218,7 +220,10 @@ export const WheelCanvas = forwardRef<WheelCanvasRef, WheelCanvasProps>(({
           width: '100%',
           height: '100%',
           borderRadius: '50%',
-          boxShadow: '0 0 45px rgba(234, 179, 8, 0.25), inset 0 0 25px rgba(59, 130, 246, 0.2)',
+          boxShadow: isHighRollerMode
+            ? '0 0 55px rgba(239, 68, 68, 0.75), inset 0 0 30px rgba(245, 158, 11, 0.55)'
+            : '0 0 45px rgba(234, 179, 8, 0.25), inset 0 0 25px rgba(59, 130, 246, 0.2)',
+          transition: 'box-shadow 0.4s ease',
           pointerEvents: 'none',
           zIndex: 1
         }}
@@ -330,8 +335,8 @@ export const WheelCanvas = forwardRef<WheelCanvasRef, WheelCanvasProps>(({
             key={`led-${i}`}
             cx={led.x}
             cy={led.y}
-            r="3.5"
-            fill={led.isActive ? '#FDE047' : '#475569'}
+            r={isHighRollerMode ? "4" : "3.5"}
+            fill={led.isActive ? (isHighRollerMode ? '#EF4444' : '#FDE047') : (isHighRollerMode ? '#7F1D1D' : '#475569')}
             filter={led.isActive ? 'url(#glow)' : undefined}
           />
         ))}

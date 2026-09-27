@@ -365,6 +365,7 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                   ref={wheelRef}
                   slices={slices}
                   size={320}
+                  isHighRollerMode={betAmount >= 50}
                   onSpinStart={() => setIsSpinning(true)}
                 />
               </div>
