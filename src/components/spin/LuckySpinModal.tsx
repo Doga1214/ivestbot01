@@ -85,12 +85,13 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
     }
 
     try {
-      // 1. Calculate outcome server/service-side & debit stake
+      // 1. Calculate outcome server/service-side & debit stake / credit profit
       const result = await luckySpinService.executeSpin(userId, userLevel, stake);
       setIsSpinning(true);
-      if (typeof result.newBalance === 'number') {
-        setWalletBalance(result.newBalance);
-      }
+
+      // Immediately deduct stake during the spin animation
+      const intermediateBal = Math.max(0, Number((walletBalance - stake).toFixed(4)));
+      setWalletBalance(intermediateBal);
 
       // 2. Animate wheel to the winning slice
       wheelRef.current?.spinToSlice(result.sliceIndex, () => {
@@ -102,8 +103,24 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
         } else {
           setShowConfetti(false);
         }
+
+        // Immediately show full finalized wallet balance (with profit winnings if won)
+        const updatedWallet = walletService.getWalletForUser(userId);
+        setWalletBalance(updatedWallet.availableBalance);
         refreshData();
-        if (onRewardClaimed) onRewardClaimed();
+
+        // Broadcast immediate global wallet update
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('ivestbot_wallet_updated', {
+              detail: { userId, wallet: updatedWallet }
+            })
+          );
+        }
+
+        if (onRewardClaimed) {
+          onRewardClaimed();
+        }
       });
     } catch (err: unknown) {
       setIsSpinning(false);

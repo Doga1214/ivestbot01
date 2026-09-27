@@ -100,9 +100,10 @@ export const HomeLuckySpin: React.FC = () => {
     try {
       const result = await luckySpinService.executeSpin(user.id, (user as any).level || 1, stake);
       setIsSpinning(true);
-      if (typeof result.newBalance === 'number') {
-        setWalletBalance(result.newBalance);
-      }
+
+      // Immediately deduct stake during the spin animation
+      const intermediateBal = Math.max(0, Number((walletBalance - stake).toFixed(4)));
+      setWalletBalance(intermediateBal);
 
       wheelRef.current?.spinToSlice(result.sliceIndex, () => {
         setIsSpinning(false);
@@ -113,7 +114,21 @@ export const HomeLuckySpin: React.FC = () => {
         } else {
           setShowConfetti(false);
         }
+
+        // Immediately show full finalized wallet balance
+        const updatedWallet = walletService.getWalletForUser(user.id);
+        setWalletBalance(updatedWallet.availableBalance);
         loadData();
+
+        // Broadcast immediate global wallet update
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('ivestbot_wallet_updated', {
+              detail: { userId: user.id, wallet: updatedWallet }
+            })
+          );
+        }
+
         if (refreshWallet) {
           refreshWallet(user.id);
         }

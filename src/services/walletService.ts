@@ -507,7 +507,7 @@ export const walletService = {
         if (txList && txList.length > 0) {
           txList.forEach(t => {
             const amt = parseFloat(t.amount) || 0;
-            if (t.type === 'DAILY_PROFIT' || t.type === 'WELCOME_BONUS' || t.type === 'REFERRAL_BONUS' || t.type === 'ADMIN_CREDIT') {
+            if (t.type === 'DAILY_PROFIT' || t.type === 'WELCOME_BONUS' || t.type === 'REFERRAL_BONUS' || t.type === 'SPIN_REWARD' || t.type === 'ADMIN_CREDIT') {
               totalProfits += amt;
             } else if (t.type === 'ADMIN_DEBIT') {
               totalProfits -= amt;

@@ -209,12 +209,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Listen for custom wallet update events - strictly filter by target user ID
     const handleWalletUpdated = (e: any) => {
-      const targetId = user?.id || authService.getCurrentUser()?.id;
-      if (targetId && e.detail?.userId === targetId) {
+      const activeUser = authService.getCurrentUser() || user;
+      const targetId = activeUser?.id;
+      const eventUserId = e.detail?.userId || e.payload?.userId;
+      
+      const isMatch = !eventUserId || !targetId ||
+        eventUserId.toLowerCase() === targetId.toLowerCase() ||
+        (activeUser?.email && eventUserId.toLowerCase() === activeUser.email.toLowerCase()) ||
+        (activeUser?.username && eventUserId.toLowerCase() === activeUser.username.toLowerCase());
+
+      if (isMatch) {
         if (e.detail?.wallet) {
           setWallet(e.detail.wallet);
-        } else {
-          setWallet(walletService.getWallet(targetId));
+        } else if (targetId) {
+          setWallet(walletService.getWalletForUser(targetId));
         }
       }
     };
