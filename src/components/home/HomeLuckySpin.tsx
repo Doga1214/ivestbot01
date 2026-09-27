@@ -838,7 +838,7 @@ export const HomeLuckySpin: React.FC = () => {
                   my: 1.5
                 }}
               >
-                {!currentWin.isWin ? currentWin.slice.label || '2x Loss' : currentWin.prizeText}
+                {!currentWin.isWin ? currentWin.slice.label || '5.0x Loss' : currentWin.prizeText}
               </Typography>
 
 

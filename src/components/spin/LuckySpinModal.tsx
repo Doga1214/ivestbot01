@@ -740,7 +740,7 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                 letterSpacing: '0.5px'
               }}
             >
-              {!currentWin.isWin ? currentWin.slice.label || '2x Loss' : currentWin.prizeText}
+              {!currentWin.isWin ? currentWin.slice.label || '5.0x Loss' : currentWin.prizeText}
             </div>
 
 

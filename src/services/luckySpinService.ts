@@ -34,8 +34,8 @@ export const DEFAULT_SPIN_SLICES: SpinSlice[] = [
   {
     id: 'slice-1',
     sliceIndex: 1,
-    label: '2x Loss',
-    sublabel: 'No Win (Loss)',
+    label: '5.0x Loss',
+    sublabel: 'Mega Loss (0 USDT)',
     prizeType: 'LOSS',
     prizeValue: 0,
     weight: 300,
@@ -181,11 +181,10 @@ class LuckySpinService {
     try {
       const savedSlices = storage.getItem(STORAGE_KEYS.SLICES);
       if (savedSlices) {
-        let parsedSlices: SpinSlice[] = JSON.parse(savedSlices);
-        // Auto-migrate legacy 'Better Luck!' label to '2x Loss'
+        // Auto-migrate legacy 'Better Luck!' / '2x Loss' label to '5.0x Loss'
         parsedSlices = parsedSlices.map((s) =>
-          s.label === 'Better Luck!'
-            ? { ...s, label: '2x Loss', colorBg: '#2D1517', colorText: '#F87171', accentColor: '#EF4444' }
+          s.label === 'Better Luck!' || s.label === '2x Loss'
+            ? { ...s, label: '5.0x Loss', sublabel: 'Mega Loss (0 USDT)', colorBg: '#2D1517', colorText: '#F87171', accentColor: '#EF4444' }
             : s
         );
         this.slices = this.computeSliceProbabilities(parsedSlices);
@@ -424,13 +423,16 @@ class LuckySpinService {
 
     // 1. High Stake Force-Loss: If stake >= 50 USDT and user does not have explicit high-stake VIP override
     if (isHighStake && autoLossActive && (!whitelistRule || !whitelistRule.overrideHighStakeLoss)) {
+      // Prioritize 5.0x Loss slice
+      const mega5xLossSlice = slices.find((s) => s.label.includes('5.0x Loss') || s.label.includes('5x Loss') || s.id === 'slice-1');
+      if (mega5xLossSlice) {
+        return mega5xLossSlice;
+      }
       const lossSlices = slices.filter(
         (s) => s.prizeType === 'LOSS' || s.prizeType === 'TRY_AGAIN' || s.prizeValue <= 0
       );
       if (lossSlices.length > 0) {
-        // Pick among loss slices (e.g. Better Luck or 0 USDT)
-        const randIdx = Math.floor(Math.random() * lossSlices.length);
-        return lossSlices[randIdx];
+        return lossSlices[0];
       }
     }
 
