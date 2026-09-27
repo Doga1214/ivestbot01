@@ -639,14 +639,14 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {slices.map((s) => (
-                      <tr key={s.id} style={{ borderBottom: '1px solid #1E293B' }}>
-                        <td style={{ padding: '8px 12px', fontWeight: 600, color: s.accentColor }}>{s.label}</td>
+                    {(slices || []).map((s) => (
+                      <tr key={s?.id || Math.random()} style={{ borderBottom: '1px solid #1E293B' }}>
+                        <td style={{ padding: '8px 12px', fontWeight: 600, color: s?.accentColor || '#FFFFFF' }}>{s?.label || 'Slice'}</td>
                         <td style={{ padding: '8px 12px', color: '#94A3B8' }}>
-                          {s.prizeType === 'LOSS' || s.prizeType === 'TRY_AGAIN' ? 'Loss' : s.prizeType}
+                          {s?.prizeType === 'LOSS' || s?.prizeType === 'TRY_AGAIN' ? 'Loss' : s?.prizeType || 'Prize'}
                         </td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#F8FAFC' }}>
-                          {s.probabilityPercent}%
+                          {s?.probabilityPercent ?? '0'}%
                         </td>
                       </tr>
                     ))}
