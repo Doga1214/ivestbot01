@@ -227,10 +227,15 @@ export const reservationService = {
     // Credit calculated profit to wallet
     const targetUserId = userId || authService.getCurrentUser()?.id;
     const wallet = targetUserId ? walletService.getWalletForUser(targetUserId) : walletService.getWallet();
+    const currentTotal = typeof wallet.totalBalance === 'number' && !isNaN(wallet.totalBalance) ? wallet.totalBalance : (parseFloat(wallet.totalBalance as any) || 0);
+    const currentAvail = typeof wallet.availableBalance === 'number' && !isNaN(wallet.availableBalance) ? wallet.availableBalance : (parseFloat(wallet.availableBalance as any) || 0);
+    const profitNum = typeof completedRecord.profit === 'number' && !isNaN(completedRecord.profit) ? completedRecord.profit : (parseFloat(completedRecord.profit as any) || 0);
+
     const updatedWallet = {
       ...wallet,
-      totalBalance: Number((wallet.totalBalance + completedRecord.profit).toFixed(4)),
-      availableBalance: Number((wallet.availableBalance + completedRecord.profit).toFixed(4))
+      totalBalance: Number((currentTotal + profitNum).toFixed(4)),
+      availableBalance: Number((currentAvail + profitNum).toFixed(4)),
+      updatedAt: new Date().toISOString()
     };
 
     if (targetUserId) {

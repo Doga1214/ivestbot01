@@ -167,20 +167,19 @@ export const walletService = {
   },
 
   saveWallet(wallet: WalletState, userId?: string): void {
+    const currentUser = authService.getCurrentUser();
+    const targetId = userId || currentUser?.id;
+    if (targetId) {
+      this.saveWalletForUser(targetId, wallet);
+      return;
+    }
     const data = {
       ...wallet,
       updatedAt: new Date().toISOString()
     };
-    const currentUser = authService.getCurrentUser();
-    const targetId = userId || currentUser?.id;
-    if (targetId) {
-      localStorage.setItem(`ivestbot_wallet_${targetId}`, JSON.stringify(data));
-      // Only set generic storage key if targetId is the current session user
-      if (currentUser && currentUser.id === targetId) {
-        localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(data));
-      }
-    } else {
-      localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(data));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('ivestbot_wallet_updated', { detail: { wallet: data } }));
     }
   },
 
@@ -766,10 +765,25 @@ export const walletService = {
     this.saveTransactions(updated);
 
     // Sync to Supabase wallet_transactions table
+    let supabaseUserId: string | null = null;
+    if (tx.userId && isValidUuid(tx.userId)) {
+      supabaseUserId = tx.userId;
+    } else if (tx.userId) {
+      try {
+        const allUsers = authService.getAllUsers();
+        const found = allUsers.find(u => u.id === tx.userId);
+        if (found?.id && isValidUuid(found.id)) {
+          supabaseUserId = found.id;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     supabase
       .from('wallet_transactions')
       .insert({
-        user_id: tx.userId || null,
+        user_id: supabaseUserId,
         type: tx.type,
         amount: tx.amount,
         currency: tx.currency,

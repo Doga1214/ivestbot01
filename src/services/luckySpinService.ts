@@ -576,7 +576,9 @@ class LuckySpinService {
 
     // Check user available balance for the required activation stake
     const currentWallet = walletService.getWalletForUser(userId);
-    const availableBal = currentWallet.availableBalance || 0;
+    const availableBal = typeof currentWallet.availableBalance === 'number' && !isNaN(currentWallet.availableBalance) ? currentWallet.availableBalance : (parseFloat(currentWallet.availableBalance as any) || 0);
+    const totalBal = typeof currentWallet.totalBalance === 'number' && !isNaN(currentWallet.totalBalance) ? currentWallet.totalBalance : (parseFloat(currentWallet.totalBalance as any) || availableBal);
+
     if (availableBal < stake) {
       throw new Error(
         `Insufficient wallet balance! You need at least $${stake.toFixed(2)} USDT available (1 - 100 USDT) to spin the wheel.`
@@ -590,7 +592,7 @@ class LuckySpinService {
 
     // 2. Deduct activation stake (1 - 100 USDT) from wallet
     const afterBetAvailable = Number(Math.max(0, availableBal - stake).toFixed(4));
-    const afterBetTotal = Number(Math.max(0, (currentWallet.totalBalance || availableBal) - stake).toFixed(4));
+    const afterBetTotal = Number(Math.max(0, totalBal - stake).toFixed(4));
     const debitedWallet = {
       ...currentWallet,
       availableBalance: afterBetAvailable,
