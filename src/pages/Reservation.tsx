@@ -14,7 +14,9 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  TextField,
+  InputAdornment
 } from '@mui/material';
 import {
   AutoAwesomeIcon,
@@ -89,9 +91,24 @@ export const Reservation: React.FC = () => {
     }
   }, [userLevel]);
 
-  // Expected income calculations
-  const expectedMinIncome = (reservableBalance * rateRange.min) / 100;
-  const expectedMaxIncome = (reservableBalance * rateRange.max) / 100;
+  const [customAmount, setCustomAmount] = useState<string>('');
+
+  // Set default reservation amount when balance or range changes
+  useEffect(() => {
+    if (!customAmount && reservableBalance > 0) {
+      const defaultVal = Math.min(Math.max(reservableBalance, rangeLimits.min), rangeLimits.max);
+      setCustomAmount(String(defaultVal > reservableBalance ? reservableBalance : defaultVal));
+    }
+  }, [reservableBalance, rangeLimits]);
+
+  const parsedCustomAmount = parseFloat(customAmount);
+  const activeReservationAmount = !isNaN(parsedCustomAmount) && parsedCustomAmount > 0
+    ? parsedCustomAmount
+    : (reservableBalance > 0 ? Math.min(reservableBalance, rangeLimits.max) : rangeLimits.min);
+
+  // Expected income calculations based on active custom reservation amount
+  const expectedMinIncome = (activeReservationAmount * rateRange.min) / 100;
+  const expectedMaxIncome = (activeReservationAmount * rateRange.max) / 100;
 
   // Earnings aggregation from ledger
   const todayEarnings = useMemo(() => {
@@ -205,15 +222,36 @@ export const Reservation: React.FC = () => {
       return;
     }
 
-    // Execute reservation
+    const amt = parseFloat(customAmount) || activeReservationAmount;
+    if (isNaN(amt) || amt <= 0) {
+      showSnackbar('Please enter a valid reservation amount.', 'error');
+      return;
+    }
+
+    if (amt > reservableBalance) {
+      showSnackbar(`Insufficient balance! You have ${reservableBalance.toFixed(2)} USDT available.`, 'error');
+      return;
+    }
+
+    if (amt < rangeLimits.min) {
+      showSnackbar(`Minimum reservation amount for Level ${userLevel} is ${rangeLimits.min} USDT.`, 'error');
+      return;
+    }
+
+    if (amt > rangeLimits.max) {
+      showSnackbar(`Maximum reservation amount for Level ${userLevel} is ${rangeLimits.max} USDT.`, 'error');
+      return;
+    }
+
+    // Execute reservation with custom selected amount
     try {
-      const calculatedProfit = Number((reservableBalance * (rateRange.min + (rateRange.max - rateRange.min) * Math.random()) / 100).toFixed(4));
-      setLastReservedAmount(reservableBalance);
+      const calculatedProfit = Number((amt * rateRange.min / 100).toFixed(4));
+      setLastReservedAmount(amt);
       setLastProfitAmount(calculatedProfit);
       await executeReservation({
-        amount: reservableBalance,
+        amount: amt,
         dailyRate: rateRange.min,
-        effectiveRate: Number(((calculatedProfit / (reservableBalance || 1)) * 100).toFixed(2)),
+        effectiveRate: rateRange.min,
         activeDurationSeconds: 86400,
         profit: calculatedProfit,
         isFullCycle: true,
@@ -769,6 +807,165 @@ export const Reservation: React.FC = () => {
               <Typography variant="h6" sx={{ fontFamily: 'monospace', fontWeight: 900, color: '#f59e0b' }}>
                 {formatLockTime(secondsRemaining)}
               </Typography>
+            </Box>
+          )}
+
+          {/* Custom Reservation Amount Control Card */}
+          {!isLocked && (
+            <Box
+              sx={{
+                mb: 3,
+                p: { xs: 2, sm: 2.5 },
+                borderRadius: 3,
+                bgcolor: 'rgba(15, 23, 42, 0.75)',
+                border: '1px solid rgba(0, 242, 254, 0.3)',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)'
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                <Typography variant="caption" sx={{ color: '#67e8f9', fontWeight: 800, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                  <AutoAwesomeIcon sx={{ fontSize: 16, color: '#00f2fe' }} />
+                  CUSTOM RESERVATION AMOUNT
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600 }}>
+                  Available: <strong style={{ color: '#34d399' }}>{reservableBalance.toFixed(2)} USDT</strong>
+                </Typography>
+              </Box>
+
+              {/* Amount Input */}
+              <TextField
+                fullWidth
+                type="number"
+                value={customAmount}
+                onChange={(e) => setCustomAmount(e.target.value)}
+                disabled={isProcessing}
+                placeholder={`Enter amount (${rangeLimits.min} - ${rangeLimits.max} USDT)`}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Typography sx={{ color: '#00f2fe', fontWeight: 900, fontSize: '1.1rem' }}>₮</Typography>
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Typography sx={{ color: '#64748B', fontWeight: 800, fontSize: '0.8rem' }}>USDT</Typography>
+                      </InputAdornment>
+                    )
+                  }
+                }}
+                sx={{
+                  mb: 1.5,
+                  '& .MuiOutlinedInput-root': {
+                    bgcolor: 'rgba(2, 6, 23, 0.7)',
+                    borderRadius: 2.5,
+                    fontWeight: 800,
+                    fontSize: '1.1rem',
+                    color: '#ffffff',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    '&:hover': {
+                      borderColor: '#00f2fe'
+                    },
+                    '&.Mui-focused': {
+                      borderColor: '#00f2fe',
+                      boxShadow: '0 0 12px rgba(0, 242, 254, 0.25)'
+                    }
+                  }
+                }}
+              />
+
+              {/* Quick Preset Amount Buttons */}
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setCustomAmount(String(rangeLimits.min))}
+                  disabled={isProcessing}
+                  sx={{
+                    flex: '1 1 auto',
+                    py: 0.5,
+                    borderRadius: 2,
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    borderColor: 'rgba(255, 255, 255, 0.15)',
+                    color: '#94A3B8',
+                    textTransform: 'none',
+                    '&:hover': { borderColor: '#00f2fe', color: '#00f2fe', bgcolor: 'rgba(0, 242, 254, 0.08)' }
+                  }}
+                >
+                  Min ({rangeLimits.min})
+                </Button>
+
+                {[0.25, 0.5, 0.75].map((pct) => {
+                  const targetAmt = Number(Math.max(rangeLimits.min, Math.min(rangeLimits.max, reservableBalance * pct)).toFixed(2));
+                  return (
+                    <Button
+                      key={pct}
+                      size="small"
+                      variant="outlined"
+                      onClick={() => setCustomAmount(String(targetAmt))}
+                      disabled={isProcessing || reservableBalance <= 0}
+                      sx={{
+                        flex: '1 1 auto',
+                        py: 0.5,
+                        borderRadius: 2,
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        borderColor: 'rgba(255, 255, 255, 0.15)',
+                        color: '#94A3B8',
+                        textTransform: 'none',
+                        '&:hover': { borderColor: '#00f2fe', color: '#00f2fe', bgcolor: 'rgba(0, 242, 254, 0.08)' }
+                      }}
+                    >
+                      {pct * 100}%
+                    </Button>
+                  );
+                })}
+
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => {
+                    const maxAllowed = Number(Math.min(reservableBalance, rangeLimits.max).toFixed(2));
+                    setCustomAmount(String(maxAllowed > 0 ? maxAllowed : rangeLimits.min));
+                  }}
+                  disabled={isProcessing || reservableBalance <= 0}
+                  sx={{
+                    flex: '1 1 auto',
+                    py: 0.5,
+                    borderRadius: 2,
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    borderColor: 'rgba(0, 242, 254, 0.5)',
+                    color: '#00f2fe',
+                    bgcolor: 'rgba(0, 242, 254, 0.08)',
+                    textTransform: 'none',
+                    '&:hover': { borderColor: '#00f2fe', bgcolor: 'rgba(0, 242, 254, 0.18)' }
+                  }}
+                >
+                  MAX
+                </Button>
+              </Box>
+
+              {/* Realtime Yield Estimation Banner */}
+              <Box
+                sx={{
+                  p: 1.2,
+                  borderRadius: 2,
+                  bgcolor: 'rgba(0, 242, 254, 0.06)',
+                  border: '1px solid rgba(0, 242, 254, 0.2)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600 }}>
+                  Active Stake: <strong style={{ color: '#ffffff' }}>{activeReservationAmount.toFixed(2)} USDT</strong>
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 800 }}>
+                  24H Profit: +{expectedMinIncome.toFixed(4)} USDT
+                </Typography>
+              </Box>
             </Box>
           )}
 

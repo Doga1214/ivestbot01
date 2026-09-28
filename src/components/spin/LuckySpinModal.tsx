@@ -451,12 +451,18 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                       disabled={isSpinning}
                       value={betAmount}
                       onChange={(e) => {
-                        const val = parseFloat(e.target.value);
-                        if (!isNaN(val)) {
-                          setBetAmount(Math.min(100, Math.max(1, val)));
+                        const val = e.target.value;
+                        if (val === '') {
+                          setBetAmount('');
                         } else {
-                          setBetAmount(1);
+                          const parsed = parseFloat(val);
+                          setBetAmount(isNaN(parsed) ? '' : parsed);
                         }
+                      }}
+                      onBlur={() => {
+                        const num = Number(betAmount);
+                        if (isNaN(num) || num < 1) setBetAmount(1);
+                        else if (num > 100) setBetAmount(100);
                       }}
                       style={{
                         width: '100%',
@@ -474,7 +480,7 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                     </span>
                   </div>
                   <div style={{ fontSize: '11px', color: '#94A3B8', whiteSpace: 'nowrap' }}>
-                    Max Win: <strong style={{ color: '#FBBF24' }}>${(betAmount * 50).toFixed(0)} USDT</strong> (50x)
+                    Max Win: <strong style={{ color: '#FBBF24' }}>${((Number(betAmount) || 1) * 50).toFixed(0)} USDT</strong> (50x)
                   </div>
                 </div>
               </div>
