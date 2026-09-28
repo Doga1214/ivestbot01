@@ -117,7 +117,7 @@ export const WithdrawalPanel: React.FC = () => {
       : 'Withdrawals have been restricted on your account by the administrator.');
 
   const numAmount = parseFloat(withdrawAmount) || 0;
-  const minLimit = WALLET_CONFIG.minWithdrawalUSDT || 100;
+  const minLimit = currentNetwork.minWithdrawal || WALLET_CONFIG.minWithdrawalUSDT || 10;
   const networkFee = currentNetwork.fee;
   const netReceived = Math.max(0, numAmount - networkFee);
 
@@ -267,7 +267,9 @@ export const WithdrawalPanel: React.FC = () => {
       return;
     }
     try {
-      await authService.setWithdrawalPin(user.id, newPin);
+      await authService.resetWithdrawalPin(user.id, newPin);
+      setIsPinLocked(false);
+      setLockoutMsg(null);
       showSnackbar('6-Digit Withdrawal Security PIN set successfully!', 'success');
       setIsSetPinModalOpen(false);
       setNewPin('');
