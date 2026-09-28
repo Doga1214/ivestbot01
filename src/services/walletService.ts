@@ -515,6 +515,21 @@ export const walletService = {
         }
       }
 
+      // Aggregate transactions from both Supabase and Local Storage ledger
+      const localTxs = this.getTransactions().filter(t => !t.userId || t.userId === userId || idList.includes(t.userId));
+      let localProfits = 0;
+      localTxs.forEach(t => {
+        const amt = typeof t.amount === 'number' ? t.amount : (parseFloat(t.amount as any) || 0);
+        if (t.status === 'COMPLETED' || t.status === 'APPROVED') {
+          if (t.type === 'DAILY_PROFIT' || t.type === 'WELCOME_BONUS' || t.type === 'REFERRAL_BONUS' || t.type === 'SPIN_REWARD' || t.type === 'ADMIN_CREDIT') {
+            localProfits += amt;
+          } else if (t.type === 'ADMIN_DEBIT') {
+            localProfits -= amt;
+          }
+        }
+      });
+
+      const effectiveProfits = Math.max(totalProfits, localProfits);
       const totalApprovedDep = approvedDeposits.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
       const totalApprovedWth = approvedWithdrawals.reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
       const totalPendingDep = pendingDeposits.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
@@ -523,60 +538,42 @@ export const walletService = {
       const localAvailable = typeof local.availableBalance === 'number' && !isNaN(local.availableBalance) ? Math.max(0, local.availableBalance) : 0;
       const localPending = typeof local.pendingBalance === 'number' && !isNaN(local.pendingBalance) ? Math.max(0, local.pendingBalance) : 0;
       const localTotal = typeof local.totalBalance === 'number' && !isNaN(local.totalBalance) ? Math.max(0, local.totalBalance) : 0;
-      const localTimestamp = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
 
       const rawDbAvailable = parseFloat(dbWalletData?.available_balance);
       const rawDbTotal = parseFloat(dbWalletData?.total_balance);
       const rawDbPending = parseFloat(dbWalletData?.pending_balance);
-      const dbTimestamp = dbWalletData?.updated_at ? new Date(dbWalletData.updated_at).getTime() : 0;
 
-      const ledgerAvailable = Math.max(0, Number((totalApprovedDep + totalProfits - totalApprovedWth).toFixed(4)));
+      const ledgerAvailable = Math.max(0, Number((totalApprovedDep + effectiveProfits - totalApprovedWth).toFixed(4)));
 
-      let availableBalance = 0;
-      let pendingBalance = 0;
-      let totalBalance = 0;
+      let availableBalance = localAvailable;
+      let pendingBalance = localPending > 0 ? localPending : totalPendingDep;
+      let totalBalance = localTotal > 0 ? localTotal : Number((availableBalance + pendingBalance).toFixed(4));
       let shouldRepairDb = false;
 
       const hasValidDbRecord = dbWalletData && !isNaN(rawDbAvailable);
 
       if (hasValidDbRecord) {
-        // Timestamp conflict resolution: Is DB strictly newer than local by >2000ms?
-        if (dbTimestamp > localTimestamp + 2000) {
-          // Guard: If DB is 0 but local has legitimate active profits/balance, don't blindly zero out
-          if (rawDbAvailable === 0 && localAvailable > 0 && (totalApprovedDep > 0 || totalProfits > 0)) {
-            availableBalance = localAvailable;
-            pendingBalance = !isNaN(rawDbPending) ? Math.max(0, rawDbPending) : localPending;
-            totalBalance = Number((availableBalance + pendingBalance).toFixed(4));
-            shouldRepairDb = true;
-          } else {
-            availableBalance = Math.max(0, rawDbAvailable);
-            pendingBalance = !isNaN(rawDbPending) ? Math.max(0, rawDbPending) : totalPendingDep;
-            totalBalance = !isNaN(rawDbTotal) ? Math.max(0, rawDbTotal) : Number((availableBalance + pendingBalance).toFixed(4));
-          }
-        } else if (localAvailable > 0 && (localTimestamp >= dbTimestamp || rawDbAvailable === 0)) {
-          // Local state is more recent (e.g. daily settlement / bonus) or DB has stale zero
-          availableBalance = localAvailable;
-          pendingBalance = !isNaN(rawDbPending) && rawDbPending > 0 ? rawDbPending : (localPending || totalPendingDep);
-          totalBalance = localTotal > 0 ? localTotal : Number((availableBalance + pendingBalance).toFixed(4));
-          shouldRepairDb = true;
-        } else {
-          // Standard authoritative DB sync
-          availableBalance = Math.max(0, rawDbAvailable);
-          pendingBalance = !isNaN(rawDbPending) ? Math.max(0, rawDbPending) : totalPendingDep;
+        if (rawDbAvailable > localAvailable) {
+          // Remote database has new approved deposits or direct admin credits
+          availableBalance = rawDbAvailable;
+          pendingBalance = !isNaN(rawDbPending) ? Math.max(0, rawDbPending) : pendingBalance;
           totalBalance = !isNaN(rawDbTotal) ? Math.max(0, rawDbTotal) : Number((availableBalance + pendingBalance).toFixed(4));
+        } else if (localAvailable > rawDbAvailable) {
+          // Local state has recent reservation yields or spin wins -> Heal DB
+          shouldRepairDb = true;
+        } else if (localAvailable === 0 && ledgerAvailable > 0) {
+          availableBalance = ledgerAvailable;
+          totalBalance = Number((availableBalance + pendingBalance).toFixed(4));
+          shouldRepairDb = true;
         }
       } else {
-        // No DB record found (e.g. new registration, silent RLS query, or connection drop)
+        // No DB record found or offline
         if (localAvailable > 0) {
-          // Zero-Drop Shield: Maintain verified local balance
           availableBalance = localAvailable;
-          pendingBalance = localPending || totalPendingDep;
-          totalBalance = localTotal || Number((availableBalance + pendingBalance).toFixed(4));
+          totalBalance = localTotal > 0 ? localTotal : Number((availableBalance + pendingBalance).toFixed(4));
           shouldRepairDb = true;
-        } else {
-          // Fallback to ledger computation
+        } else if (ledgerAvailable > 0) {
           availableBalance = ledgerAvailable;
-          pendingBalance = totalPendingDep;
           totalBalance = Number((availableBalance + pendingBalance).toFixed(4));
           shouldRepairDb = true;
         }
