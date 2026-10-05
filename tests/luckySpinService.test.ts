@@ -129,5 +129,52 @@ export async function runLuckySpinServiceTests(runner: TestRunner) {
     assert.strictEqual(history.length, 1);
     assert.strictEqual(history[0].id, result.id);
   });
+
+  await runner.test('Mega Loss Multiplier: automatically deducts loss penalty from wallet balance', async () => {
+    const testUserId = `user_mega_loss_${Date.now()}`;
+    
+    // Seed wallet with 200 USDT balance
+    walletService.saveWalletForUser(testUserId, {
+      availableBalance: 200,
+      totalBalance: 200,
+      pendingBalance: 0,
+      currency: 'USDT',
+      status: 'ACTIVE',
+      restrictions: {
+        canDeposit: true,
+        canWithdraw: true,
+        canReserve: true,
+        canTrade: true
+      },
+      updatedAt: new Date().toISOString()
+    });
+
+    // Whitelist user to specifically land on slice 1 (💥 50x Mega Loss)
+    luckySpinService.addWhitelistedProfitUser({
+      userId: testUserId,
+      outcomeMode: 'CUSTOM_SLICE',
+      fixedSliceIndex: 1, // 50x Mega Loss slice
+      isActive: true,
+      notes: 'Test Mega Loss'
+    });
+
+    // Bet 2 USDT stake
+    const result = await luckySpinService.executeSpin(testUserId, 1, 2);
+
+    assert.strictEqual(result.isWin, false);
+    assert.strictEqual(result.sliceIndex, 1);
+    assert.strictEqual(result.betAmount, 2);
+    // Target loss: 50 * 2 = 100 USDT. Since 2 USDT stake was deducted, extra 98 USDT was deducted!
+    assert.strictEqual(result.lossAmount, 100);
+    assert.ok(result.prizeText.includes('-$100.00 USDT'));
+
+    // Check updated wallet balance: 200 - 100 = 100 USDT
+    const finalWallet = walletService.getWalletForUser(testUserId);
+    assert.strictEqual(finalWallet.availableBalance, 100);
+    assert.strictEqual(finalWallet.totalBalance, 100);
+
+    // Clean up
+    luckySpinService.removeWhitelistedProfitUser(testUserId);
+  });
 }
 

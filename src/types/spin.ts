@@ -43,6 +43,7 @@ export interface SpinResult {
   prizeText: string;
   betAmount: number;
   wonAmount: number;
+  lossAmount?: number;
   isWin: boolean;
   newBalance?: number;
   spinsRemaining: number;

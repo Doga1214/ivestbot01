@@ -764,15 +764,26 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                 letterSpacing: '0.5px'
               }}
             >
-              {!currentWin.isWin ? currentWin.slice.label || '💥 50x Mega Loss' : currentWin.prizeText}
+              {!currentWin.isWin
+                ? (currentWin.lossAmount && currentWin.lossAmount > currentWin.betAmount
+                    ? `💥 ${currentWin.slice.label} (-$${currentWin.lossAmount.toFixed(2)} USDT)`
+                    : currentWin.slice.label || '💥 50x Mega Loss')
+                : currentWin.prizeText}
             </div>
 
-
             {/* Description */}
-            <div style={{ fontSize: '13px', color: '#94A3B8', maxWidth: '320px', marginBottom: '24px' }}>
+            <div style={{ fontSize: '13px', color: '#94A3B8', maxWidth: '340px', marginBottom: '24px' }}>
               {!currentWin.isWin ? (
                 <span>
-                  You staked <strong>${currentWin.betAmount} USDT</strong>. The wheel landed on a loss slice. Don&apos;t give up—try again to hit up to 50x Mega Jackpot!
+                  {currentWin.lossAmount && currentWin.lossAmount > currentWin.betAmount ? (
+                    <span>
+                      You staked <strong>${currentWin.betAmount} USDT</strong> and triggered a <strong>{currentWin.slice.prizeValue || 50}x Mega Loss</strong>. A total of <strong style={{ color: '#F87171' }}>-${currentWin.lossAmount.toFixed(2)} USDT</strong> has been automatically deducted from your wallet!
+                    </span>
+                  ) : (
+                    <span>
+                      You staked <strong>${currentWin.betAmount} USDT</strong>. The wheel landed on a loss slice. Don&apos;t give up—try again to hit up to 50x Mega Jackpot!
+                    </span>
+                  )}
                 </span>
               ) : currentWin.prizeType === 'USDT' ? (
                 <span>

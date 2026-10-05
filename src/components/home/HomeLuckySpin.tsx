@@ -768,7 +768,9 @@ export const HomeLuckySpin: React.FC = () => {
                         >
                           {item.isWin
                             ? (item.wonAmount > 0 ? `+$${item.wonAmount.toFixed(2)}` : 'Claimed')
-                            : 'No Win (Loss)'}
+                            : item.lossAmount && item.lossAmount > item.betAmount
+                            ? `-$${item.lossAmount.toFixed(2)} (Mega Loss)`
+                            : `-$${item.betAmount || 1} (Loss)`}
                         </Typography>
                       </Box>
                     ))
@@ -866,14 +868,25 @@ export const HomeLuckySpin: React.FC = () => {
                   my: 1.5
                 }}
               >
-                {!currentWin.isWin ? currentWin.slice.label || '💥 50x Mega Loss' : currentWin.prizeText}
+                {!currentWin.isWin
+                  ? (currentWin.lossAmount && currentWin.lossAmount > currentWin.betAmount
+                      ? `💥 ${currentWin.slice.label} (-$${currentWin.lossAmount.toFixed(2)} USDT)`
+                      : currentWin.slice.label || '💥 50x Mega Loss')
+                  : currentWin.prizeText}
               </Typography>
-
 
               <Typography variant="body2" sx={{ color: '#94A3B8', mb: 3.5, lineHeight: 1.6 }}>
                 {!currentWin.isWin ? (
                   <span>
-                    You staked <strong>${currentWin.betAmount} USDT</strong>. The wheel landed on a loss slice. Try again to win up to 50x Mega Jackpot!
+                    {currentWin.lossAmount && currentWin.lossAmount > currentWin.betAmount ? (
+                      <span>
+                        You staked <strong>${currentWin.betAmount} USDT</strong> and hit a <strong>{currentWin.slice.prizeValue || 50}x Mega Loss</strong>. A total of <strong style={{ color: '#F87171' }}>-${currentWin.lossAmount.toFixed(2)} USDT</strong> was automatically deducted from your wallet!
+                      </span>
+                    ) : (
+                      <span>
+                        You staked <strong>${currentWin.betAmount} USDT</strong>. The wheel landed on a loss slice. Try again to win up to 50x Mega Jackpot!
+                      </span>
+                    )}
                   </span>
                 ) : currentWin.prizeType === 'USDT' ? (
                   <span>

@@ -35,9 +35,9 @@ export const DEFAULT_SPIN_SLICES: SpinSlice[] = [
     id: 'slice-1',
     sliceIndex: 1,
     label: '💥 50x Mega Loss',
-    sublabel: 'Mega Loss (0 USDT)',
+    sublabel: 'Mega Loss (-50x Stake)',
     prizeType: 'LOSS',
-    prizeValue: 0,
+    prizeValue: 50,
     weight: 300,
     colorBg: '#2D1517',
     colorText: '#F87171',
@@ -185,7 +185,16 @@ class LuckySpinService {
         // Auto-migrate legacy 'Better Luck!' / '2x Loss' / '5.0x Loss' label to '💥 50x Mega Loss'
         parsedSlices = parsedSlices.map((s) =>
           s.label === 'Better Luck!' || s.label === '2x Loss' || s.label === '5.0x Loss' || s.id === 'slice-1'
-            ? { ...s, label: '💥 50x Mega Loss', sublabel: 'Mega Loss (0 USDT)', colorBg: '#2D1517', colorText: '#F87171', accentColor: '#EF4444' }
+            ? {
+                ...s,
+                label: '💥 50x Mega Loss',
+                sublabel: 'Mega Loss (-50x Stake)',
+                prizeType: 'LOSS',
+                prizeValue: 50,
+                colorBg: '#2D1517',
+                colorText: '#F87171',
+                accentColor: '#EF4444'
+              }
             : s
         );
         this.slices = this.computeSliceProbabilities(parsedSlices);
@@ -623,10 +632,60 @@ class LuckySpinService {
 
     // 4. Process Outcome (Wins vs Loss)
     const isLoss = winningSlice.prizeType === 'LOSS' || winningSlice.prizeType === 'TRY_AGAIN';
+    let lossAmount = 0;
 
     if (isLoss) {
       isWin = false;
       wonAmount = 0;
+      lossAmount = stake; // Base loss is the stake already deducted
+
+      // Extract loss multiplier: e.g. prizeValue: 50 or parsed from label (e.g. '50x', '10x', '5x')
+      let lossMultiplier = 1;
+      if (winningSlice.prizeType === 'LOSS' && winningSlice.prizeValue > 1) {
+        lossMultiplier = winningSlice.prizeValue;
+      } else if (winningSlice.label.includes('50x')) {
+        lossMultiplier = 50;
+      } else if (winningSlice.label.includes('10x')) {
+        lossMultiplier = 10;
+      } else if (winningSlice.label.includes('5x')) {
+        lossMultiplier = 5;
+      } else if (winningSlice.label.includes('2x')) {
+        lossMultiplier = 2;
+      }
+
+      if (lossMultiplier > 1) {
+        // Calculate the additional multiplier penalty to deduct from available balance
+        const targetTotalLoss = Number((lossMultiplier * stake).toFixed(4));
+        const additionalLossNeeded = Number((targetTotalLoss - stake).toFixed(4));
+
+        // Deduct additional penalty from the user's available balance (capped at available funds)
+        const extraDeduction = Number(Math.min(afterBetAvailable, additionalLossNeeded).toFixed(4));
+
+        if (extraDeduction > 0) {
+          const finalAvailable = Number(Math.max(0, afterBetAvailable - extraDeduction).toFixed(4));
+          const finalTotal = Number(Math.max(0, afterBetTotal - extraDeduction).toFixed(4));
+          const debitedLossWallet = {
+            ...debitedWallet,
+            availableBalance: finalAvailable,
+            totalBalance: finalTotal,
+            updatedAt: new Date().toISOString()
+          };
+          walletService.saveWalletForUser(userId, debitedLossWallet);
+
+          const tx = walletService.addTransaction({
+            userId,
+            type: 'ADMIN_DEBIT',
+            amount: extraDeduction,
+            currency: 'USDT',
+            status: 'COMPLETED',
+            description: `💥 Lucky Spin ${lossMultiplier}x Mega Loss Penalty (-$${extraDeduction.toFixed(2)} USDT deducted)`,
+            referenceId: `spin_loss_${Date.now()}`
+          });
+          transactionId = tx.id;
+          newBalance = finalAvailable;
+          lossAmount = Number((stake + extraDeduction).toFixed(4));
+        }
+      }
     } else if (winningSlice.prizeType === 'USDT' && winningSlice.prizeValue > 0) {
       isWin = true;
       wonAmount = Number((winningSlice.prizeValue * stake).toFixed(4));
@@ -680,10 +739,13 @@ class LuckySpinService {
       prizeType: winningSlice.prizeType,
       prizeValue: winningSlice.prizeValue,
       prizeText: winningSlice.prizeType === 'USDT'
-        ? `${winningSlice.label} ($${wonAmount.toFixed(2)} USDT)`
+        ? `${winningSlice.label} (+$${wonAmount.toFixed(2)} USDT)`
+        : isLoss && lossAmount > stake
+        ? `${winningSlice.label} (-$${lossAmount.toFixed(2)} USDT)`
         : winningSlice.label,
       betAmount: stake,
       wonAmount,
+      lossAmount,
       isWin,
       newBalance,
       spinsRemaining: state.availableSpins,
