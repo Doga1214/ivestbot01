@@ -76,10 +76,15 @@ export const Reservation: React.FC = () => {
   const userLevel = user?.level || 1;
   const reservableBalance = Math.max(0, wallet.availableBalance);
   
-  // Daily rate: 1.000% per 24H reservation
+  // Daily rate: 1.500% - 2.500% per 24H reservation based on VIP Level
   const rateRange = useMemo(() => {
-    return { min: 1.0, max: 1.0, label: '1.000% Daily ROI' };
-  }, []);
+    switch (userLevel) {
+      case 2: return { min: 1.8, max: 1.8, label: '1.800% Daily ROI' };
+      case 3: return { min: 2.1, max: 2.1, label: '2.100% Daily ROI' };
+      case 4: return { min: 2.5, max: 2.5, label: '2.500% Daily ROI' };
+      default: return { min: 1.5, max: 1.5, label: '1.500% Daily ROI' };
+    }
+  }, [userLevel]);
 
   // Reservation range based on level (Starting from 10 USDT)
   const rangeLimits = useMemo(() => {
@@ -746,7 +751,7 @@ export const Reservation: React.FC = () => {
                 {isLocked ? `+${todayProfitCredited.toFixed(4)}` : `${expectedMinIncome.toFixed(2)} ~ ${expectedMaxIncome.toFixed(2)}`}
               </Typography>
               <Typography variant="caption" sx={{ color: isLocked ? '#10b981' : '#64748B', fontSize: '0.68rem', fontWeight: 700 }}>
-                {isLocked ? 'Credited to Main Balance' : 'Calculated at 1.000% Daily'}
+                {isLocked ? 'Credited to Main Balance' : `Calculated at ${rateRange.label}`}
               </Typography>
             </Box>
 

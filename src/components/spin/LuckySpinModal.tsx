@@ -39,7 +39,7 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
   const [slices, setSlices] = useState<SpinSlice[]>([]);
   const [spinState, setSpinState] = useState<UserSpinState | null>(null);
   const [walletBalance, setWalletBalance] = useState<number>(0);
-  const [betAmount, setBetAmount] = useState<number>(1);
+  const [betAmount, setBetAmount] = useState<number | ''>(1);
   const [activeTab, setActiveTab] = useState<'wheel' | 'history' | 'rules'>('wheel');
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
   const [spinError, setSpinError] = useState<string | null>(null);
@@ -382,7 +382,7 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                   ref={wheelRef}
                   slices={slices}
                   size={320}
-                  isHighRollerMode={betAmount >= 50}
+                  isHighRollerMode={(Number(betAmount) || 1) >= 50}
                   onSpinStart={() => setIsSpinning(true)}
                 />
               </div>
@@ -517,7 +517,7 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
               {/* Direct Instant Spin Action Button */}
               <button
                 onClick={handleStartSpin}
-                disabled={isSpinning || walletBalance < betAmount}
+                disabled={isSpinning || walletBalance < (Number(betAmount) || 1)}
                 style={{
                   width: '100%',
                   padding: '14px 20px',
@@ -525,15 +525,15 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                   border: 'none',
                   background: isSpinning
                     ? 'linear-gradient(135deg, #64748B 0%, #475569 100%)'
-                    : walletBalance < betAmount
+                    : walletBalance < (Number(betAmount) || 1)
                     ? 'linear-gradient(135deg, #475569 0%, #334155 100%)'
                     : 'linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #B45309 100%)',
-                  color: isSpinning || walletBalance < betAmount ? '#CBD5E1' : '#0F172A',
+                  color: isSpinning || walletBalance < (Number(betAmount) || 1) ? '#CBD5E1' : '#0F172A',
                   fontSize: '15px',
                   fontWeight: 900,
                   letterSpacing: '0.8px',
-                  cursor: isSpinning || walletBalance < betAmount ? 'not-allowed' : 'pointer',
-                  boxShadow: isSpinning || walletBalance < betAmount ? 'none' : '0 10px 25px -5px rgba(245, 158, 11, 0.5)',
+                  cursor: isSpinning || walletBalance < (Number(betAmount) || 1) ? 'not-allowed' : 'pointer',
+                  boxShadow: isSpinning || walletBalance < (Number(betAmount) || 1) ? 'none' : '0 10px 25px -5px rgba(245, 158, 11, 0.5)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -545,9 +545,9 @@ export const LuckySpinModal: React.FC<LuckySpinModalProps> = ({
                 <RotateCw size={18} className={isSpinning ? 'spin-anim' : ''} />
                 {isSpinning
                   ? 'SPINNING THE WHEEL...'
-                  : walletBalance < betAmount
-                  ? `INSUFFICIENT BALANCE ($${betAmount} USDT NEEDED)`
-                  : `SPIN & WIN (-$${betAmount} USDT)`}
+                  : walletBalance < (Number(betAmount) || 1)
+                  ? `INSUFFICIENT BALANCE ($${Number(betAmount) || 1} USDT NEEDED)`
+                  : `SPIN & WIN (-$${Number(betAmount) || 1} USDT)`}
               </button>
             </div>
           )}

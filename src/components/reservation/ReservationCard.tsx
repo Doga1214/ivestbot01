@@ -114,14 +114,14 @@ export const ReservationCard: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ color: '#d1d5db', mb: 2, lineHeight: 1.6 }}>
-            Your available balance is currently <strong>0.00 USDT</strong>. To participate in the 24-Hour yield reservation and earn 1.00% daily returns, please deposit USDT into your wallet.
+            Your available balance is currently <strong>0.00 USDT</strong>. To participate in the 24-Hour yield reservation and earn 1.50% - 2.50% daily returns, please deposit USDT into your wallet.
           </Typography>
           <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
             <Typography variant="caption" sx={{ color: '#c4b5fd', fontWeight: 700, display: 'block' }}>
-              ⚡ Automated 1.00% Daily Returns:
+              ⚡ Automated 1.50% - 2.50% Daily Returns:
             </Typography>
             <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-              Participate in 24-hour cycles designed to earn consistent 1.000% daily returns.
+              Participate in 24-hour cycles designed to earn consistent 1.500% - 2.500% daily returns based on VIP level.
             </Typography>
           </Box>
         </DialogContent>

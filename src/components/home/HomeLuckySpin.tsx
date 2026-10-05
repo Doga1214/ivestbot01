@@ -37,7 +37,7 @@ export const HomeLuckySpin: React.FC = () => {
   const [slices, setSlices] = useState<SpinSlice[]>([]);
   const [spinState, setSpinState] = useState<UserSpinState | null>(null);
   const [walletBalance, setWalletBalance] = useState<number>(0);
-  const [betAmount, setBetAmount] = useState<number>(1);
+  const [betAmount, setBetAmount] = useState<number | ''>(1);
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
   const [spinError, setSpinError] = useState<string | null>(null);
   const [currentWin, setCurrentWin] = useState<SpinResult | null>(null);
@@ -318,7 +318,7 @@ export const HomeLuckySpin: React.FC = () => {
                   ref={wheelRef}
                   slices={slices}
                   size={320}
-                  isHighRollerMode={betAmount >= 50}
+                  isHighRollerMode={(Number(betAmount) || 1) >= 50}
                   onSpinStart={() => setIsSpinning(true)}
                 />
               </Box>
@@ -498,21 +498,21 @@ export const HomeLuckySpin: React.FC = () => {
                   <Button
                     fullWidth
                     variant="contained"
-                    disabled={isSpinning || walletBalance < betAmount}
+                    disabled={isSpinning || walletBalance < (Number(betAmount) || 1)}
                     onClick={handleSpinClick}
                     sx={{
                       py: 1.8,
                       borderRadius: '16px',
                       background: isSpinning
                         ? 'linear-gradient(135deg, #64748B 0%, #475569 100%)'
-                        : walletBalance < betAmount
+                        : walletBalance < (Number(betAmount) || 1)
                         ? 'linear-gradient(135deg, #475569 0%, #334155 100%)'
                         : 'linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #B45309 100%)',
-                      color: isSpinning || walletBalance < betAmount ? '#CBD5E1' : '#0F172A',
+                      color: isSpinning || walletBalance < (Number(betAmount) || 1) ? '#CBD5E1' : '#0F172A',
                       fontWeight: 900,
                       fontSize: '1.05rem',
                       letterSpacing: '0.5px',
-                      boxShadow: isSpinning || walletBalance < betAmount ? 'none' : '0 10px 30px rgba(245, 158, 11, 0.5)',
+                      boxShadow: isSpinning || walletBalance < (Number(betAmount) || 1) ? 'none' : '0 10px 30px rgba(245, 158, 11, 0.5)',
                       textTransform: 'none',
                       gap: 1.5,
                       '&:hover': {
@@ -524,9 +524,9 @@ export const HomeLuckySpin: React.FC = () => {
                     <RotateCw size={20} className={isSpinning ? 'spin-anim' : ''} />
                     {isSpinning
                       ? 'SPINNING THE WHEEL...'
-                      : walletBalance < betAmount
-                      ? `INSUFFICIENT BALANCE ($${betAmount} USDT NEEDED)`
-                      : `SPIN & WIN (-$${betAmount} USDT)`}
+                      : walletBalance < (Number(betAmount) || 1)
+                      ? `INSUFFICIENT BALANCE ($${Number(betAmount) || 1} USDT NEEDED)`
+                      : `SPIN & WIN (-$${Number(betAmount) || 1} USDT)`}
                   </Button>
                 )}
               </Box>
@@ -571,7 +571,7 @@ export const HomeLuckySpin: React.FC = () => {
                     }}
                   />
                   <Typography variant="h5" sx={{ fontWeight: 900, color: '#FEF08A' }}>
-                    Up To 50x Jackpot (${(betAmount * 50).toFixed(0)} USDT)
+                    Up To 50x Jackpot (${((Number(betAmount) || 1) * 50).toFixed(0)} USDT)
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#CBD5E1' }}>
                     Instant cash credited to available wallet ledger

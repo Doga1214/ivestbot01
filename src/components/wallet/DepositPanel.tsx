@@ -181,20 +181,52 @@ export const DepositPanel: React.FC = () => {
       </Grid>
 
       {/* Deposit Submission Form */}
-      <Card>
+      <Card sx={{ borderRadius: 3, border: '1px solid rgba(255, 255, 255, 0.08)', background: 'linear-gradient(160deg, #111522 0%, #161c2d 100%)' }}>
         <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
-            Submit Deposit Confirmation
-          </Typography>
-          <Typography variant="body2" sx={{ color: '#9CA3AF', mb: 3 }}>
-            After transferring USDT to either address above, submit your transfer details below for instant credit.
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 1, mb: 2 }}>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+                Submit Deposit Confirmation
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
+                After sending USDT to the official wallet, paste your TxID/Hash below for instant automated queue logging.
+              </Typography>
+            </Box>
+          </Box>
 
           {submittedMessage && (
-            <Alert severity="success" sx={{ mb: 3 }}>
+            <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>
               {submittedMessage}
             </Alert>
           )}
+
+          {/* Quick Amount Selection Chips */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 1, fontWeight: 600 }}>
+              Quick Preset Amounts (USDT):
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {[50, 100, 200, 300, 500, 1000, 2000].map((amt) => (
+                <Button
+                  key={amt}
+                  variant={depositAmount === String(amt) ? 'contained' : 'outlined'}
+                  size="small"
+                  onClick={() => setDepositAmount(String(amt))}
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    px: 1.8,
+                    py: 0.5,
+                    bgcolor: depositAmount === String(amt) ? 'primary.main' : 'rgba(255, 255, 255, 0.04)',
+                    borderColor: depositAmount === String(amt) ? 'primary.main' : 'rgba(255, 255, 255, 0.12)'
+                  }}
+                >
+                  +{amt} USDT
+                </Button>
+              ))}
+            </Box>
+          </Box>
 
           <form onSubmit={handleSubmit}>
             <Grid container spacing={2.5}>
@@ -205,7 +237,7 @@ export const DepositPanel: React.FC = () => {
                   type="number"
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}
-                  helperText="Minimum deposit: 10 USDT"
+                  helperText="Min: 10 USDT • Eligible for daily Star AI mining"
                   required
                 />
               </Grid>
@@ -231,9 +263,10 @@ export const DepositPanel: React.FC = () => {
                 <TextField
                   fullWidth
                   label="Transaction Hash / TxID"
-                  placeholder="e.g. 0x89b12c..."
+                  placeholder="e.g. 0x89b12c... or 64-char hash"
                   value={txHash}
                   onChange={(e) => setTxHash(e.target.value)}
+                  helperText="Blockchain TxID from your sending wallet"
                   required
                 />
               </Grid>
@@ -244,11 +277,17 @@ export const DepositPanel: React.FC = () => {
                   variant="contained"
                   color="primary"
                   size="large"
-                  disabled={loading}
+                  disabled={loading || isRestricted}
                   startIcon={<SendIcon />}
-                  sx={{ px: 4, py: 1.2, fontWeight: 700 }}
+                  sx={{
+                    px: 4,
+                    py: 1.4,
+                    fontWeight: 800,
+                    borderRadius: 2.5,
+                    boxShadow: '0 8px 24px rgba(139, 92, 246, 0.3)'
+                  }}
                 >
-                  {loading ? 'Processing...' : 'Submit Deposit Confirmation'}
+                  {loading ? 'Submitting...' : 'Submit Deposit Confirmation'}
                 </Button>
               </Grid>
             </Grid>

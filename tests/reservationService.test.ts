@@ -44,23 +44,23 @@ export async function runReservationServiceTests(runner: TestRunner) {
     assert.strictEqual(startRes.success, true);
     assert.strictEqual(reservationService.getReservationState().isMining, true);
 
-    // 3. Stop mining after 43200s (12h) -> half rate = 1.0 / 2 = 0.5%
+    // 3. Stop mining after 43200s (12h) -> half rate = 1.50% / 2 = 0.75%
     const prepared = reservationService.stopMiningAndPrepareReservation(43200);
     assert.strictEqual(reservationService.getReservationState().isMining, false);
     assert.strictEqual(prepared.amount, 500);
-    assert.strictEqual(prepared.effectiveRate, 0.5);
-    assert.strictEqual(prepared.profit, 2.5);
+    assert.strictEqual(prepared.effectiveRate, 0.75);
+    assert.strictEqual(prepared.profit, 3.75);
 
     // 4. Initiate settlement
     const record = reservationService.initiateSettlementExecution(prepared);
     assert.strictEqual(record.status, 'PROCESSING');
-    assert.strictEqual(record.profit, 2.5);
+    assert.strictEqual(record.profit, 3.75);
 
     // 5. Finalize settlement
     const finalizeRes = reservationService.finalizeSettlement(record);
     assert.strictEqual(finalizeRes.completedRecord.status, 'COMPLETED');
-    assert.strictEqual(finalizeRes.updatedWallet.availableBalance, 502.5);
-    assert.strictEqual(finalizeRes.updatedWallet.totalBalance, 502.5);
+    assert.strictEqual(finalizeRes.updatedWallet.availableBalance, 503.75);
+    assert.strictEqual(finalizeRes.updatedWallet.totalBalance, 503.75);
 
     // 6. Verify 24-hr cycle lock is now active
     const lock = reservationService.getCycleLockStatus();

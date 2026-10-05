@@ -86,7 +86,16 @@ class ChatService {
     ) {
       if (userId) {
         const wallet = walletService.getWalletForUser(userId);
-        replyText = `💳 **Your Live Wallet Summary:**\n\n• **Available Balance:** \`$${wallet.availableBalance.toFixed(2)} USDT\`\n• **Reserved / Staked:** \`$${wallet.lockedBalance.toFixed(2)} USDT\`\n• **Total Deposits:** \`$${wallet.totalDeposited.toFixed(2)} USDT\`\n• **Total Withdrawn:** \`$${wallet.totalWithdrawn.toFixed(2)} USDT\`\n\nYou can recharge or withdraw anytime from your Wallet dashboard.`;
+        const txs = walletService.getTransactions().filter(t => !t.userId || t.userId === userId);
+        const totalDeposited = txs
+          .filter(t => t.type === 'DEPOSIT' && (t.status === 'APPROVED' || t.status === 'COMPLETED'))
+          .reduce((sum, t) => sum + t.amount, 0);
+        const totalWithdrawn = txs
+          .filter(t => t.type === 'WITHDRAWAL' && (t.status === 'APPROVED' || t.status === 'COMPLETED'))
+          .reduce((sum, t) => sum + t.amount, 0);
+        const lockedBalance = wallet.pendingBalance || 0;
+
+        replyText = `💳 **Your Live Wallet Summary:**\n\n• **Available Balance:** \`$${wallet.availableBalance.toFixed(2)} USDT\`\n• **Reserved / Staked:** \`$${lockedBalance.toFixed(2)} USDT\`\n• **Total Deposits:** \`$${totalDeposited.toFixed(2)} USDT\`\n• **Total Withdrawn:** \`$${totalWithdrawn.toFixed(2)} USDT\`\n\nYou can recharge or withdraw anytime from your Wallet dashboard.`;
         actions = [
           { label: 'Go to Wallet', type: 'navigate', payload: '/wallet' },
           { label: 'Deposit USDT', type: 'navigate', payload: '/wallet' }
@@ -196,8 +205,9 @@ class ChatService {
     ) {
       let refCodeInfo = '';
       if (userId) {
-        const refData = referralService.getReferralData(userId);
-        refCodeInfo = `\n\n🔗 **Your Referral Code:** \`${refData.referralCode}\`\n👥 **Total Team Members:** **${refData.totalTeamCount}**\n💰 **Total Commission Earned:** **$${refData.totalCommissionEarned.toFixed(2)} USDT**`;
+        const userRef = (currentUser as any)?.referralCode || currentUser?.username || userId;
+        const refSummary = referralService.getReferralSummary(userRef);
+        refCodeInfo = `\n\n🔗 **Your Referral Code:** \`${refSummary.referralCode}\`\n👥 **Total Team Members:** **${refSummary.totalMembersCount}**\n💰 **Total Commission Earned:** **$${refSummary.totalEarnings.toFixed(2)} USDT**`;
       }
 
       replyText = `👥 **3-Tier Referral Rewards Program:**\n\n• **Tier 1 (Direct Referrals):** Earn **10%** commission on recharge & trading.\n• **Tier 2 (Indirect Team):** Earn **5%** commission.\n• **Tier 3 (Sub-team):** Earn **2%** commission.\n\n🎁 Bonus: Get free Lucky Spin attempts for every team member who completes their first deposit!${refCodeInfo}`;
