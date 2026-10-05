@@ -488,12 +488,15 @@ export const walletService = {
 
       // 3. Query withdrawals table for this user
       let approvedWithdrawals: any[] = [];
+      let pendingWithdrawals: any[] = [];
       for (const id of idList) {
         const { data: wthList } = await supabase.from('withdrawals').select('*').eq('user_id', id);
         if (wthList && wthList.length > 0) {
           wthList.forEach(w => {
             if (w.status === 'APPROVED' || w.status === 'COMPLETED') {
               approvedWithdrawals.push(w);
+            } else if (w.status === 'PENDING') {
+              pendingWithdrawals.push(w);
             }
           });
         }
@@ -518,6 +521,7 @@ export const walletService = {
       // Aggregate transactions from both Supabase and Local Storage ledger
       const localTxs = this.getTransactions().filter(t => !t.userId || t.userId === userId || idList.includes(t.userId));
       let localProfits = 0;
+      let localPendingWthTotal = 0;
       localTxs.forEach(t => {
         const amt = typeof t.amount === 'number' ? t.amount : (parseFloat(t.amount as any) || 0);
         if (t.status === 'COMPLETED' || t.status === 'APPROVED') {
@@ -526,6 +530,8 @@ export const walletService = {
           } else if (t.type === 'ADMIN_DEBIT') {
             localProfits -= amt;
           }
+        } else if (t.type === 'WITHDRAWAL' && t.status === 'PENDING') {
+          localPendingWthTotal += amt;
         }
       });
 
@@ -533,7 +539,12 @@ export const walletService = {
       const totalApprovedDep = approvedDeposits.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
       const totalApprovedWth = approvedWithdrawals.reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
       const totalPendingDep = pendingDeposits.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      const totalPendingWth = Math.max(
+        pendingWithdrawals.reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0),
+        localPendingWthTotal
+      );
 
+      const netPending = Number((totalPendingDep + totalPendingWth).toFixed(4));
       const local = this.getWalletForUser(userId);
       const localAvailable = typeof local.availableBalance === 'number' && !isNaN(local.availableBalance) ? Math.max(0, local.availableBalance) : 0;
       const localPending = typeof local.pendingBalance === 'number' && !isNaN(local.pendingBalance) ? Math.max(0, local.pendingBalance) : 0;
@@ -543,23 +554,29 @@ export const walletService = {
       const rawDbTotal = parseFloat(dbWalletData?.total_balance);
       const rawDbPending = parseFloat(dbWalletData?.pending_balance);
 
-      const ledgerAvailable = Math.max(0, Number((totalApprovedDep + effectiveProfits - totalApprovedWth).toFixed(4)));
+      const ledgerAvailable = Math.max(0, Number((totalApprovedDep + effectiveProfits - totalApprovedWth - totalPendingWth).toFixed(4)));
 
       let availableBalance = localAvailable;
-      let pendingBalance = localPending > 0 ? localPending : totalPendingDep;
+      let pendingBalance = Math.max(localPending, netPending);
       let totalBalance = localTotal > 0 ? localTotal : Number((availableBalance + pendingBalance).toFixed(4));
       let shouldRepairDb = false;
 
       const hasValidDbRecord = dbWalletData && !isNaN(rawDbAvailable);
 
       if (hasValidDbRecord) {
-        if (rawDbAvailable > localAvailable) {
-          // Remote database has new approved deposits or direct admin credits
-          availableBalance = rawDbAvailable;
-          pendingBalance = !isNaN(rawDbPending) ? Math.max(0, rawDbPending) : pendingBalance;
+        // If DB available balance hasn't deducted pending withdrawals yet, adjust it
+        const effectiveDbAvail = totalPendingWth > 0 && rawDbPending === 0
+          ? Math.max(0, Number((rawDbAvailable - totalPendingWth).toFixed(4)))
+          : rawDbAvailable;
+
+        if (effectiveDbAvail > localAvailable && localAvailable === 0) {
+          availableBalance = effectiveDbAvail;
+          pendingBalance = !isNaN(rawDbPending) && rawDbPending > 0 ? rawDbPending : pendingBalance;
           totalBalance = !isNaN(rawDbTotal) ? Math.max(0, rawDbTotal) : Number((availableBalance + pendingBalance).toFixed(4));
-        } else if (localAvailable > rawDbAvailable) {
-          // Local state has recent reservation yields or spin wins -> Heal DB
+        } else if (localAvailable > 0) {
+          availableBalance = localAvailable;
+          pendingBalance = Math.max(localPending, netPending);
+          totalBalance = Number((availableBalance + pendingBalance).toFixed(4));
           shouldRepairDb = true;
         } else if (localAvailable === 0 && ledgerAvailable > 0) {
           availableBalance = ledgerAvailable;
@@ -914,6 +931,10 @@ export const walletService = {
       throw new Error('Please enter a valid withdrawal amount.');
     }
 
+    if (amount > wallet.availableBalance) {
+      throw new Error(`Insufficient available balance (${wallet.availableBalance.toFixed(2)} USDT).`);
+    }
+
     if (!address.trim()) {
       throw new Error('Please enter your recipient USDT wallet address.');
     }
@@ -986,7 +1007,7 @@ export const walletService = {
         address
       };
 
-      // Try background insert to Supabase withdrawals table
+      // Try background insert to Supabase withdrawals and wallets table
       if (isValidUuid(canonicalUserId)) {
         supabase.from('withdrawals').insert({
           user_id: canonicalUserId,
@@ -995,6 +1016,15 @@ export const walletService = {
           recipient_address: address.trim(),
           status: 'PENDING'
         }).then(() => {}, () => {});
+
+        supabase.from('wallets').upsert({
+          user_id: canonicalUserId,
+          available_balance: newAvail,
+          pending_balance: newPend,
+          total_balance: Number((newAvail + newPend).toFixed(4)),
+          currency: 'USDT',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' }).then(() => {}, () => {});
       }
     }
 
@@ -1496,37 +1526,84 @@ export const walletService = {
     cancelledTx: WalletTransaction;
   }> {
     const canonicalUserId = await this.resolveCanonicalUserId({ id: userId });
+    const local = this.getWalletForUser(canonicalUserId);
+    const existingTx = this.getTransactions().find(t => t.id === txId);
+    const refundAmt = existingTx ? existingTx.amount : 0;
 
-    const { data: rpcRes, error: rpcErr } = await supabase.rpc('cancel_withdrawal_request', {
-      p_withdrawal_id: txId,
-      p_user_id: canonicalUserId
-    });
+    let dbWallet: any = null;
+    let refundedAmount = refundAmt;
 
-    if (rpcErr || !rpcRes?.success) {
-      throw new Error(rpcErr?.message || 'Failed to cancel withdrawal');
+    try {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('cancel_withdrawal_request', {
+        p_withdrawal_id: txId,
+        p_user_id: canonicalUserId
+      });
+
+      if (!rpcErr && rpcRes?.success && rpcRes.wallet) {
+        dbWallet = rpcRes.wallet;
+        refundedAmount = rpcRes.refundedAmount || refundAmt;
+      } else {
+        throw new Error(rpcErr?.message || 'RPC fallback needed');
+      }
+    } catch {
+      // Fallback: update status in withdrawals table & wallets table directly
+      if (isValidUuid(canonicalUserId)) {
+        await supabase.from('withdrawals').update({
+          status: 'REJECTED',
+          admin_note: 'Cancelled and refunded by user',
+          updated_at: new Date().toISOString()
+        }).eq('id', txId);
+
+        const newAvail = Number((local.availableBalance + refundAmt).toFixed(4));
+        const newPend = Math.max(0, Number(((local.pendingBalance || 0) - refundAmt).toFixed(4)));
+
+        await supabase.from('wallets').upsert({
+          user_id: canonicalUserId,
+          available_balance: newAvail,
+          pending_balance: newPend,
+          total_balance: Number((newAvail + newPend).toFixed(4)),
+          currency: 'USDT',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      }
     }
 
-    const dbWallet = rpcRes.wallet;
+    const nextAvail = dbWallet ? (parseFloat(dbWallet.available_balance) || 0) : Number((local.availableBalance + refundedAmount).toFixed(4));
+    const nextPend = dbWallet ? (parseFloat(dbWallet.pending_balance) || 0) : Math.max(0, Number(((local.pendingBalance || 0) - refundedAmount).toFixed(4)));
+    const nextTot = dbWallet ? (parseFloat(dbWallet.total_balance) || 0) : Number((nextAvail + nextPend).toFixed(4));
+
     const syncedWallet: WalletState = {
-      ...this.getWalletForUser(canonicalUserId),
-      totalBalance: parseFloat(dbWallet.total_balance) || 0,
-      availableBalance: parseFloat(dbWallet.available_balance) || 0,
-      pendingBalance: parseFloat(dbWallet.pending_balance) || 0,
-      updatedAt: dbWallet.updated_at
+      ...local,
+      totalBalance: nextTot,
+      availableBalance: nextAvail,
+      pendingBalance: nextPend,
+      updatedAt: new Date().toISOString()
     };
     this.saveWalletForUser(canonicalUserId, syncedWallet);
 
     await this.syncTransactionsFromSupabase();
 
     const transactions = this.getTransactions();
-    const cancelledTx = transactions.find(t => t.id === txId) || {
+    const updatedTxs = transactions.map(t => {
+      if (t.id === txId) {
+        return {
+          ...t,
+          status: 'REJECTED' as TransactionStatus,
+          description: `Withdrawal Cancelled by User (Refunded ${refundedAmount} USDT)`
+        };
+      }
+      return t;
+    });
+    this.saveTransactions(updatedTxs);
+
+    const cancelledTx = updatedTxs.find(t => t.id === txId) || {
       id: txId,
-      userId,
+      userId: canonicalUserId,
       type: 'WITHDRAWAL' as TransactionType,
-      amount: rpcRes.refundedAmount || 0,
+      amount: refundedAmount,
       currency: 'USDT',
       status: 'REJECTED' as TransactionStatus,
-      description: `Withdrawal Cancelled by User (Refunded ${rpcRes.refundedAmount || 0} USDT)`,
+      description: `Withdrawal Cancelled by User (Refunded ${refundedAmount} USDT)`,
       referenceId: `WTH-${txId.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
       createdAt: new Date().toISOString()
     };
