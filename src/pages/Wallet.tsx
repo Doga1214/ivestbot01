@@ -30,7 +30,7 @@ export const Wallet: React.FC = () => {
         </Box>
 
         {/* Top Balances */}
-        <WalletSummary />
+        <WalletSummary onTabChange={setActiveTab} />
 
         {/* Star AI Balance Guardian & Predictive Forecaster */}
         <AiWalletGuardianCard />

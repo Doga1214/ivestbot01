@@ -696,16 +696,16 @@ export const WithdrawalPanel: React.FC = () => {
                 {/* Quick Selection Buttons */}
                 <Box sx={{ display: 'flex', gap: 1, mt: 1.5, flexWrap: 'wrap' }}>
                   <Chip
-                    label="50 USDT (Min)"
+                    label={`${minLimit} USDT (Min)`}
                     clickable
                     size="small"
-                    color={withdrawAmount === '50' ? 'success' : 'default'}
-                    onClick={() => handleQuickAmount(50)}
+                    color={withdrawAmount === String(minLimit) ? 'success' : 'default'}
+                    onClick={() => handleQuickAmount(minLimit)}
                     sx={{
                       fontWeight: 800,
-                      bgcolor: withdrawAmount === '50' ? undefined : 'rgba(16, 185, 129, 0.1)',
+                      bgcolor: withdrawAmount === String(minLimit) ? undefined : 'rgba(16, 185, 129, 0.1)',
                       border: '1px solid rgba(16, 185, 129, 0.3)',
-                      color: withdrawAmount === '50' ? '#fff' : '#34d399'
+                      color: withdrawAmount === String(minLimit) ? '#fff' : '#34d399'
                     }}
                   />
                   <Chip
@@ -826,7 +826,7 @@ export const WithdrawalPanel: React.FC = () => {
                   size="large"
                   fullWidth
                   startIcon={<ArrowUpwardIcon />}
-                  disabled={wallet.availableBalance < minLimit || isRestricted || numAmount < minLimit}
+                  disabled={wallet.availableBalance < minLimit || isRestricted || numAmount < minLimit || numAmount > wallet.availableBalance}
                   sx={{
                     py: 1.5,
                     fontWeight: 900,

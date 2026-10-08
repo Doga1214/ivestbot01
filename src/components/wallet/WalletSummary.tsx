@@ -1,17 +1,24 @@
 import React from 'react';
-import { Card, CardContent, Typography, Box } from '@mui/material';
+import { Card, CardContent, Typography, Box, Button, Chip } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import {
   AccountBalanceWalletIcon,
   CheckCircleOutlineIcon,
   PendingActionsIcon,
   ShieldIcon,
-  AutoAwesomeIcon
+  AutoAwesomeIcon,
+  ArrowDownwardIcon,
+  ArrowUpwardIcon,
+  TrendingUpIcon
 } from '../common/Icons';
 import { useApp } from '../../context/AppContext';
 import { formatUSDT } from '../../utils/formatters';
 
-export const WalletSummary: React.FC = () => {
+interface WalletSummaryProps {
+  onTabChange?: (index: number) => void;
+}
+
+export const WalletSummary: React.FC<WalletSummaryProps> = ({ onTabChange }) => {
   const { wallet } = useApp();
 
   return (
@@ -20,30 +27,48 @@ export const WalletSummary: React.FC = () => {
         background: 'linear-gradient(145deg, #111522 0%, #171B2A 100%)',
         border: '1px solid rgba(139, 92, 246, 0.25)',
         boxShadow: '0 16px 40px rgba(0, 0, 0, 0.4)',
-        mb: 3.5
+        borderRadius: 4,
+        mb: 3.5,
+        position: 'relative',
+        overflow: 'hidden'
       }}
     >
+      {/* Background ambient lighting */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: -40,
+          right: -40,
+          width: 180,
+          height: 180,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(139, 92, 246, 0.18) 0%, transparent 70%)',
+          pointerEvents: 'none'
+        }}
+      />
+
       <CardContent sx={{ p: { xs: 2, sm: 3, md: 3.5 } }}>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Box
               sx={{
-                width: { xs: 38, sm: 44 },
-                height: { xs: 38, sm: 44 },
+                width: { xs: 40, sm: 46 },
+                height: { xs: 40, sm: 46 },
                 borderRadius: 2.5,
                 background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#fff',
-                flexShrink: 0
+                flexShrink: 0,
+                boxShadow: '0 4px 20px rgba(139, 92, 246, 0.4)'
               }}
             >
               <AccountBalanceWalletIcon fontSize="medium" />
             </Box>
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="h5" sx={{ fontWeight: 800, fontSize: { xs: '1.15rem', sm: '1.4rem' } }}>
+                <Typography variant="h5" sx={{ fontWeight: 900, fontSize: { xs: '1.15rem', sm: '1.4rem' } }}>
                   USDT Financial Wallet
                 </Typography>
                 <Box sx={{ display: { xs: 'none', md: 'inline-flex' }, alignItems: 'center', gap: 0.5, px: 1, py: 0.2, borderRadius: 1.5, bgcolor: 'rgba(139, 92, 246, 0.15)', border: '1px solid rgba(139, 92, 246, 0.3)', color: '#c084fc', fontSize: '0.7rem', fontWeight: 800 }}>
@@ -57,38 +82,39 @@ export const WalletSummary: React.FC = () => {
             </Box>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, alignSelf: { xs: 'flex-start', sm: 'center' } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, alignSelf: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap' }}>
             <Box sx={{ px: 1.5, py: 0.5, borderRadius: 2, bgcolor: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#34d399', fontWeight: 800, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 0.6 }}>
               <ShieldIcon sx={{ fontSize: 14 }} />
               <span>FAIL-SAFE ACTIVE</span>
             </Box>
             {wallet.status === 'INACTIVE' && (
-              <Box sx={{ px: 1.5, py: 0.5, borderRadius: 2, bgcolor: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', color: '#f87171', fontWeight: 800, fontSize: '0.75rem' }}>
-                WALLET INACTIVE
-              </Box>
+              <Chip size="small" label="WALLET INACTIVE" sx={{ bgcolor: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', color: '#f87171', fontWeight: 800, fontSize: '0.75rem' }} />
             )}
             {wallet.status === 'FROZEN' && (
-              <Box sx={{ px: 1.5, py: 0.5, borderRadius: 2, bgcolor: 'rgba(245, 158, 11, 0.15)', border: '1px solid #f59e0b', color: '#fbbf24', fontWeight: 800, fontSize: '0.75rem' }}>
-                WALLET FROZEN
-              </Box>
+              <Chip size="small" label="WALLET FROZEN" sx={{ bgcolor: 'rgba(245, 158, 11, 0.15)', border: '1px solid #f59e0b', color: '#fbbf24', fontWeight: 800, fontSize: '0.75rem' }} />
             )}
             {wallet.status === 'RESTRICTED' && (
-              <Box sx={{ px: 1.5, py: 0.5, borderRadius: 2, bgcolor: 'rgba(168, 85, 247, 0.15)', border: '1px solid #a855f7', color: '#c084fc', fontWeight: 800, fontSize: '0.75rem' }}>
-                CUSTOM RESTRICTIONS
-              </Box>
+              <Chip size="small" label="RESTRICTED" sx={{ bgcolor: 'rgba(168, 85, 247, 0.15)', border: '1px solid #a855f7', color: '#c084fc', fontWeight: 800, fontSize: '0.75rem' }} />
             )}
             {wallet.status === 'ACTIVE' && (
-              <Box sx={{ px: 1.5, py: 0.5, borderRadius: 2, bgcolor: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#34d399', fontWeight: 800, fontSize: '0.75rem' }}>
-                WALLET ACTIVE
-              </Box>
+              <Chip size="small" label="WALLET ACTIVE" sx={{ bgcolor: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#34d399', fontWeight: 800, fontSize: '0.75rem' }} />
             )}
           </Box>
         </Box>
 
         <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
-          {/* Card 1: Total Balance */}
+          {/* Card 1: Total Net Balance */}
           <Grid size={{ xs: 12, sm: 4 }}>
-            <Box sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 3, bgcolor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+            <Box
+              sx={{
+                p: { xs: 2, sm: 2.5 },
+                borderRadius: 3,
+                bgcolor: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                transition: 'all 0.2s ease',
+                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.05)' }
+              }}
+            >
               <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'flex', alignItems: 'center', gap: 0.5, mb: 1, fontSize: '0.78rem' }}>
                 <AccountBalanceWalletIcon sx={{ fontSize: 16, color: '#a78bfa' }} />
                 <span>Total Net Balance</span>
@@ -104,7 +130,16 @@ export const WalletSummary: React.FC = () => {
 
           {/* Card 2: Available Balance */}
           <Grid size={{ xs: 12, sm: 4 }}>
-            <Box sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 3, bgcolor: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+            <Box
+              sx={{
+                p: { xs: 2, sm: 2.5 },
+                borderRadius: 3,
+                bgcolor: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                transition: 'all 0.2s ease',
+                '&:hover': { bgcolor: 'rgba(16, 185, 129, 0.12)' }
+              }}
+            >
               <Typography variant="caption" sx={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: 0.5, mb: 1, fontSize: '0.78rem' }}>
                 <CheckCircleOutlineIcon sx={{ fontSize: 16, color: '#34d399' }} />
                 <span>Available Balance</span>
@@ -113,14 +148,23 @@ export const WalletSummary: React.FC = () => {
                 {formatUSDT(wallet.availableBalance)}
               </Typography>
               <Typography variant="caption" sx={{ color: '#10b981', fontSize: '0.72rem' }}>
-                Ready to mine & reserve
+                Ready to mine & cashout
               </Typography>
             </Box>
           </Grid>
 
-          {/* Card 3: Pending Balance (Admin Verification) */}
+          {/* Card 3: Pending Balance */}
           <Grid size={{ xs: 12, sm: 4 }}>
-            <Box sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 3, bgcolor: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
+            <Box
+              sx={{
+                p: { xs: 2, sm: 2.5 },
+                borderRadius: 3,
+                bgcolor: 'rgba(245, 158, 11, 0.08)',
+                border: '1px solid rgba(245, 158, 11, 0.25)',
+                transition: 'all 0.2s ease',
+                '&:hover': { bgcolor: 'rgba(245, 158, 11, 0.12)' }
+              }}
+            >
               <Typography variant="caption" sx={{ color: '#fbbf24', display: 'flex', alignItems: 'center', gap: 0.5, mb: 1, fontSize: '0.78rem' }}>
                 <PendingActionsIcon sx={{ fontSize: 16, color: '#fbbf24' }} />
                 <span>Pending Verification</span>
