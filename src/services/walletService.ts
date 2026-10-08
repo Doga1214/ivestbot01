@@ -504,6 +504,7 @@ export const walletService = {
 
       // 4. Query wallet_transactions table for profits / adjustments
       let totalProfits = 0;
+      let totalDebits = 0;
       for (const id of idList) {
         const { data: txList } = await supabase.from('wallet_transactions').select('*').eq('user_id', id);
         if (txList && txList.length > 0) {
@@ -512,7 +513,7 @@ export const walletService = {
             if (t.type === 'DAILY_PROFIT' || t.type === 'WELCOME_BONUS' || t.type === 'REFERRAL_BONUS' || t.type === 'SPIN_REWARD' || t.type === 'ADMIN_CREDIT') {
               totalProfits += amt;
             } else if (t.type === 'ADMIN_DEBIT') {
-              totalProfits -= amt;
+              totalDebits += amt;
             }
           });
         }
@@ -521,6 +522,7 @@ export const walletService = {
       // Aggregate transactions from both Supabase and Local Storage ledger
       const localTxs = this.getTransactions().filter(t => !t.userId || t.userId === userId || idList.includes(t.userId));
       let localProfits = 0;
+      let localDebits = 0;
       let localPendingWthTotal = 0;
       localTxs.forEach(t => {
         const amt = typeof t.amount === 'number' ? t.amount : (parseFloat(t.amount as any) || 0);
@@ -528,7 +530,7 @@ export const walletService = {
           if (t.type === 'DAILY_PROFIT' || t.type === 'WELCOME_BONUS' || t.type === 'REFERRAL_BONUS' || t.type === 'SPIN_REWARD' || t.type === 'ADMIN_CREDIT') {
             localProfits += amt;
           } else if (t.type === 'ADMIN_DEBIT') {
-            localProfits -= amt;
+            localDebits += amt;
           }
         } else if (t.type === 'WITHDRAWAL' && t.status === 'PENDING') {
           localPendingWthTotal += amt;
@@ -536,6 +538,7 @@ export const walletService = {
       });
 
       const effectiveProfits = Math.max(totalProfits, localProfits);
+      const effectiveDebits = Math.max(totalDebits, localDebits);
       const totalApprovedDep = approvedDeposits.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
       const totalApprovedWth = approvedWithdrawals.reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
       const totalPendingDep = pendingDeposits.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
@@ -554,7 +557,7 @@ export const walletService = {
       const rawDbTotal = parseFloat(dbWalletData?.total_balance);
       const rawDbPending = parseFloat(dbWalletData?.pending_balance);
 
-      const ledgerAvailable = Math.max(0, Number((totalApprovedDep + effectiveProfits - totalApprovedWth - totalPendingWth).toFixed(4)));
+      const ledgerAvailable = Math.max(0, Number((totalApprovedDep + effectiveProfits - effectiveDebits - totalApprovedWth - totalPendingWth).toFixed(4)));
 
       let availableBalance = localAvailable;
       let pendingBalance = Math.max(localPending, netPending);
@@ -1670,23 +1673,34 @@ export const walletService = {
     updatedWallet: WalletState;
     tx: WalletTransaction;
   }> {
-    const userId = userMeta?.id;
-    let wallet = userId ? this.getWalletForUser(userId) : this.getWallet();
-
-    if (userId && isValidUuid(userId)) {
+    let targetUserId = userMeta?.id || '';
+    let canonicalUserId = targetUserId;
+    if (targetUserId) {
       try {
-        const { data: dbW } = await supabase.from('wallets').select('*').eq('user_id', userId).maybeSingle();
+        const resolved = await this.resolveCanonicalUserId(userMeta || { id: targetUserId });
+        if (resolved && isValidUuid(resolved)) {
+          canonicalUserId = resolved;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    let wallet = targetUserId ? this.getWalletForUser(targetUserId) : this.getWallet();
+
+    if (canonicalUserId && isValidUuid(canonicalUserId)) {
+      try {
+        const { data: dbW } = await supabase.from('wallets').select('*').eq('user_id', canonicalUserId).maybeSingle();
         if (dbW && !isNaN(parseFloat(dbW.available_balance))) {
-          const dbTime = dbW.updated_at ? new Date(dbW.updated_at).getTime() : 0;
-          const localTime = wallet.updatedAt ? new Date(wallet.updatedAt).getTime() : 0;
-          if (dbTime >= localTime) {
-            wallet = {
-              ...wallet,
-              availableBalance: parseFloat(dbW.available_balance),
-              totalBalance: parseFloat(dbW.total_balance) || parseFloat(dbW.available_balance),
-              pendingBalance: parseFloat(dbW.pending_balance) || 0
-            };
-          }
+          const dbAvail = parseFloat(dbW.available_balance);
+          const dbTotal = parseFloat(dbW.total_balance) || dbAvail;
+          const dbPend = parseFloat(dbW.pending_balance) || 0;
+          wallet = {
+            ...wallet,
+            availableBalance: dbAvail,
+            totalBalance: dbTotal,
+            pendingBalance: dbPend
+          };
         }
       } catch {
         // ignore
@@ -1703,17 +1717,21 @@ export const walletService = {
       updatedAt: new Date().toISOString()
     };
 
-    if (userId) {
-      this.saveWalletForUser(userId, updatedWallet);
-    } else {
+    if (targetUserId) {
+      this.saveWalletForUser(targetUserId, updatedWallet);
+    }
+    if (canonicalUserId && canonicalUserId !== targetUserId) {
+      this.saveWalletForUser(canonicalUserId, updatedWallet);
+    }
+    if (!targetUserId && !canonicalUserId) {
       this.saveWallet(updatedWallet);
     }
 
     // Persist immediately to Supabase database so Admin and User live data match 100%
-    if (userId && isValidUuid(userId)) {
+    if (canonicalUserId && isValidUuid(canonicalUserId)) {
       try {
         await supabase.from('wallets').upsert({
-          user_id: userId,
+          user_id: canonicalUserId,
           available_balance: newAvailable,
           total_balance: newTotal,
           pending_balance: updatedWallet.pendingBalance || 0,
@@ -1722,7 +1740,7 @@ export const walletService = {
         }, { onConflict: 'user_id' });
 
         await supabase.from('wallet_transactions').insert({
-          user_id: userId,
+          user_id: canonicalUserId,
           type: 'ADMIN_CREDIT',
           amount,
           currency: 'USDT',
@@ -1736,9 +1754,9 @@ export const walletService = {
       }
     }
 
-    if (userId) {
+    if (targetUserId || canonicalUserId) {
       this.recordSnapshot({
-        userId,
+        userId: targetUserId || canonicalUserId,
         userName: userMeta?.name,
         userEmail: userMeta?.email,
         before: { available: wallet.availableBalance, total: wallet.totalBalance, pending: wallet.pendingBalance },
@@ -1750,7 +1768,7 @@ export const walletService = {
     }
 
     const tx = this.addTransaction({
-      userId,
+      userId: targetUserId || canonicalUserId,
       userName: userMeta?.name,
       userEmail: userMeta?.email,
       type: 'ADMIN_CREDIT',
@@ -1763,8 +1781,15 @@ export const walletService = {
     });
 
     try {
-      window.dispatchEvent(new CustomEvent('ivestbot_wallet_updated', { detail: { userId, wallet: updatedWallet } }));
-      window.dispatchEvent(new Event('storage'));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ivestbot_wallet_updated', { detail: { userId: targetUserId || canonicalUserId, wallet: updatedWallet } }));
+        if (typeof BroadcastChannel !== 'undefined') {
+          const bc = new BroadcastChannel('ivestbot_realtime_sync');
+          bc.postMessage({ type: 'WALLET_UPDATED', payload: { userId: targetUserId || canonicalUserId, wallet: updatedWallet } });
+          bc.close();
+        }
+        window.dispatchEvent(new Event('storage'));
+      }
     } catch {
       // ignore
     }
@@ -1773,29 +1798,40 @@ export const walletService = {
   },
 
   /**
-   * Admin Manual Debit
+   * Admin Manual Debit (Deducts directly from user wallet)
    */
   async adminDebit(amount: number, reason: string, userMeta?: { id?: string; name?: string; email?: string }): Promise<{
     updatedWallet: WalletState;
     tx: WalletTransaction;
   }> {
-    const userId = userMeta?.id;
-    let wallet = userId ? this.getWalletForUser(userId) : this.getWallet();
-
-    if (userId && isValidUuid(userId)) {
+    let targetUserId = userMeta?.id || '';
+    let canonicalUserId = targetUserId;
+    if (targetUserId) {
       try {
-        const { data: dbW } = await supabase.from('wallets').select('*').eq('user_id', userId).maybeSingle();
+        const resolved = await this.resolveCanonicalUserId(userMeta || { id: targetUserId });
+        if (resolved && isValidUuid(resolved)) {
+          canonicalUserId = resolved;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    let wallet = targetUserId ? this.getWalletForUser(targetUserId) : this.getWallet();
+
+    if (canonicalUserId && isValidUuid(canonicalUserId)) {
+      try {
+        const { data: dbW } = await supabase.from('wallets').select('*').eq('user_id', canonicalUserId).maybeSingle();
         if (dbW && !isNaN(parseFloat(dbW.available_balance))) {
-          const dbTime = dbW.updated_at ? new Date(dbW.updated_at).getTime() : 0;
-          const localTime = wallet.updatedAt ? new Date(wallet.updatedAt).getTime() : 0;
-          if (dbTime >= localTime) {
-            wallet = {
-              ...wallet,
-              availableBalance: parseFloat(dbW.available_balance),
-              totalBalance: parseFloat(dbW.total_balance) || parseFloat(dbW.available_balance),
-              pendingBalance: parseFloat(dbW.pending_balance) || 0
-            };
-          }
+          const dbAvail = parseFloat(dbW.available_balance);
+          const dbTotal = parseFloat(dbW.total_balance) || dbAvail;
+          const dbPend = parseFloat(dbW.pending_balance) || 0;
+          wallet = {
+            ...wallet,
+            availableBalance: dbAvail,
+            totalBalance: dbTotal,
+            pendingBalance: dbPend
+          };
         }
       } catch {
         // ignore
@@ -1812,17 +1848,21 @@ export const walletService = {
       updatedAt: new Date().toISOString()
     };
 
-    if (userId) {
-      this.saveWalletForUser(userId, updatedWallet);
-    } else {
+    if (targetUserId) {
+      this.saveWalletForUser(targetUserId, updatedWallet);
+    }
+    if (canonicalUserId && canonicalUserId !== targetUserId) {
+      this.saveWalletForUser(canonicalUserId, updatedWallet);
+    }
+    if (!targetUserId && !canonicalUserId) {
       this.saveWallet(updatedWallet);
     }
 
     // Persist immediately to Supabase database so Admin and User live data match 100%
-    if (userId && isValidUuid(userId)) {
+    if (canonicalUserId && isValidUuid(canonicalUserId)) {
       try {
         await supabase.from('wallets').upsert({
-          user_id: userId,
+          user_id: canonicalUserId,
           available_balance: newAvailable,
           total_balance: newTotal,
           pending_balance: updatedWallet.pendingBalance || 0,
@@ -1831,7 +1871,7 @@ export const walletService = {
         }, { onConflict: 'user_id' });
 
         await supabase.from('wallet_transactions').insert({
-          user_id: userId,
+          user_id: canonicalUserId,
           type: 'ADMIN_DEBIT',
           amount,
           currency: 'USDT',
@@ -1845,9 +1885,9 @@ export const walletService = {
       }
     }
 
-    if (userId) {
+    if (targetUserId || canonicalUserId) {
       this.recordSnapshot({
-        userId,
+        userId: targetUserId || canonicalUserId,
         userName: userMeta?.name,
         userEmail: userMeta?.email,
         before: { available: wallet.availableBalance, total: wallet.totalBalance, pending: wallet.pendingBalance },
@@ -1859,7 +1899,7 @@ export const walletService = {
     }
 
     const tx = this.addTransaction({
-      userId,
+      userId: targetUserId || canonicalUserId,
       userName: userMeta?.name,
       userEmail: userMeta?.email,
       type: 'ADMIN_DEBIT',
@@ -1872,8 +1912,15 @@ export const walletService = {
     });
 
     try {
-      window.dispatchEvent(new CustomEvent('ivestbot_wallet_updated', { detail: { userId, wallet: updatedWallet } }));
-      window.dispatchEvent(new Event('storage'));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ivestbot_wallet_updated', { detail: { userId: targetUserId || canonicalUserId, wallet: updatedWallet } }));
+        if (typeof BroadcastChannel !== 'undefined') {
+          const bc = new BroadcastChannel('ivestbot_realtime_sync');
+          bc.postMessage({ type: 'WALLET_UPDATED', payload: { userId: targetUserId || canonicalUserId, wallet: updatedWallet } });
+          bc.close();
+        }
+        window.dispatchEvent(new Event('storage'));
+      }
     } catch {
       // ignore
     }

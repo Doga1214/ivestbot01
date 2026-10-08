@@ -541,14 +541,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const adminCreditUser = async (userId: string, amount: number, reason: string) => {
     const res = await adminService.creditUserWallet(userId, amount, reason);
-    refreshWallet();
+    if (user && user.id === userId) {
+      setWallet(res.updatedWallet);
+    }
+    await refreshWallet();
     showSnackbar(`Successfully credited +${amount.toFixed(2)} USDT to user wallet!`, 'success');
     return res;
   };
 
   const adminDebitUser = async (userId: string, amount: number, reason: string) => {
     const res = await adminService.debitUserWallet(userId, amount, reason);
-    refreshWallet();
+    if (user && user.id === userId) {
+      setWallet(res.updatedWallet);
+    }
+    await refreshWallet();
     showSnackbar(`Successfully debited -${amount.toFixed(2)} USDT from user wallet!`, 'info');
     return res;
   };
